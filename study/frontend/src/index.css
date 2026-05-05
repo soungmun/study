@@ -1,11 +1,14 @@
 :root {
   font-family: 'Inter', 'Pretendard', system-ui, 'Segoe UI', Roboto, sans-serif;
   font-size: 16px;
-  color: #0f172a;
+  color: #1e1b4b;
   background:
-    radial-gradient(1200px 600px at 10% -10%, rgba(99, 102, 241, 0.15), transparent 60%),
-    radial-gradient(900px 500px at 100% 0%, rgba(14, 165, 233, 0.12), transparent 60%),
-    #f8fafc;
+    radial-gradient(900px 500px at 0% 0%, rgba(236, 72, 153, 0.18), transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, rgba(59, 130, 246, 0.18), transparent 60%),
+    radial-gradient(800px 500px at 100% 100%, rgba(16, 185, 129, 0.16), transparent 60%),
+    radial-gradient(800px 500px at 0% 100%, rgba(249, 115, 22, 0.16), transparent 60%),
+    #fdfcff;
+  background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

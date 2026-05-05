@@ -10,6 +10,10 @@ function formatViews(n) {
   return n;
 }
 
+function badgeClass(id) {
+  return `id-badge c${(Number(id) || 0) % 6}`;
+}
+
 export default function NoticeList({ notices, onSelect, onNew }) {
   return (
     <div className="card">
@@ -20,7 +24,7 @@ export default function NoticeList({ notices, onSelect, onNew }) {
       <table className="notice-table">
         <thead>
           <tr>
-            <th style={{ width: 60 }}>번호</th>
+            <th style={{ width: 70 }}>번호</th>
             <th>제목</th>
             <th style={{ width: 120 }} className="hide-sm">작성자</th>
             <th style={{ width: 170 }} className="hide-sm">작성일</th>
@@ -35,7 +39,7 @@ export default function NoticeList({ notices, onSelect, onNew }) {
           )}
           {notices.map((n) => (
             <tr key={n.id} onClick={() => onSelect(n.id)} className="row">
-              <td className="id">{n.id}</td>
+              <td><span className={badgeClass(n.id)}>{n.id}</span></td>
               <td className="title">{n.title}</td>
               <td className="author hide-sm">{n.author}</td>
               <td className="date hide-sm">{formatDate(n.createdAt)}</td>
