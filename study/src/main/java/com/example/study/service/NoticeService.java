@@ -2,11 +2,10 @@ package com.example.study.service;
 
 import com.example.study.entity.Notice;
 import com.example.study.repository.NoticeRepository;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Service
 @Transactional(readOnly = true)
@@ -18,8 +17,8 @@ public class NoticeService {
         this.noticeRepository = noticeRepository;
     }
 
-    public List<Notice> findAll() {
-        return noticeRepository.findAll(Sort.by(Sort.Direction.ASC, "id"));
+    public Page<Notice> findAll(Pageable pageable) {
+        return noticeRepository.findAll(pageable);
     }
 
     @Transactional

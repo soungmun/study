@@ -343,6 +343,29 @@ button.ghost:hover:not(:disabled) {
   font-size: 14px;
 }
 
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.pagination button {
+  min-width: 36px;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pagination .page-num.active {
+  background: linear-gradient(135deg, #ec4899 0%, #a855f7 50%, #6366f1 100%);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 6px 16px -8px rgba(168, 85, 247, 0.6);
+}
+
 @media (max-width: 640px) {
   .container {
     padding: 24px 14px 60px;
