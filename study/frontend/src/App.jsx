@@ -2,71 +2,69 @@ import { useEffect, useState } from 'react';
 import NoticeList from './components/NoticeList';
 import NoticeForm from './components/NoticeForm';
 import NoticeDetail from './components/NoticeDetail';
-import {
-  fetchNotices,
-  fetchNotice,
-  createNotice,
-  updateNotice,
-  deleteNotice,
-} from './api/notice';
 import './App.css';
 
-const VIEW = {
-  LIST: 'list',
-  DETAIL: 'detail',
-  CREATE: 'create',
-  EDIT: 'edit',
-};
+const BASE_URL = 'http://localhost:8080/api/notices';
+
+async function api(method, path = '', body) {
+  const res = await fetch(BASE_URL + path, {
+    method,
+    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
 
 export default function App() {
-  const [view, setView] = useState(VIEW.LIST);
+  const [view, setView] = useState('list');
   const [notices, setNotices] = useState([]);
   const [selected, setSelected] = useState(null);
   const [error, setError] = useState(null);
 
-  const loadList = async () => {
+  const refresh = async () => {
+    setNotices(await api('GET'));
+    setSelected(null);
+    setView('list');
+  };
+
+  const run = async (label, fn) => {
     try {
-      const data = await fetchNotices();
-      setNotices(data);
+      await fn();
       setError(null);
     } catch (e) {
       setError(e.message);
+      alert(`${label} 실패: ${e.message}`);
     }
   };
 
-  useEffect(() => {
-    loadList();
-  }, []);
+  useEffect(() => { run('목록', refresh); }, []);
 
-  const openDetail = async (id) => {
-    try {
-      const data = await fetchNotice(id);
-      setSelected(data);
-      setView(VIEW.DETAIL);
-    } catch (e) {
-      setError(e.message);
-    }
-  };
+  const open = (id) => run('조회', async () => {
+    setSelected(await api('GET', `/${id}`));
+    setView('detail');
+  });
 
-  const handleCreate = async (data) => {
-    await createNotice(data);
-    await loadList();
-    setView(VIEW.LIST);
-  };
+  const create = (data) => run('등록', async () => {
+    await api('POST', '', data);
+    alert('등록되었습니다.');
+    await refresh();
+  });
 
-  const handleUpdate = async (data) => {
-    const updated = await updateNotice(selected.id, data);
-    setSelected(updated);
-    await loadList();
-    setView(VIEW.DETAIL);
-  };
+  const update = (data) => run('수정', async () => {
+    await api('PUT', `/${selected.id}`, data);
+    alert('수정되었습니다.');
+    await refresh();
+  });
 
-  const handleDelete = async () => {
+  const remove = () => {
     if (!confirm('정말 삭제하시겠습니까?')) return;
-    await deleteNotice(selected.id);
-    setSelected(null);
-    await loadList();
-    setView(VIEW.LIST);
+    run('삭제', async () => {
+      await api('DELETE', `/${selected.id}`);
+      alert('삭제되었습니다.');
+      await refresh();
+    });
   };
 
   return (
@@ -78,33 +76,22 @@ export default function App() {
         </div>
       </header>
       {error && <div className="error">에러: {error}</div>}
-      {view === VIEW.LIST && (
-        <NoticeList
-          notices={notices}
-          onSelect={openDetail}
-          onNew={() => setView(VIEW.CREATE)}
-        />
+      {view === 'list' && (
+        <NoticeList notices={notices} onSelect={open} onNew={() => setView('create')} />
       )}
-      {view === VIEW.DETAIL && selected && (
+      {view === 'detail' && selected && (
         <NoticeDetail
           notice={selected}
-          onBack={() => setView(VIEW.LIST)}
-          onEdit={() => setView(VIEW.EDIT)}
-          onDelete={handleDelete}
+          onBack={() => setView('list')}
+          onEdit={() => setView('edit')}
+          onDelete={remove}
         />
       )}
-      {view === VIEW.CREATE && (
-        <NoticeForm
-          onSubmit={handleCreate}
-          onCancel={() => setView(VIEW.LIST)}
-        />
+      {view === 'create' && (
+        <NoticeForm onSubmit={create} onCancel={() => setView('list')} />
       )}
-      {view === VIEW.EDIT && selected && (
-        <NoticeForm
-          initial={selected}
-          onSubmit={handleUpdate}
-          onCancel={() => setView(VIEW.DETAIL)}
-        />
+      {view === 'edit' && selected && (
+        <NoticeForm initial={selected} onSubmit={update} onCancel={() => setView('list')} />
       )}
     </div>
   );
