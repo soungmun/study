@@ -5,8 +5,9 @@ async function handle(res) {
     const text = await res.text();
     throw new Error(text || `Request failed: ${res.status}`);
   }
-  if (res.status === 204) return null;
-  return res.json();
+  if (res.status === 204 || res.headers.get('content-length') === '0') return null;
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
 }
 
 export function fetchNotices() {

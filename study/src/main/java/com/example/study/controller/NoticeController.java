@@ -2,7 +2,6 @@ package com.example.study.controller;
 
 import com.example.study.entity.Notice;
 import com.example.study.service.NoticeService;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -12,7 +11,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.net.URI;
 import java.util.List;
 
 @RestController
@@ -36,9 +34,8 @@ public class NoticeController {
     }
 
     @PostMapping
-    public ResponseEntity<Notice> create(@RequestBody Notice request) {
-        Notice created = noticeService.create(request);
-        return ResponseEntity.created(URI.create("/api/notices/" + created.getId())).body(created);
+    public Notice create(@RequestBody Notice request) {
+        return noticeService.create(request);
     }
 
     @PutMapping("/{id}")
@@ -47,8 +44,7 @@ public class NoticeController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public void delete(@PathVariable Long id) {
         noticeService.delete(id);
-        return ResponseEntity.noContent().build();
     }
 }

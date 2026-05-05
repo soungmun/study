@@ -19,7 +19,7 @@ public class NoticeService {
     }
 
     public List<Notice> findAll() {
-        return noticeRepository.findAll(Sort.by(Sort.Direction.DESC, "id"));
+        return noticeRepository.findAll(Sort.by(Sort.Direction.ASC, "id"));
     }
 
     @Transactional
