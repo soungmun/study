@@ -2,11 +2,10 @@ package com.example.study.service;
 
 import com.example.study.entity.Notice;
 import com.example.study.repository.NoticeRepository;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Service
 @Transactional(readOnly = true)
@@ -18,8 +17,8 @@ public class NoticeService {
         this.noticeRepository = noticeRepository;
     }
 
-    public List<Notice> findAll() {
-        return noticeRepository.findAll(Sort.by(Sort.Direction.ASC, "id"));
+    public Page<Notice> findAll(Pageable pageable) {
+        return noticeRepository.findAll(pageable);
     }
 
     @Transactional
@@ -39,9 +38,11 @@ public class NoticeService {
     @Transactional
     public Notice update(Long id, Notice request) {
         Notice notice = noticeRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다. id=" + id));
-        notice.update(request.getAuthor(), request.getTitle(), request.getContent());
-        return notice;
+                .orElse(new Notice());
+        notice.setAuthor(request.getAuthor());
+        notice.setTitle(request.getTitle());
+        notice.setContent(request.getContent());
+        return noticeRepository.save(notice);
     }
 
     @Transactional
