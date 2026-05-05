@@ -7,11 +7,17 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "notice")
+@Getter
+@Setter
+@NoArgsConstructor
 public class Notice {
 
     @Id
@@ -30,8 +36,8 @@ public class Notice {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    protected Notice() {
-    }
+    @Column(name = "view_count", nullable = false)
+    private long viewCount;
 
     public Notice(String author, String title, String content) {
         this.author = author;
@@ -52,23 +58,7 @@ public class Notice {
         this.content = content;
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public String getAuthor() {
-        return author;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public String getContent() {
-        return content;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
+    public void increaseViewCount() {
+        this.viewCount++;
     }
 }

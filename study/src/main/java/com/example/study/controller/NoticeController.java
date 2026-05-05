@@ -1,7 +1,6 @@
 package com.example.study.controller;
 
-import com.example.study.dto.NoticeRequest;
-import com.example.study.dto.NoticeResponse;
+import com.example.study.entity.Notice;
 import com.example.study.service.NoticeService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -27,23 +26,23 @@ public class NoticeController {
     }
 
     @GetMapping
-    public List<NoticeResponse> list() {
+    public List<Notice> list() {
         return noticeService.findAll();
     }
 
     @GetMapping("/{id}")
-    public NoticeResponse get(@PathVariable Long id) {
+    public Notice get(@PathVariable Long id) {
         return noticeService.findById(id);
     }
 
     @PostMapping
-    public ResponseEntity<NoticeResponse> create(@RequestBody NoticeRequest request) {
-        NoticeResponse created = noticeService.create(request);
+    public ResponseEntity<Notice> create(@RequestBody Notice request) {
+        Notice created = noticeService.create(request);
         return ResponseEntity.created(URI.create("/api/notices/" + created.getId())).body(created);
     }
 
     @PutMapping("/{id}")
-    public NoticeResponse update(@PathVariable Long id, @RequestBody NoticeRequest request) {
+    public Notice update(@PathVariable Long id, @RequestBody Notice request) {
         return noticeService.update(id, request);
     }
 

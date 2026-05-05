@@ -4,34 +4,42 @@ function formatDate(value) {
   return d.toLocaleString();
 }
 
+function formatViews(n) {
+  if (n == null) return 0;
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+  return n;
+}
+
 export default function NoticeList({ notices, onSelect, onNew }) {
   return (
     <div className="card">
       <div className="toolbar">
         <h2>공지사항</h2>
-        <button onClick={onNew}>글쓰기</button>
+        <button className="primary" onClick={onNew}>+ 글쓰기</button>
       </div>
       <table className="notice-table">
         <thead>
           <tr>
             <th style={{ width: 60 }}>번호</th>
             <th>제목</th>
-            <th style={{ width: 120 }}>작성자</th>
-            <th style={{ width: 180 }}>작성일</th>
+            <th style={{ width: 120 }} className="hide-sm">작성자</th>
+            <th style={{ width: 170 }} className="hide-sm">작성일</th>
+            <th style={{ width: 80 }}>조회</th>
           </tr>
         </thead>
         <tbody>
           {notices.length === 0 && (
             <tr>
-              <td colSpan="4" className="empty">등록된 글이 없습니다.</td>
+              <td colSpan="5" className="empty">등록된 글이 없습니다.</td>
             </tr>
           )}
           {notices.map((n) => (
             <tr key={n.id} onClick={() => onSelect(n.id)} className="row">
-              <td>{n.id}</td>
+              <td className="id">{n.id}</td>
               <td className="title">{n.title}</td>
-              <td>{n.author}</td>
-              <td>{formatDate(n.createdAt)}</td>
+              <td className="author hide-sm">{n.author}</td>
+              <td className="date hide-sm">{formatDate(n.createdAt)}</td>
+              <td className="views">{formatViews(n.viewCount)}</td>
             </tr>
           ))}
         </tbody>

@@ -71,7 +71,12 @@ export default function App() {
 
   return (
     <div className="container">
-      <h1>게시판</h1>
+      <header className="page-header">
+        <div>
+          <h1>게시판</h1>
+          <div className="subtitle">함께 나누는 공지와 이야기</div>
+        </div>
+      </header>
       {error && <div className="error">에러: {error}</div>}
       {view === VIEW.LIST && (
         <NoticeList

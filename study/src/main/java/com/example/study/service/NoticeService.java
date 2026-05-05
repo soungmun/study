@@ -1,7 +1,5 @@
 package com.example.study.service;
 
-import com.example.study.dto.NoticeRequest;
-import com.example.study.dto.NoticeResponse;
 import com.example.study.entity.Notice;
 import com.example.study.repository.NoticeRepository;
 import org.springframework.data.domain.Sort;
@@ -20,31 +18,30 @@ public class NoticeService {
         this.noticeRepository = noticeRepository;
     }
 
-    public List<NoticeResponse> findAll() {
-        return noticeRepository.findAll(Sort.by(Sort.Direction.DESC, "id"))
-                .stream()
-                .map(NoticeResponse::new)
-                .toList();
+    public List<Notice> findAll() {
+        return noticeRepository.findAll(Sort.by(Sort.Direction.DESC, "id"));
     }
 
-    public NoticeResponse findById(Long id) {
+    @Transactional
+    public Notice findById(Long id) {
         Notice notice = noticeRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다. id=" + id));
-        return new NoticeResponse(notice);
+        notice.increaseViewCount();
+        return notice;
     }
 
     @Transactional
-    public NoticeResponse create(NoticeRequest request) {
+    public Notice create(Notice request) {
         Notice notice = new Notice(request.getAuthor(), request.getTitle(), request.getContent());
-        return new NoticeResponse(noticeRepository.save(notice));
+        return noticeRepository.save(notice);
     }
 
     @Transactional
-    public NoticeResponse update(Long id, NoticeRequest request) {
+    public Notice update(Long id, Notice request) {
         Notice notice = noticeRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다. id=" + id));
         notice.update(request.getAuthor(), request.getTitle(), request.getContent());
-        return new NoticeResponse(notice);
+        return notice;
     }
 
     @Transactional

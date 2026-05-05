@@ -1,44 +1,76 @@
 .container {
-  max-width: 960px;
+  max-width: 1024px;
   margin: 0 auto;
-  padding: 32px 16px;
-  font-family: system-ui, sans-serif;
+  padding: 48px 20px 80px;
+  font-family: inherit;
 }
 
-h1 {
-  margin: 0 0 24px;
+.page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+
+.page-header h1 {
+  margin: 0;
+  font-size: 30px;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, #4f46e5 0%, #0ea5e9 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.page-header .subtitle {
+  color: #64748b;
+  font-size: 14px;
+  margin-top: 6px;
 }
 
 .card {
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 24px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 12px 32px -16px rgba(15, 23, 42, 0.12);
 }
 
 .toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .toolbar h2 {
   margin: 0;
+  font-size: 20px;
+  letter-spacing: -0.01em;
 }
 
 button {
-  padding: 8px 16px;
-  border: 1px solid #cbd5e1;
-  background: #f8fafc;
-  border-radius: 6px;
+  padding: 9px 16px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  border-radius: 10px;
   cursor: pointer;
   font-size: 14px;
+  font-weight: 500;
+  color: #0f172a;
+  transition: transform 0.05s ease, background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 button:hover:not(:disabled) {
-  background: #e2e8f0;
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+button:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 button:disabled {
@@ -46,109 +78,230 @@ button:disabled {
   cursor: not-allowed;
 }
 
+button.primary {
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 6px 18px -8px rgba(79, 70, 229, 0.6);
+}
+
+button.primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #4338ca, #4f46e5);
+}
+
 button.danger {
-  background: #fee2e2;
-  border-color: #fca5a5;
+  background: #fff;
+  border-color: #fecaca;
   color: #b91c1c;
 }
 
 button.danger:hover:not(:disabled) {
-  background: #fecaca;
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+
+button.ghost {
+  background: transparent;
+  border-color: transparent;
+  color: #475569;
+}
+
+button.ghost:hover:not(:disabled) {
+  background: #f1f5f9;
+  color: #0f172a;
 }
 
 .notice-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 14px;
 }
 
 .notice-table th,
 .notice-table td {
-  padding: 10px 12px;
-  border-bottom: 1px solid #e2e8f0;
+  padding: 14px 14px;
   text-align: left;
+  border-bottom: 1px solid #eef2f7;
 }
 
 .notice-table thead th {
-  background: #f8fafc;
+  background: transparent;
+  color: #64748b;
   font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .notice-table tr.row {
   cursor: pointer;
+  transition: background 0.12s ease;
 }
 
-.notice-table tr.row:hover {
-  background: #f1f5f9;
+.notice-table tr.row:hover td {
+  background: #f8fafc;
+}
+
+.notice-table .id {
+  color: #94a3b8;
+  font-variant-numeric: tabular-nums;
 }
 
 .notice-table .title {
-  font-weight: 500;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.notice-table .author {
+  color: #475569;
+}
+
+.notice-table .date {
+  color: #64748b;
+  font-variant-numeric: tabular-nums;
+}
+
+.notice-table .views {
+  color: #475569;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
 }
 
 .notice-table .empty {
   text-align: center;
   color: #94a3b8;
-  padding: 32px 0;
+  padding: 56px 0;
+  font-size: 14px;
 }
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
 }
 
 .form label {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  font-size: 14px;
-  font-weight: 500;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
 }
 
 .form input,
 .form textarea {
-  padding: 10px 12px;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
+  padding: 11px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
   font-size: 14px;
   font-family: inherit;
+  background: #fff;
+  color: #0f172a;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.form input:focus,
+.form textarea:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
 }
 
 .form textarea {
   resize: vertical;
+  min-height: 200px;
 }
 
 .actions {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: 16px;
+  margin-top: 8px;
+}
+
+.detail-header {
+  margin-bottom: 18px;
+}
+
+.detail-header h2 {
+  margin: 0 0 10px;
+  font-size: 24px;
+  letter-spacing: -0.01em;
 }
 
 .meta {
   display: flex;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 8px;
   color: #64748b;
   font-size: 13px;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: #f1f5f9;
+  border-radius: 999px;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.chip.author {
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.chip.views {
+  background: #ecfeff;
+  color: #0e7490;
 }
 
 .content {
   white-space: pre-wrap;
   font-family: inherit;
-  font-size: 14px;
-  min-height: 200px;
-  margin: 0;
+  font-size: 15px;
+  line-height: 1.7;
+  min-height: 220px;
+  margin: 0 0 24px;
+  color: #1e293b;
 }
 
 .error {
-  background: #fee2e2;
+  background: #fef2f2;
   color: #b91c1c;
-  border: 1px solid #fca5a5;
-  border-radius: 6px;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
   padding: 12px 16px;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
+  font-size: 14px;
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: 24px 14px 60px;
+  }
+
+  .card {
+    padding: 20px;
+    border-radius: 14px;
+  }
+
+  .notice-table th,
+  .notice-table td {
+    padding: 12px 8px;
+    font-size: 13px;
+  }
+
+  .hide-sm {
+    display: none;
+  }
 }
