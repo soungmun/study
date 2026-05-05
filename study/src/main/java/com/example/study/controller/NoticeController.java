@@ -2,6 +2,7 @@ package com.example.study.controller;
 
 import com.example.study.entity.Notice;
 import com.example.study.service.NoticeService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -34,12 +35,12 @@ public class NoticeController {
     }
 
     @PostMapping
-    public Notice create(@RequestBody Notice request) {
+    public Notice create(@Valid @RequestBody Notice request) {
         return noticeService.create(request);
     }
 
     @PutMapping("/{id}")
-    public Notice update(@PathVariable Long id, @RequestBody Notice request) {
+    public Notice update(@PathVariable Long id, @Valid @RequestBody Notice request) {
         return noticeService.update(id, request);
     }
 

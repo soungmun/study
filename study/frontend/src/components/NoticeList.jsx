@@ -1,7 +1,11 @@
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+const BASE_URL = 'http://localhost:8080/api/notices';
+
 function formatDate(value) {
   if (!value) return '';
-  const d = new Date(value);
-  return d.toLocaleString();
+  return new Date(value).toLocaleString();
 }
 
 function formatViews(n) {
@@ -14,13 +18,28 @@ function badgeClass(id) {
   return `id-badge c${(Number(id) || 0) % 6}`;
 }
 
-export default function NoticeList({ notices, onSelect, onNew }) {
+export default function NoticeList() {
+  const navigate = useNavigate();
+  const [notices, setNotices] = useState([]);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetch(BASE_URL)
+      .then(async (r) => {
+        if (!r.ok) throw new Error(await r.text());
+        return r.json();
+      })
+      .then(setNotices)
+      .catch((e) => setError(e.message));
+  }, []);
+
   return (
     <div className="card">
       <div className="toolbar">
         <h2>공지사항</h2>
-        <button className="primary" onClick={onNew}>+ 글쓰기</button>
+        <button className="primary" onClick={() => navigate('/notices/new')}>+ 글쓰기</button>
       </div>
+      {error && <div className="error">에러: {error}</div>}
       <table className="notice-table">
         <thead>
           <tr>
@@ -33,12 +52,10 @@ export default function NoticeList({ notices, onSelect, onNew }) {
         </thead>
         <tbody>
           {notices.length === 0 && (
-            <tr>
-              <td colSpan="5" className="empty">등록된 글이 없습니다.</td>
-            </tr>
+            <tr><td colSpan="5" className="empty">등록된 글이 없습니다.</td></tr>
           )}
           {notices.map((n) => (
-            <tr key={n.id} onClick={() => onSelect(n.id)} className="row">
+            <tr key={n.id} onClick={() => navigate(`/notices/${n.id}`)} className="row">
               <td><span className={badgeClass(n.id)}>{n.id}</span></td>
               <td className="title">{n.title}</td>
               <td className="author hide-sm">{n.author}</td>
