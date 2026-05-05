@@ -1,5 +1,6 @@
 package com.example.study.entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -40,6 +41,7 @@ public class Notice {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -67,5 +69,12 @@ public class Notice {
 
     public void increaseViewCount() {
         this.viewCount++;
+    }
+
+    public String getViewCountText() {
+        if (viewCount >= 1000) {
+            return String.format("%.1fk", viewCount / 1000.0);
+        }
+        return String.valueOf(viewCount);
     }
 }

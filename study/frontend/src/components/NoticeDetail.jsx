@@ -3,11 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 const BASE_URL = 'http://localhost:8080/api/notices';
 
-function formatDate(value) {
-  if (!value) return '';
-  return new Date(value).toLocaleString();
-}
-
 async function readError(res) {
   const text = await res.text();
   try { return JSON.parse(text).message || text; } catch { return text || `HTTP ${res.status}`; }
@@ -50,8 +45,8 @@ export default function NoticeDetail() {
       </div>
       <div className="meta">
         <span className="chip author">작성자 · {notice.author}</span>
-        <span className="chip date">{formatDate(notice.createdAt)}</span>
-        <span className="chip views">조회 {notice.viewCount ?? 0}</span>
+        <span className="chip date">{notice.createdAt}</span>
+        <span className="chip views">조회 {notice.viewCountText}</span>
       </div>
       <pre className="content">{notice.content}</pre>
       <div className="actions">

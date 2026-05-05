@@ -3,19 +3,8 @@ import { useNavigate } from 'react-router-dom';
 
 const BASE_URL = 'http://localhost:8080/api/notices';
 
-function formatDate(value) {
-  if (!value) return '';
-  return new Date(value).toLocaleString();
-}
-
-function formatViews(n) {
-  if (n == null) return 0;
-  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
-  return n;
-}
-
-function badgeClass(id) {
-  return `id-badge c${(Number(id) || 0) % 6}`;
+function badgeClass(n) {
+  return `id-badge c${(Number(n) || 0) % 6}`;
 }
 
 export default function NoticeList() {
@@ -54,15 +43,18 @@ export default function NoticeList() {
           {notices.length === 0 && (
             <tr><td colSpan="5" className="empty">등록된 글이 없습니다.</td></tr>
           )}
-          {notices.map((n) => (
-            <tr key={n.id} onClick={() => navigate(`/notices/${n.id}`)} className="row">
-              <td><span className={badgeClass(n.id)}>{n.id}</span></td>
-              <td className="title">{n.title}</td>
-              <td className="author hide-sm">{n.author}</td>
-              <td className="date hide-sm">{formatDate(n.createdAt)}</td>
-              <td className="views">{formatViews(n.viewCount)}</td>
-            </tr>
-          ))}
+          {notices.map((n, i) => {
+            const seq = i + 1;
+            return (
+              <tr key={n.id} onClick={() => navigate(`/notices/${n.id}`)} className="row">
+                <td><span className={badgeClass(seq)}>{seq}</span></td>
+                <td className="title">{n.title}</td>
+                <td className="author hide-sm">{n.author}</td>
+                <td className="date hide-sm">{n.createdAt}</td>
+                <td className="views">{n.viewCountText}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
