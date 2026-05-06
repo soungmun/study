@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -27,8 +28,11 @@ public class NoticeController {
     }
 
     @GetMapping
-    public Page<Notice> list(@PageableDefault(size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable) {
-        return noticeService.findAll(pageable);
+    public Page<Notice> list(
+            @RequestParam(required = false, defaultValue = "title") String type,
+            @RequestParam(required = false) String keyword,
+            @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable) {
+        return noticeService.search(type, keyword, pageable);
     }
 
     @GetMapping("/{id}")

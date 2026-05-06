@@ -21,6 +21,16 @@ public class NoticeService {
         return noticeRepository.findAll(pageable);
     }
 
+    public Page<Notice> search(String type, String keyword, Pageable pageable) {
+        if (keyword == null || keyword.isBlank()) {
+            return noticeRepository.findAll(pageable);
+        }
+        if ("content".equalsIgnoreCase(type)) {
+            return noticeRepository.findByContentContaining(keyword, pageable);
+        }
+        return noticeRepository.findByTitleContaining(keyword, pageable);
+    }
+
     @Transactional
     public Notice findById(Long id) {
         Notice notice = noticeRepository.findById(id)

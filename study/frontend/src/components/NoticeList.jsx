@@ -9,23 +9,49 @@ function badgeClass(n) {
 }
 
 const PAGE_KEY = 'noticeListPage';
+const TYPE_KEY = 'noticeListType';
+const KEYWORD_KEY = 'noticeListKeyword';
 
 export default function NoticeList() {
   const navigate = useNavigate();
   const [page, setPage] = useState(null);
   const [pageNo, setPageNo] = useState(() => Number(sessionStorage.getItem(PAGE_KEY) ?? 0));
+  const [type, setType] = useState(() => sessionStorage.getItem(TYPE_KEY) ?? 'title');
+  const [keyword, setKeyword] = useState(() => sessionStorage.getItem(KEYWORD_KEY) ?? '');
+  const [searchTerm, setSearchTerm] = useState(() => sessionStorage.getItem(KEYWORD_KEY) ?? '');
   const [error, setError] = useState(null);
 
   useEffect(() => {
     sessionStorage.setItem(PAGE_KEY, String(pageNo));
-    fetch(`${BASE_URL}?page=${pageNo}&size=${PAGE_SIZE}`)
+    sessionStorage.setItem(TYPE_KEY, type);
+    sessionStorage.setItem(KEYWORD_KEY, searchTerm);
+    const params = new URLSearchParams({
+      page: String(pageNo),
+      size: String(PAGE_SIZE),
+      type,
+    });
+    if (searchTerm.trim()) params.set('keyword', searchTerm.trim());
+    fetch(`${BASE_URL}?${params.toString()}`)
       .then(async (r) => {
         if (!r.ok) throw new Error(await r.text());
         return r.json();
       })
       .then(setPage)
       .catch((e) => setError(e.message));
-  }, [pageNo]);
+  }, [pageNo, type, searchTerm]);
+
+  const onSearch = (e) => {
+    e.preventDefault();
+    setPageNo(0);
+    setSearchTerm(keyword);
+  };
+
+  const onReset = () => {
+    setKeyword('');
+    setSearchTerm('');
+    setType('title');
+    setPageNo(0);
+  };
 
   const notices = page?.content ?? [];
   const totalPages = page?.totalPages ?? 0;
@@ -38,6 +64,23 @@ export default function NoticeList() {
         <h2>공지사항</h2>
         <button className="primary" onClick={() => navigate('/notices/new')}>+ 글쓰기</button>
       </div>
+      <form className="search-bar" onSubmit={onSearch}>
+        <select value={type} onChange={(e) => setType(e.target.value)} className="search-select">
+          <option value="title">제목</option>
+          <option value="content">내용</option>
+        </select>
+        <input
+          type="text"
+          className="search-input"
+          placeholder="검색어를 입력하세요"
+          value={keyword}
+          onChange={(e) => setKeyword(e.target.value)}
+        />
+        <button type="submit" className="primary">검색</button>
+        {searchTerm && (
+          <button type="button" className="ghost" onClick={onReset}>초기화</button>
+        )}
+      </form>
       {error && <div className="error">에러: {error}</div>}
       <table className="notice-table">
         <thead>
@@ -51,7 +94,9 @@ export default function NoticeList() {
         </thead>
         <tbody>
           {notices.length === 0 && (
-            <tr><td colSpan="5" className="empty">등록된 글이 없습니다.</td></tr>
+            <tr><td colSpan="5" className="empty">
+              {searchTerm ? '검색 결과가 없습니다.' : '등록된 글이 없습니다.'}
+            </td></tr>
           )}
           {notices.map((n, i) => {
             const seq = pageNo * PAGE_SIZE + i + 1;
