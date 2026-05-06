@@ -18,11 +18,15 @@ function loadKakao() {
   });
 }
 
+const CUSTOM_ID = '__custom__';
+
 export default function MapSearch() {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
   const markersRef = useRef([]);
   const infoWindowRef = useRef(null);
+  const customMarkerRef = useRef(null);
+  const geocoderRef = useRef(null);
 
   const [kakaoReady, setKakaoReady] = useState(false);
   const [kakaoError, setKakaoError] = useState(null);
@@ -33,6 +37,63 @@ export default function MapSearch() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
+  const [customPlace, setCustomPlace] = useState(null);
+
+  const reverseGeocode = (lat, lng, fallbackName) => {
+    const kakao = window.kakao;
+    if (!geocoderRef.current && kakao?.maps?.services) {
+      geocoderRef.current = new kakao.maps.services.Geocoder();
+    }
+    const geocoder = geocoderRef.current;
+    if (!geocoder) {
+      setCustomPlace({
+        id: CUSTOM_ID,
+        place_name: fallbackName ?? '선택한 위치',
+        category_name: '지도에서 선택한 좌표',
+        category_group_name: '커스텀 핀',
+        road_address_name: '',
+        address_name: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+        x: String(lng),
+        y: String(lat),
+      });
+      return;
+    }
+    geocoder.coord2Address(lng, lat, (res, status) => {
+      const ok = status === kakao.maps.services.Status.OK && res?.[0];
+      const r = ok ? res[0] : null;
+      const buildingName = r?.road_address?.building_name;
+      const placeName = buildingName || fallbackName || '선택한 위치';
+      setCustomPlace({
+        id: CUSTOM_ID,
+        place_name: placeName,
+        category_name: '지도에서 선택한 좌표',
+        category_group_name: buildingName ? '건물' : '커스텀 핀',
+        road_address_name: r?.road_address?.address_name || '',
+        address_name: r?.address?.address_name || `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+        x: String(lng),
+        y: String(lat),
+      });
+    });
+  };
+
+  const placeCustomMarker = (lat, lng, fallbackName) => {
+    const kakao = window.kakao;
+    const map = mapInstance.current;
+    if (!kakao || !map) return;
+    const pos = new kakao.maps.LatLng(lat, lng);
+    if (customMarkerRef.current) {
+      customMarkerRef.current.setMap(null);
+    }
+    const marker = new kakao.maps.Marker({
+      position: pos,
+      map,
+      zIndex: 10,
+    });
+    customMarkerRef.current = marker;
+    setSelectedId(CUSTOM_ID);
+    map.panTo(pos);
+    reverseGeocode(lat, lng, fallbackName);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -45,7 +106,15 @@ export default function MapSearch() {
         });
         mapInstance.current = map;
         infoWindowRef.current = new kakao.maps.InfoWindow({ removable: true });
+        if (kakao.maps.services) {
+          geocoderRef.current = new kakao.maps.services.Geocoder();
+        }
+        kakao.maps.event.addListener(map, 'click', (mouseEvent) => {
+          const latlng = mouseEvent.latLng;
+          placeCustomMarker(latlng.getLat(), latlng.getLng());
+        });
         setKakaoReady(true);
+        placeCustomMarker(DEFAULT_CENTER.lat, DEFAULT_CENTER.lng, '서울 시청');
       })
       .catch((e) => setKakaoError(e.message));
     return () => { cancelled = true; };
@@ -92,6 +161,12 @@ export default function MapSearch() {
 
     const docs = result?.documents ?? [];
     if (docs.length === 0) return;
+
+    if (customMarkerRef.current) {
+      customMarkerRef.current.setMap(null);
+      customMarkerRef.current = null;
+    }
+    setCustomPlace(null);
 
     const bounds = new kakao.maps.LatLngBounds();
     docs.forEach((p) => {
@@ -153,6 +228,7 @@ export default function MapSearch() {
       const kakao = window.kakao;
       mapInstance.current.setCenter(new kakao.maps.LatLng(DEFAULT_CENTER.lat, DEFAULT_CENTER.lng));
       mapInstance.current.setLevel(5);
+      placeCustomMarker(DEFAULT_CENTER.lat, DEFAULT_CENTER.lng, '서울 시청');
     }
   };
 
@@ -238,8 +314,124 @@ export default function MapSearch() {
             </>
           )}
         </div>
-        <div className="map-canvas" ref={mapRef} />
+        <div className="map-canvas-wrap">
+          <div className="map-canvas" ref={mapRef} />
+          <div className="map-hint">🖱 지도를 클릭하면 그 위치의 주소가 오른쪽에 표시돼요</div>
+        </div>
+        <PlaceDetail
+          place={
+            selectedId === CUSTOM_ID
+              ? customPlace
+              : documents.find((d) => d.id === selectedId) ?? null
+          }
+        />
       </div>
     </div>
+  );
+}
+
+function PlaceDetail({ place }) {
+  if (!place) {
+    return (
+      <aside className="place-detail place-detail-empty">
+        <div className="book-empty-icon">🗺️</div>
+        <p>지도 마커나 목록을 클릭하면<br />상세 정보가 여기에 표시돼요</p>
+      </aside>
+    );
+  }
+
+  const categoryParts = (place.category_name || '').split('>').map((s) => s.trim()).filter(Boolean);
+  const group = place.category_group_name;
+  const lastCat = categoryParts[categoryParts.length - 1];
+  const summary = group || lastCat || '카테고리 정보 없음';
+  const distance = place.distance ? `${Number(place.distance).toLocaleString()}m` : null;
+
+  const region = (() => {
+    const src = place.address_name || place.road_address_name || '';
+    const tokens = src.split(/\s+/).filter(Boolean);
+    return tokens.slice(0, 2).join(' ');
+  })();
+
+  const descriptor = (() => {
+    const kind = group || lastCat;
+    if (!kind && !region) return null;
+    if (region && kind) return `${region}에 위치한 ${kind}이에요.`;
+    if (kind) return `${kind} 카테고리의 장소예요.`;
+    return `${region}에 위치한 장소예요.`;
+  })();
+
+  return (
+    <aside className="place-detail">
+      <div className="place-detail-header">
+        <div className="place-detail-name">{place.place_name}</div>
+        <div className="place-detail-summary">{summary}</div>
+      </div>
+
+      <div className="place-detail-body">
+        {(categoryParts.length > 0 || group || region || descriptor) && (
+          <div className="place-detail-row place-detail-row-block">
+            <span className="place-detail-label">🏷️ 분류</span>
+            <div className="place-detail-value place-detail-info">
+              <div className="place-detail-info-tags">
+                {group && <span className="info-tag info-tag-primary">{group}</span>}
+                {region && <span className="info-tag">📍 {region}</span>}
+              </div>
+              {categoryParts.length > 0 && (
+                <div className="place-detail-info-path">
+                  {categoryParts.map((c, i) => (
+                    <span key={i}>
+                      {i > 0 && <span className="info-sep">›</span>}
+                      <span>{c}</span>
+                    </span>
+                  ))}
+                </div>
+              )}
+              {descriptor && (
+                <div className="place-detail-info-desc">{descriptor}</div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {place.road_address_name && (
+          <div className="place-detail-row">
+            <span className="place-detail-label">📮 도로명</span>
+            <span className="place-detail-value">{place.road_address_name}</span>
+          </div>
+        )}
+
+        {place.address_name && place.address_name !== place.road_address_name && (
+          <div className="place-detail-row">
+            <span className="place-detail-label">🏠 지번</span>
+            <span className="place-detail-value">{place.address_name}</span>
+          </div>
+        )}
+
+        {place.phone && (
+          <div className="place-detail-row">
+            <span className="place-detail-label">📞 전화</span>
+            <a className="place-detail-value link" href={`tel:${place.phone}`}>{place.phone}</a>
+          </div>
+        )}
+
+        {distance && (
+          <div className="place-detail-row">
+            <span className="place-detail-label">📏 거리</span>
+            <span className="place-detail-value">{distance}</span>
+          </div>
+        )}
+      </div>
+
+      {place.place_url && (
+        <a
+          className="place-detail-link"
+          href={place.place_url}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          카카오맵에서 자세히 보기 →
+        </a>
+      )}
+    </aside>
   );
 }

@@ -5,6 +5,7 @@ import NoticeCreate from './components/NoticeCreate';
 import NoticeEdit from './components/NoticeEdit';
 import BookSearch from './components/BookSearch';
 import MapSearch from './components/MapSearch';
+import AuthBar from './components/AuthBar';
 import './App.css';
 
 export default function App() {
@@ -25,6 +26,7 @@ export default function App() {
           <NavLink to="/map" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
             지도
           </NavLink>
+          <AuthBar />
         </nav>
       </header>
       <Routes>
