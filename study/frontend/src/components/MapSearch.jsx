@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 const BASE_URL = 'http://localhost:8080/api/places/search';
 const PAGE_SIZE = 15;
-const DEFAULT_CENTER = { lat: 37.566826, lng: 126.9786567 }; // 서울 시청
+const DEFAULT_CENTER = { lat: 37.4892775, lng: 126.7246513 }; // 부평역
 
 function loadKakao() {
   return new Promise((resolve, reject) => {
@@ -20,6 +20,11 @@ function loadKakao() {
 
 const CUSTOM_ID = '__custom__';
 
+const POI_CATEGORIES = [
+  'FD6', 'CE7', 'CS2', 'BK9', 'HP8', 'PM9',
+  'CT1', 'AT4', 'SW8', 'AD5', 'MT1', 'PO3', 'SC4', 'OL7',
+];
+
 export default function MapSearch() {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
@@ -27,6 +32,7 @@ export default function MapSearch() {
   const infoWindowRef = useRef(null);
   const customMarkerRef = useRef(null);
   const geocoderRef = useRef(null);
+  const placesRef = useRef(null);
 
   const [kakaoReady, setKakaoReady] = useState(false);
   const [kakaoError, setKakaoError] = useState(null);
@@ -39,37 +45,89 @@ export default function MapSearch() {
   const [selectedId, setSelectedId] = useState(null);
   const [customPlace, setCustomPlace] = useState(null);
 
+  const findNearestPlace = (lat, lng) =>
+    new Promise((resolve) => {
+      const kakao = window.kakao;
+      if (!kakao?.maps?.services?.Places) {
+        resolve(null);
+        return;
+      }
+      if (!placesRef.current) {
+        placesRef.current = new kakao.maps.services.Places();
+      }
+      const places = placesRef.current;
+      const opts = {
+        location: new kakao.maps.LatLng(lat, lng),
+        radius: 80,
+        sort: kakao.maps.services.SortBy.DISTANCE,
+      };
+      let pending = POI_CATEGORIES.length;
+      let best = null;
+      POI_CATEGORIES.forEach((code) => {
+        places.categorySearch(
+          code,
+          (data, status) => {
+            if (status === kakao.maps.services.Status.OK && data?.[0]) {
+              const cand = data[0];
+              const candDist = Number(cand.distance ?? Infinity);
+              const bestDist = best ? Number(best.distance ?? Infinity) : Infinity;
+              if (candDist < bestDist) best = cand;
+            }
+            if (--pending === 0) resolve(best);
+          },
+          opts
+        );
+      });
+    });
+
   const reverseGeocode = (lat, lng, fallbackName) => {
     const kakao = window.kakao;
     if (!geocoderRef.current && kakao?.maps?.services) {
       geocoderRef.current = new kakao.maps.services.Geocoder();
     }
-    const geocoder = geocoderRef.current;
-    if (!geocoder) {
-      setCustomPlace({
-        id: CUSTOM_ID,
-        place_name: fallbackName ?? '선택한 위치',
-        category_name: '지도에서 선택한 좌표',
-        category_group_name: '커스텀 핀',
-        road_address_name: '',
-        address_name: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
-        x: String(lng),
-        y: String(lat),
+
+    const coord2AddressPromise = new Promise((resolve) => {
+      const geocoder = geocoderRef.current;
+      if (!geocoder) {
+        resolve(null);
+        return;
+      }
+      geocoder.coord2Address(lng, lat, (res, status) => {
+        const ok = status === kakao.maps.services.Status.OK && res?.[0];
+        resolve(ok ? res[0] : null);
       });
-      return;
-    }
-    geocoder.coord2Address(lng, lat, (res, status) => {
-      const ok = status === kakao.maps.services.Status.OK && res?.[0];
-      const r = ok ? res[0] : null;
-      const buildingName = r?.road_address?.building_name;
-      const placeName = buildingName || fallbackName || '선택한 위치';
+    });
+
+    Promise.all([findNearestPlace(lat, lng), coord2AddressPromise]).then(([poi, addr]) => {
+      const buildingName = addr?.road_address?.building_name;
+      const roadAddr = addr?.road_address?.address_name || '';
+      const jibunAddr = addr?.address?.address_name || '';
+      const coordText = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+
+      if (poi) {
+        setCustomPlace({
+          id: CUSTOM_ID,
+          place_name: poi.place_name,
+          category_name: poi.category_name || '지도에서 선택한 위치',
+          category_group_name: poi.category_group_name || '근처 장소',
+          road_address_name: poi.road_address_name || roadAddr,
+          address_name: poi.address_name || jibunAddr || coordText,
+          phone: poi.phone,
+          place_url: poi.place_url,
+          x: String(lng),
+          y: String(lat),
+        });
+        return;
+      }
+
+      const placeName = buildingName || fallbackName || roadAddr || jibunAddr || coordText;
       setCustomPlace({
         id: CUSTOM_ID,
         place_name: placeName,
         category_name: '지도에서 선택한 좌표',
         category_group_name: buildingName ? '건물' : '커스텀 핀',
-        road_address_name: r?.road_address?.address_name || '',
-        address_name: r?.address?.address_name || `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+        road_address_name: roadAddr,
+        address_name: jibunAddr || coordText,
         x: String(lng),
         y: String(lat),
       });
@@ -114,7 +172,7 @@ export default function MapSearch() {
           placeCustomMarker(latlng.getLat(), latlng.getLng());
         });
         setKakaoReady(true);
-        placeCustomMarker(DEFAULT_CENTER.lat, DEFAULT_CENTER.lng, '서울 시청');
+        placeCustomMarker(DEFAULT_CENTER.lat, DEFAULT_CENTER.lng, '부평역');
       })
       .catch((e) => setKakaoError(e.message));
     return () => { cancelled = true; };
@@ -228,7 +286,7 @@ export default function MapSearch() {
       const kakao = window.kakao;
       mapInstance.current.setCenter(new kakao.maps.LatLng(DEFAULT_CENTER.lat, DEFAULT_CENTER.lng));
       mapInstance.current.setLevel(5);
-      placeCustomMarker(DEFAULT_CENTER.lat, DEFAULT_CENTER.lng, '서울 시청');
+      placeCustomMarker(DEFAULT_CENTER.lat, DEFAULT_CENTER.lng, '부평역');
     }
   };
 
