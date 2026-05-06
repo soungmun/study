@@ -123,19 +123,26 @@ export default function AuthBar() {
       >
         회원가입
       </button>
-      <button type="button" className="kakao-login-btn" onClick={onKakaoLogin}>
-        <span className="kakao-login-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 22" width="18" height="16" fill="currentColor">
-            <path d="M12 0C5.373 0 0 4.262 0 9.52c0 3.348 2.182 6.292 5.477 7.96l-1.142 4.18c-.103.376.32.677.652.466l4.91-3.244c.69.07 1.39.108 2.103.108 6.627 0 12-4.262 12-9.52C24 4.262 18.627 0 12 0z" />
-          </svg>
-        </span>
-        카카오
-      </button>
+      {!mode && (
+        <button type="button" className="kakao-login-btn" onClick={onKakaoLogin}>
+          <span className="kakao-login-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 22" width="18" height="16" fill="currentColor">
+              <path d="M12 0C5.373 0 0 4.262 0 9.52c0 3.348 2.182 6.292 5.477 7.96l-1.142 4.18c-.103.376.32.677.652.466l4.91-3.244c.69.07 1.39.108 2.103.108 6.627 0 12-4.262 12-9.52C24 4.262 18.627 0 12 0z" />
+            </svg>
+          </span>
+          카카오
+        </button>
+      )}
 
       {mode && (
         <form className="auth-popover" onSubmit={onSubmit}>
           <div className="auth-popover-title">
             {mode === 'signup' ? '회원가입' : '로그인'}
+          </div>
+          <div className="auth-popover-subtitle">
+            {mode === 'signup'
+              ? '아이디와 비밀번호로 새 계정을 만들어요'
+              : '아이디 비밀번호로 로그인하세요'}
           </div>
           <input
             type="text"
@@ -162,8 +169,33 @@ export default function AuthBar() {
           )}
           {formError && <div className="auth-popover-error">{formError}</div>}
           <button type="submit" className="auth-popover-submit" disabled={submitting}>
-            {submitting ? '처리 중…' : (mode === 'signup' ? '가입하기' : '로그인')}
+            {submitting ? '처리 중…' : (mode === 'signup' ? '가입하고 시작하기' : '로그인')}
           </button>
+          <div className="auth-popover-divider">또는</div>
+          <button
+            type="button"
+            className="kakao-login-btn auth-popover-kakao"
+            onClick={onKakaoLogin}
+          >
+            <span className="kakao-login-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 22" width="18" height="16" fill="currentColor">
+                <path d="M12 0C5.373 0 0 4.262 0 9.52c0 3.348 2.182 6.292 5.477 7.96l-1.142 4.18c-.103.376.32.677.652.466l4.91-3.244c.69.07 1.39.108 2.103.108 6.627 0 12-4.262 12-9.52C24 4.262 18.627 0 12 0z" />
+              </svg>
+            </span>
+            카카오로 {mode === 'signup' ? '가입' : '로그인'}
+          </button>
+          <div className="auth-popover-switch">
+            {mode === 'signup' ? '이미 계정이 있나요?' : '아직 계정이 없나요?'}{' '}
+            <button
+              type="button"
+              onClick={() => {
+                setMode(mode === 'signup' ? 'login' : 'signup');
+                setFormError(null);
+              }}
+            >
+              {mode === 'signup' ? '로그인' : '회원가입'}
+            </button>
+          </div>
         </form>
       )}
     </div>
