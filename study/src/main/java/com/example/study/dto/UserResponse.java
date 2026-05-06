@@ -5,6 +5,7 @@ import com.example.study.entity.User;
 public record UserResponse(
         Long id,
         Long kakaoId,
+        String username,
         String nickname,
         String profileImage,
         String email
@@ -13,6 +14,7 @@ public record UserResponse(
         return new UserResponse(
                 user.getId(),
                 user.getKakaoId(),
+                user.getUsername(),
                 user.getNickname(),
                 user.getProfileImage(),
                 user.getEmail()

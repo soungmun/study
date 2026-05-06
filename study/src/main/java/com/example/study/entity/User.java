@@ -6,7 +6,10 @@ import java.time.LocalDateTime;
 @Entity
 @Table(
         name = "users",
-        uniqueConstraints = @UniqueConstraint(name = "uk_users_kakao_id", columnNames = "kakao_id")
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_users_kakao_id", columnNames = "kakao_id"),
+                @UniqueConstraint(name = "uk_users_username", columnNames = "username")
+        }
 )
 public class User {
 
@@ -14,8 +17,14 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "kakao_id", nullable = false)
+    @Column(name = "kakao_id")
     private Long kakaoId;
+
+    @Column(length = 50)
+    private String username;
+
+    @Column(length = 100)
+    private String password;
 
     @Column(length = 100)
     private String nickname;
@@ -47,6 +56,10 @@ public class User {
     public Long getId() { return id; }
     public Long getKakaoId() { return kakaoId; }
     public void setKakaoId(Long kakaoId) { this.kakaoId = kakaoId; }
+    public String getUsername() { return username; }
+    public void setUsername(String username) { this.username = username; }
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
     public String getNickname() { return nickname; }
     public void setNickname(String nickname) { this.nickname = nickname; }
     public String getProfileImage() { return profileImage; }
