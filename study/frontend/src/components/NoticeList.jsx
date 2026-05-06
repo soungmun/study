@@ -88,6 +88,7 @@ export default function NoticeList() {
             <th style={{ width: 70 }}>번호</th>
             <th>제목</th>
             <th style={{ width: 120 }} className="hide-sm">작성자</th>
+            <th style={{ width: 120 }} className="hide-sm">내용</th>
             <th style={{ width: 170 }} className="hide-sm">작성일</th>
             <th style={{ width: 80 }}>조회</th>
           </tr>
@@ -105,6 +106,7 @@ export default function NoticeList() {
                 <td><span className={badgeClass(seq)}>{seq}</span></td>
                 <td className="title">{n.title}</td>
                 <td className="author hide-sm">{n.author}</td>
+                <td className="author hide-sm">{n.content}</td>
                 <td className="date hide-sm">{n.createdAt}</td>
                 <td className="views">{n.viewCountText}</td>
               </tr>
