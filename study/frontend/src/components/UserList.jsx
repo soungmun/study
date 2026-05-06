@@ -30,6 +30,9 @@ export default function UserList() {
 
   useEffect(() => {
     load();
+    const onAuthChange = () => load();
+    window.addEventListener('auth-changed', onAuthChange);
+    return () => window.removeEventListener('auth-changed', onAuthChange);
   }, []);
 
   const formatDate = (s) => {

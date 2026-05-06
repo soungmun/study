@@ -7,6 +7,7 @@ import BookSearch from './components/BookSearch';
 import MapSearch from './components/MapSearch';
 import UserList from './components/UserList';
 import AuthBar from './components/AuthBar';
+import RequireAuth from './components/RequireAuth';
 import './App.css';
 
 export default function App() {
@@ -34,12 +35,12 @@ export default function App() {
         </nav>
       </header>
       <Routes>
-        <Route path="/" element={<NoticeList />} />
-        <Route path="/notices/new" element={<NoticeCreate />} />
-        <Route path="/notices/:id" element={<NoticeDetail />} />
-        <Route path="/notices/:id/edit" element={<NoticeEdit />} />
-        <Route path="/books" element={<BookSearch />} />
-        <Route path="/map" element={<MapSearch />} />
+        <Route path="/" element={<RequireAuth title="📋 공지사항"><NoticeList /></RequireAuth>} />
+        <Route path="/notices/new" element={<RequireAuth title="✏️ 새 공지 작성"><NoticeCreate /></RequireAuth>} />
+        <Route path="/notices/:id" element={<RequireAuth title="📋 공지사항"><NoticeDetail /></RequireAuth>} />
+        <Route path="/notices/:id/edit" element={<RequireAuth title="✏️ 공지 수정"><NoticeEdit /></RequireAuth>} />
+        <Route path="/books" element={<RequireAuth title="📚 책 검색"><BookSearch /></RequireAuth>} />
+        <Route path="/map" element={<RequireAuth title="📍 장소 검색"><MapSearch /></RequireAuth>} />
         <Route path="/users" element={<UserList />} />
       </Routes>
     </div>

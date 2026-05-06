@@ -49,6 +49,7 @@ export default function AuthBar() {
   const onLogout = async () => {
     await fetch(`${API}/logout`, { method: 'POST', credentials: 'include' });
     setUser(null);
+    window.dispatchEvent(new Event('auth-changed'));
   };
 
   const onSubmit = async (e) => {
@@ -74,6 +75,7 @@ export default function AuthBar() {
       setUser(data);
       setMode(null);
       setForm({ username: '', password: '', nickname: '' });
+      window.dispatchEvent(new Event('auth-changed'));
     } catch (err) {
       setFormError(err.message);
     } finally {
