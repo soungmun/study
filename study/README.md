@@ -1,31 +1,26 @@
-# 공지사항 게시판 (Notice Board)
+# 공지사항 + 책 검색 (Spring Boot + React)
 
-Spring Boot + React 기반 공지사항 CRUD 학습용 프로젝트입니다.
-백엔드는 JPA와 MyBatis를 병행하며, 프론트엔드는 Vite + React로 구성되어 있습니다.
+Spring Boot 백엔드 + React 프론트엔드로 만든 학습용 풀스택 프로젝트입니다.
+공지사항 CRUD와 카카오 책 검색 기능을 제공합니다.
 
 ---
 
 ## 1. 프로젝트 소개
 
 ### 개요
-공지사항을 **등록 / 조회 / 수정 / 삭제**할 수 있는 풀스택 게시판 애플리케이션입니다.
-검색, 페이징, 조회수 카운트, 입력값 검증까지 실제 게시판에서 필요한 기본 기능을 다룹니다.
+- **공지사항 게시판**: 등록 / 조회 / 수정 / 삭제, 검색, 페이지네이션, 조회수 카운트
+- **책 검색**: 카카오 도서 검색 API 프록시 (제목/저자/출판사/ISBN 검색, 정렬, 페이징)
+- **장소 검색 + 지도**: 카카오 키워드 검색 + Kakao Maps SDK로 지도 표시 (마커, 인포윈도우, 결과 리스트 ↔ 지도 연동)
 
 ### 기술 스택
 
 | 구분 | 기술 |
 |------|------|
-| Backend | Java 17, Spring Boot 4.0.6, Spring Data JPA, MyBatis 3.0.3, Spring Validation |
+| Backend | Java 17, Spring Boot 4.0.6, Spring Data JPA, MyBatis 3.0.3, Spring Validation, RestClient, springdoc-openapi (Swagger) |
 | Database | MariaDB |
 | Frontend | React 19, React Router 7, Vite 8 |
+| 외부 API | Kakao 책 검색 (`/v3/search/book`), 카카오 로컬 키워드 검색 (`/v2/local/search/keyword.json`), Kakao Maps JavaScript SDK |
 | 기타 | Lombok, Gradle |
-
-### 주요 기능
-- 공지 **목록 조회** (작성자/제목 검색 + 페이지네이션)
-- 공지 **상세 조회** (조회 시 viewCount 자동 증가)
-- 공지 **등록 / 수정 / 삭제**
-- 백엔드 입력값 검증 (`@Valid`, `@NotBlank`, `@Size`)
-- 조회수 1,000 이상은 `1.2k` 형식으로 변환
 
 ### 도메인 모델 — Notice
 
@@ -42,20 +37,32 @@ Spring Boot + React 기반 공지사항 CRUD 학습용 프로젝트입니다.
 ```
 study/
 ├── src/main/java/com/example/study/
-│   ├── controller/   # REST API
-│   ├── entity/       # Notice 엔티티
-│   ├── repository/   # JPA Repository
-│   ├── mapper/       # MyBatis Mapper
-│   ├── service/      # 비즈니스 로직
-│   └── config/       # CORS 등
+│   ├── controller/     # REST API
+│   │   ├── NoticeController.java
+│   │   ├── BookApiController.java
+│   │   ├── PlaceApiController.java
+│   │   └── GlobalExceptionHandler.java
+│   ├── dto/            # 외부 API DTO
+│   │   ├── BookSearchResponse.java
+│   │   └── PlaceSearchResponse.java
+│   ├── entity/         # Notice 엔티티
+│   ├── repository/     # JPA Repository
+│   ├── mapper/         # MyBatis Mapper
+│   ├── service/        # NoticeService, BookService, PlaceService
+│   └── config/         # CORS, OpenAPI 등
 ├── src/main/resources/
 │   ├── application.properties
-│   └── mapper/       # MyBatis XML
-└── frontend/src/components/
-    ├── NoticeList.jsx
-    ├── NoticeDetail.jsx
-    ├── NoticeCreate.jsx
-    └── NoticeEdit.jsx
+│   └── mapper/         # MyBatis XML
+└── frontend/src/
+    ├── App.jsx         # Routing + 네비게이션
+    ├── App.css
+    └── components/
+        ├── NoticeList.jsx
+        ├── NoticeDetail.jsx
+        ├── NoticeCreate.jsx
+        ├── NoticeEdit.jsx
+        ├── BookSearch.jsx
+        └── MapSearch.jsx
 ```
 
 ### 실행 방법
@@ -73,35 +80,42 @@ npm install
 npm run dev
 ```
 
+브라우저에서 `http://localhost:5173` 접속.
+
+**Swagger UI**: `http://localhost:8080/swagger-ui/index.html`
+**OpenAPI JSON**: `http://localhost:8080/v3/api-docs`
+
+### 환경 설정
+`src/main/resources/application.properties`
+- `spring.datasource.*` — MariaDB 접속 정보
+- `kakao.api.key` — 카카오 REST API Key (책 검색 / 장소 검색에 사용)
+
+`frontend/index.html`
+- Kakao Maps **JavaScript Key**가 SDK 스크립트에 하드코딩되어 있음 (`appkey=...`)
+
+> ⚠️ **카카오 개발자 콘솔에서 활성화 필요**
+> - 책 검색: 별도 활성화 불필요
+> - 장소/지도: **앱 설정 → 제품 설정 → 지도/로컬** 활성화
+> - **앱 설정 → 플랫폼 → Web 도메인**에 `http://localhost:5173` 등록
+
 ---
 
 ## 2. API 문서
 
 - **Base URL**: `http://localhost:8080`
 - **공통 Content-Type**: `application/json`
-- **공통 경로**: `/api/notices`
 
-### 2.1 공지 목록 조회
+### 2.1 Notice API (`/api/notices`)
 
-```
-GET /api/notices
-```
+| Method | Path | 설명 |
+|--------|------|------|
+| GET | `/api/notices?type=&keyword=&page=&size=&sort=` | 목록 조회 (검색 + 페이징) |
+| GET | `/api/notices/{id}` | 상세 조회 (조회수 +1) |
+| POST | `/api/notices` | 등록 |
+| PUT | `/api/notices/{id}` | 수정 |
+| DELETE | `/api/notices/{id}` | 삭제 |
 
-#### Query Parameters
-| 이름 | 타입 | 필수 | 기본값 | 설명 |
-|------|------|------|--------|------|
-| type | String | N | `title` | 검색 항목 (`title` / `author`) |
-| keyword | String | N | - | 검색어 (없으면 전체 조회) |
-| page | int | N | 0 | 페이지 번호 (0부터) |
-| size | int | N | 10 | 페이지당 건수 |
-| sort | String | N | `id,asc` | 정렬 조건 |
-
-#### Request 예시
-```
-GET /api/notices?type=title&keyword=공지&page=0&size=10
-```
-
-#### Response 200 OK
+#### 목록 응답 예시
 ```json
 {
   "content": [
@@ -109,7 +123,7 @@ GET /api/notices?type=title&keyword=공지&page=0&size=10
       "id": 1,
       "author": "관리자",
       "title": "첫 번째 공지",
-      "content": "내용입니다.",
+      "content": "내용",
       "createdAt": "2026-05-06 10:30:00",
       "viewCount": 12
     }
@@ -123,45 +137,7 @@ GET /api/notices?type=title&keyword=공지&page=0&size=10
 }
 ```
 
----
-
-### 2.2 공지 상세 조회
-
-```
-GET /api/notices/{id}
-```
-
-호출 시 해당 공지의 **조회수가 1 증가**합니다.
-
-#### Path Parameters
-| 이름 | 타입 | 설명 |
-|------|------|------|
-| id | Long | 공지 ID |
-
-#### Response 200 OK
-```json
-{
-  "id": 1,
-  "author": "관리자",
-  "title": "첫 번째 공지",
-  "content": "내용입니다.",
-  "createdAt": "2026-05-06 10:30:00",
-  "viewCount": 13
-}
-```
-
-#### Response 404
-존재하지 않는 ID 요청 시 오류 응답 반환.
-
----
-
-### 2.3 공지 등록
-
-```
-POST /api/notices
-```
-
-#### Request Body
+#### 등록/수정 요청 예시
 ```json
 {
   "author": "관리자",
@@ -173,75 +149,105 @@ POST /api/notices
 #### 검증 규칙
 | 필드 | 규칙 | 오류 메시지 |
 |------|------|------------|
-| author | 필수, 100자 이하 | "작성자를 입력하세요." / "작성자는 100자 이하여야 합니다." |
-| title | 필수, 200자 이하 | "제목을 입력하세요." / "제목은 200자 이하여야 합니다." |
+| author | 필수, 100자 이하 | "작성자를 입력하세요." |
+| title | 필수, 200자 이하 | "제목을 입력하세요." |
 | content | 필수 | "내용을 입력하세요." |
 
-#### Response 200 OK
-등록된 Notice 객체 반환 (id, createdAt 포함).
-
 ---
 
-### 2.4 공지 수정
+### 2.2 Book API (`/api/books`)
+
+카카오 책 검색 API 프록시. 호출 시 서버가 카카오에 요청을 보내고 결과를 그대로 반환합니다.
 
 ```
-PUT /api/notices/{id}
+GET /api/books/search
 ```
 
-#### Path Parameters
-| 이름 | 타입 | 설명 |
-|------|------|------|
-| id | Long | 공지 ID |
+#### Query Parameters
+| 이름 | 타입 | 필수 | 기본값 | 설명 |
+|------|------|------|--------|------|
+| query | String | **Y** | - | 검색어 |
+| target | String | N | (전체) | `title` / `person` / `publisher` / `isbn` |
+| sort | String | N | `accuracy` | `accuracy`(정확도) / `latest`(최신) |
+| page | int | N | 1 | 페이지 (1~50) |
+| size | int | N | 10 | 페이지당 건수 (1~50) |
 
-#### Request Body
+#### Request 예시
+```
+GET /api/books/search?query=spring%20boot&sort=accuracy&page=1&size=10
+```
+
+#### Response 200 OK
 ```json
 {
-  "author": "관리자",
-  "title": "수정된 제목",
-  "content": "수정된 내용"
+  "meta": {
+    "total_count": 87,
+    "pageable_count": 87,
+    "is_end": false
+  },
+  "documents": [
+    {
+      "title": "Boot Spring Boot!",
+      "contents": "스프링 부트 입문서…",
+      "url": "https://search.daum.net/search?w=bookpage&bookId=...",
+      "isbn": "...",
+      "datetime": "2018-08-31T00:00:00.000+09:00",
+      "authors": ["저자"],
+      "publisher": "출판사",
+      "translators": [],
+      "price": 25000,
+      "sale_price": 22500,
+      "thumbnail": "https://search1.kakaocdn.net/...",
+      "status": "정상판매"
+    }
+  ]
 }
 ```
 
-검증 규칙은 등록과 동일합니다.
+---
 
-#### Response 200 OK
-수정된 Notice 객체 반환.
+### 2.3 Place API (`/api/places`)
+
+카카오 로컬 키워드 검색 프록시.
+
+```
+GET /api/places/search
+```
+
+| 이름 | 타입 | 필수 | 기본값 | 설명 |
+|------|------|------|--------|------|
+| query | String | **Y** | - | 검색어 (장소명/주소/키워드) |
+| page | int | N | 1 | 페이지 (1~45) |
+| size | int | N | 15 | 페이지당 건수 (1~15) |
+
+각 결과의 `x`(경도), `y`(위도)를 사용해 프론트의 Kakao Maps SDK가 마커를 찍습니다.
 
 ---
 
-### 2.5 공지 삭제
+### 2.4 오류 응답
 
-```
-DELETE /api/notices/{id}
-```
-
-#### Path Parameters
-| 이름 | 타입 | 설명 |
-|------|------|------|
-| id | Long | 공지 ID |
-
-#### Response 200 OK
-본문 없음.
-
----
-
-### 2.6 오류 응답 형식
-
-Spring Boot 기본 오류 응답을 따릅니다 (`server.error.include-message=always`,
-`server.error.include-binding-errors=always`).
+`GlobalExceptionHandler`가 통일된 형식으로 반환합니다.
 
 ```json
-{
-  "timestamp": "2026-05-06T10:30:00.000+00:00",
-  "status": 400,
-  "error": "Bad Request",
-  "message": "제목을 입력하세요.",
-  "path": "/api/notices"
-}
+{ "message": "오류 메시지" }
 ```
 
 | HTTP | 상황 |
 |------|------|
-| 400 | 입력값 검증 실패 |
-| 404 | 존재하지 않는 공지 ID |
-| 500 | 서버 내부 오류 |
+| 400 | 입력값 검증 실패 (필드 오류 메시지를 줄바꿈으로 결합) |
+| 404 | 존재하지 않는 리소스 |
+| 500 | 서버 내부 오류 (외부 API 실패 등) |
+
+---
+
+## 3. 프론트엔드 화면
+
+| 경로 | 화면 |
+|------|------|
+| `/` | 공지사항 목록 |
+| `/notices/new` | 공지 등록 |
+| `/notices/:id` | 공지 상세 |
+| `/notices/:id/edit` | 공지 수정 |
+| `/books` | 카카오 책 검색 |
+
+상단 네비게이션에서 **공지사항 / 책 검색** 사이를 전환할 수 있습니다.
