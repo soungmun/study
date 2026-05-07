@@ -2,9 +2,13 @@ package com.example.study.service;
 
 import com.example.study.dto.response.KakaoTokenResponse;
 import com.example.study.dto.response.KakaoUserResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -18,11 +22,14 @@ import java.nio.charset.StandardCharsets;
 @Service
 public class KakaoOAuthService {
 
+    private static final Logger log = LoggerFactory.getLogger(KakaoOAuthService.class);
+
     private static final String AUTHORIZE_URL = "https://kauth.kakao.com/oauth/authorize";
     private static final String TOKEN_URL = "https://kauth.kakao.com/oauth/token";
     private static final String USER_URL = "https://kapi.kakao.com/v2/user/me";
 
     private final RestClient restClient = RestClient.create();
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private final String clientId;
     private final String clientSecret;
     private final String redirectUri;
@@ -58,12 +65,26 @@ public class KakaoOAuthService {
             form.add("client_secret", clientSecret);
         }
         URI uri = URI.create(TOKEN_URL);
-        return restClient.post()
+
+        ResponseEntity<String> response = restClient.post()
                 .uri(uri)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .body(form)
                 .retrieve()
-                .body(KakaoTokenResponse.class);
+                .toEntity(String.class);
+
+        String body = response.getBody();
+        log.info("[Kakao token] status={} bodyLen={} body={}",
+                response.getStatusCode(),
+                body == null ? 0 : body.length(),
+                body);
+
+        try {
+            return objectMapper.readValue(body, KakaoTokenResponse.class);
+        } catch (Exception e) {
+            throw new IllegalStateException(
+                    "카카오 토큰 응답 파싱 실패: " + e.getMessage() + " body=" + body, e);
+        }
     }
 
     public KakaoUserResponse fetchUser(String accessToken) {
