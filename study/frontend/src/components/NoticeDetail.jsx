@@ -18,7 +18,7 @@ export default function NoticeDetail() {
   useEffect(() => {
     if (fetchedIdRef.current === id) return;
     fetchedIdRef.current = id;
-    fetch(`${BASE_URL}/${id}`)
+    fetch(`${BASE_URL}/${id}/views`, { method: 'POST' })
       .then(async (r) => {
         if (!r.ok) throw new Error(await readError(r));
         return r.json();

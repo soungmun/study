@@ -31,8 +31,13 @@ public class NoticeService {
         return noticeRepository.findByTitleContaining(keyword, pageable);
     }
 
-    @Transactional
     public Notice findById(Long id) {
+        return noticeRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다. id=" + id));
+    }
+
+    @Transactional
+    public Notice increaseViewCount(Long id) {
         Notice notice = noticeRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다. id=" + id));
         notice.increaseViewCount();

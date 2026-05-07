@@ -40,6 +40,11 @@ public class NoticeController {
         return noticeService.findById(id);
     }
 
+    @PostMapping("/{id}/views")
+    public Notice incrementView(@PathVariable Long id) {
+        return noticeService.increaseViewCount(id);
+    }
+
     @PostMapping
     public Notice create(@Valid @RequestBody Notice request) {
         return noticeService.create(request);
