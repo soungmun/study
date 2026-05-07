@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 const API = 'http://localhost:8080/api/auth';
 
@@ -7,7 +8,7 @@ export default function AuthBar() {
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState(null);
   const [mode, setMode] = useState(null); // 'login' | 'signup' | null
-  const [form, setForm] = useState({ username: '', password: '', nickname: '' });
+  const [form, setForm] = useState({ username: '', password: '', nickname: '', email: '' });
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState(null);
   const wrapRef = useRef(null);
@@ -22,11 +23,17 @@ export default function AuthBar() {
       url.searchParams.delete('auth_error_description');
       window.history.replaceState({}, '', url.toString());
     }
-    fetch(`${API}/me`, { credentials: 'include' })
-      .then((r) => (r.ok ? r.json() : null))
-      .then(setUser)
-      .catch(() => setUser(null))
-      .finally(() => setLoading(false));
+    const refresh = () => {
+      fetch(`${API}/me`, { credentials: 'include' })
+        .then((r) => (r.ok ? r.json() : null))
+        .then(setUser)
+        .catch(() => setUser(null))
+        .finally(() => setLoading(false));
+    };
+    refresh();
+    const onAuth = () => refresh();
+    window.addEventListener('auth-changed', onAuth);
+    return () => window.removeEventListener('auth-changed', onAuth);
   }, []);
 
   useEffect(() => {
@@ -59,7 +66,12 @@ export default function AuthBar() {
     try {
       const url = mode === 'signup' ? `${API}/signup` : `${API}/login`;
       const body = mode === 'signup'
-        ? { username: form.username, password: form.password, nickname: form.nickname || null }
+        ? {
+            username: form.username,
+            password: form.password,
+            nickname: form.nickname || null,
+            email: form.email?.trim() || null,
+          }
         : { username: form.username, password: form.password };
       const r = await fetch(url, {
         method: 'POST',
@@ -74,7 +86,7 @@ export default function AuthBar() {
       const data = await r.json();
       setUser(data);
       setMode(null);
-      setForm({ username: '', password: '', nickname: '' });
+      setForm({ username: '', password: '', nickname: '', email: '' });
       window.dispatchEvent(new Event('auth-changed'));
     } catch (err) {
       setFormError(err.message);
@@ -99,6 +111,7 @@ export default function AuthBar() {
           <div className="auth-nickname">{displayName(user)}</div>
           {user.email && <div className="auth-email">{user.email}</div>}
         </div>
+        <Link to="/me/edit" className="auth-edit">수정</Link>
         <button type="button" className="auth-logout" onClick={onLogout}>로그아웃</button>
       </div>
     );
@@ -162,12 +175,29 @@ export default function AuthBar() {
             required
           />
           {mode === 'signup' && (
-            <input
-              type="text"
-              placeholder="닉네임 (선택)"
-              value={form.nickname}
-              onChange={(e) => setForm({ ...form, nickname: e.target.value })}
-            />
+            <>
+              <input
+                type="text"
+                placeholder="닉네임 (선택)"
+                value={form.nickname}
+                onChange={(e) => setForm({ ...form, nickname: e.target.value })}
+              />
+              <input
+                type="email"
+                placeholder="이메일 (필수)"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                maxLength={200}
+                required
+              />
+            </>
+          )}
+          {mode === 'login' && (
+            <div className="auth-popover-extra">
+              <Link to="/forgot" onClick={() => setMode(null)}>
+                비밀번호를 잊으셨나요?
+              </Link>
+            </div>
           )}
           {formError && <div className="auth-popover-error">{formError}</div>}
           <button type="submit" className="auth-popover-submit" disabled={submitting}>

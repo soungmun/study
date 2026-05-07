@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 
 const BASE_URL = 'http://localhost:8080/api/places/search';
+const WEATHER_URL = 'http://localhost:8080/api/weather';
+const AIR_URL = 'http://localhost:8080/api/air';
 const PAGE_SIZE = 15;
 const DEFAULT_CENTER = { lat: 37.4892775, lng: 126.7246513 }; // 부평역
 
@@ -44,6 +46,12 @@ export default function MapSearch() {
   const [error, setError] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [customPlace, setCustomPlace] = useState(null);
+  const [weather, setWeather] = useState(null);
+  const [weatherLoading, setWeatherLoading] = useState(false);
+  const [weatherError, setWeatherError] = useState(null);
+  const [air, setAir] = useState(null);
+  const [airLoading, setAirLoading] = useState(false);
+  const [airError, setAirError] = useState(null);
 
   const findNearestPlace = (lat, lng) =>
     new Promise((resolve) => {
@@ -102,7 +110,6 @@ export default function MapSearch() {
       const buildingName = addr?.road_address?.building_name;
       const roadAddr = addr?.road_address?.address_name || '';
       const jibunAddr = addr?.address?.address_name || '';
-      const coordText = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
 
       if (poi) {
         setCustomPlace({
@@ -111,7 +118,7 @@ export default function MapSearch() {
           category_name: poi.category_name || '지도에서 선택한 위치',
           category_group_name: poi.category_group_name || '근처 장소',
           road_address_name: poi.road_address_name || roadAddr,
-          address_name: poi.address_name || jibunAddr || coordText,
+          address_name: poi.address_name || jibunAddr,
           phone: poi.phone,
           place_url: poi.place_url,
           x: String(lng),
@@ -120,14 +127,14 @@ export default function MapSearch() {
         return;
       }
 
-      const placeName = buildingName || fallbackName || roadAddr || jibunAddr || coordText;
+      const placeName = buildingName || fallbackName || roadAddr || jibunAddr || '지도에서 선택한 위치';
       setCustomPlace({
         id: CUSTOM_ID,
         place_name: placeName,
         category_name: '지도에서 선택한 좌표',
         category_group_name: buildingName ? '건물' : '커스텀 핀',
         road_address_name: roadAddr,
-        address_name: jibunAddr || coordText,
+        address_name: jibunAddr,
         x: String(lng),
         y: String(lat),
       });
@@ -238,6 +245,64 @@ export default function MapSearch() {
     });
     map.setBounds(bounds);
   }, [result, kakaoReady]);
+
+  const selectedPlace =
+    selectedId === CUSTOM_ID
+      ? customPlace
+      : (result?.documents ?? []).find((d) => d.id === selectedId) ?? null;
+
+  useEffect(() => {
+    if (!selectedPlace) {
+      setWeather(null);
+      setWeatherError(null);
+      setWeatherLoading(false);
+      setAir(null);
+      setAirError(null);
+      setAirLoading(false);
+      return;
+    }
+    const lat = parseFloat(selectedPlace.y);
+    const lng = parseFloat(selectedPlace.x);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+    const controller = new AbortController();
+    setWeatherLoading(true);
+    setWeatherError(null);
+    setAirLoading(true);
+    setAirError(null);
+
+    fetch(`${WEATHER_URL}?lat=${lat}&lng=${lng}`, { signal: controller.signal })
+      .then(async (r) => {
+        if (!r.ok) throw new Error(await r.text());
+        return r.json();
+      })
+      .then((data) => {
+        setWeather(data);
+        setWeatherLoading(false);
+      })
+      .catch((e) => {
+        if (e.name === 'AbortError') return;
+        setWeatherError(e.message);
+        setWeatherLoading(false);
+      });
+
+    fetch(`${AIR_URL}?lat=${lat}&lng=${lng}`, { signal: controller.signal })
+      .then(async (r) => {
+        if (!r.ok) throw new Error(await r.text());
+        return r.json();
+      })
+      .then((data) => {
+        setAir(data);
+        setAirLoading(false);
+      })
+      .catch((e) => {
+        if (e.name === 'AbortError') return;
+        setAirError(e.message);
+        setAirLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [selectedPlace?.id, selectedPlace?.x, selectedPlace?.y]);
 
   const focusPlace = (place) => {
     if (!kakaoReady) return;
@@ -377,18 +442,20 @@ export default function MapSearch() {
           <div className="map-hint">🖱 지도를 클릭하면 그 위치의 주소가 오른쪽에 표시돼요</div>
         </div>
         <PlaceDetail
-          place={
-            selectedId === CUSTOM_ID
-              ? customPlace
-              : documents.find((d) => d.id === selectedId) ?? null
-          }
+          place={selectedPlace}
+          weather={weather}
+          weatherLoading={weatherLoading}
+          weatherError={weatherError}
+          air={air}
+          airLoading={airLoading}
+          airError={airError}
         />
       </div>
     </div>
   );
 }
 
-function PlaceDetail({ place }) {
+function PlaceDetail({ place, weather, weatherLoading, weatherError, air, airLoading, airError }) {
   if (!place) {
     return (
       <aside className="place-detail place-detail-empty">
@@ -398,25 +465,8 @@ function PlaceDetail({ place }) {
     );
   }
 
-  const categoryParts = (place.category_name || '').split('>').map((s) => s.trim()).filter(Boolean);
-  const group = place.category_group_name;
-  const lastCat = categoryParts[categoryParts.length - 1];
-  const summary = group || lastCat || '카테고리 정보 없음';
-  const distance = place.distance ? `${Number(place.distance).toLocaleString()}m` : null;
-
-  const region = (() => {
-    const src = place.address_name || place.road_address_name || '';
-    const tokens = src.split(/\s+/).filter(Boolean);
-    return tokens.slice(0, 2).join(' ');
-  })();
-
-  const descriptor = (() => {
-    const kind = group || lastCat;
-    if (!kind && !region) return null;
-    if (region && kind) return `${region}에 위치한 ${kind}이에요.`;
-    if (kind) return `${kind} 카테고리의 장소예요.`;
-    return `${region}에 위치한 장소예요.`;
-  })();
+  const lastCat = (place.category_name || '').split('>').map((s) => s.trim()).filter(Boolean).pop();
+  const summary = place.category_group_name || lastCat || '';
 
   return (
     <aside className="place-detail">
@@ -426,70 +476,70 @@ function PlaceDetail({ place }) {
       </div>
 
       <div className="place-detail-body">
-        {(categoryParts.length > 0 || group || region || descriptor) && (
-          <div className="place-detail-row place-detail-row-block">
-            <span className="place-detail-label">🏷️ 분류</span>
-            <div className="place-detail-value place-detail-info">
-              <div className="place-detail-info-tags">
-                {group && <span className="info-tag info-tag-primary">{group}</span>}
-                {region && <span className="info-tag">📍 {region}</span>}
-              </div>
-              {categoryParts.length > 0 && (
-                <div className="place-detail-info-path">
-                  {categoryParts.map((c, i) => (
-                    <span key={i}>
-                      {i > 0 && <span className="info-sep">›</span>}
-                      <span>{c}</span>
-                    </span>
-                  ))}
-                </div>
-              )}
-              {descriptor && (
-                <div className="place-detail-info-desc">{descriptor}</div>
-              )}
+        <div className="place-detail-row">
+          <span className="place-detail-label">🌡️ 온도</span>
+          <span className="place-detail-value">
+            {weatherLoading && '불러오는 중…'}
+            {!weatherLoading && weatherError && '온도 정보를 가져오지 못했어요'}
+            {!weatherLoading && !weatherError && weather && (
+              <>
+                {weather.icon || ''} {weather.temperature != null ? `${Math.round(weather.temperature)}°C` : '—'}
+                {weather.description ? ` · ${weather.description}` : ''}
+              </>
+            )}
+          </span>
+        </div>
+
+        <AirCard
+          air={air}
+          loading={airLoading}
+          error={airError}
+        />
+      </div>
+    </aside>
+  );
+}
+
+function AirCard({ air, loading, error }) {
+  return (
+    <div className="air-card">
+      <div className="air-card-title">🌫️ 미세먼지</div>
+      {loading && (
+        <div className="air-card-status">
+          <span className="spinner spinner-sm" />
+          <span>대기질 정보를 불러오는 중…</span>
+        </div>
+      )}
+      {!loading && error && (
+        <div className="air-card-status" style={{ color: '#b91c1c' }}>
+          ⚠️ 대기질 정보를 가져오지 못했어요
+        </div>
+      )}
+      {!loading && !error && air && (
+        <>
+          <div className="air-card-grid">
+            <div className="air-card-cell" style={{ background: air.pm10Color || '#94a3b8' }}>
+              <span className="air-card-label">PM10 (미세먼지)</span>
+              <span className="air-card-value">
+                {air.pm10 != null ? `${Math.round(air.pm10)} ㎍/㎥` : '—'}
+              </span>
+              <span className="air-card-grade">{air.pm10Grade || '정보없음'}</span>
+            </div>
+            <div className="air-card-cell" style={{ background: air.pm25Color || '#94a3b8' }}>
+              <span className="air-card-label">PM2.5 (초미세)</span>
+              <span className="air-card-value">
+                {air.pm25 != null ? `${Math.round(air.pm25)} ㎍/㎥` : '—'}
+              </span>
+              <span className="air-card-grade">{air.pm25Grade || '정보없음'}</span>
             </div>
           </div>
-        )}
-
-        {place.road_address_name && (
-          <div className="place-detail-row">
-            <span className="place-detail-label">📮 도로명</span>
-            <span className="place-detail-value">{place.road_address_name}</span>
-          </div>
-        )}
-
-        {place.address_name && place.address_name !== place.road_address_name && (
-          <div className="place-detail-row">
-            <span className="place-detail-label">🏠 지번</span>
-            <span className="place-detail-value">{place.address_name}</span>
-          </div>
-        )}
-
-        {place.phone && (
-          <div className="place-detail-row">
-            <span className="place-detail-label">📞 전화</span>
-            <a className="place-detail-value link" href={`tel:${place.phone}`}>{place.phone}</a>
-          </div>
-        )}
-
-        {distance && (
-          <div className="place-detail-row">
-            <span className="place-detail-label">📏 거리</span>
-            <span className="place-detail-value">{distance}</span>
-          </div>
-        )}
-      </div>
-
-      {place.place_url && (
-        <a
-          className="place-detail-link"
-          href={place.place_url}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          카카오맵에서 자세히 보기 →
-        </a>
+          {air.europeanAqi != null && (
+            <div className="air-card-aqi">
+              유럽 AQI 지수: <strong>{air.europeanAqi}</strong>
+            </div>
+          )}
+        </>
       )}
-    </aside>
+    </div>
   );
 }

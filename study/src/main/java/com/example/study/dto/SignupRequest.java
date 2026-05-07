@@ -1,5 +1,6 @@
 package com.example.study.dto;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -14,5 +15,10 @@ public record SignupRequest(
         String password,
 
         @Size(max = 50)
-        String nickname
+        String nickname,
+
+        @NotBlank(message = "이메일을 입력하세요.")
+        @Email(message = "이메일 형식이 올바르지 않습니다.")
+        @Size(max = 200)
+        String email
 ) {}

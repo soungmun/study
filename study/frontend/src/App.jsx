@@ -8,6 +8,9 @@ import MapSearch from './components/MapSearch';
 import UserList from './components/UserList';
 import AuthBar from './components/AuthBar';
 import RequireAuth from './components/RequireAuth';
+import ProfileEdit from './components/ProfileEdit';
+import PasswordForgot from './components/PasswordForgot';
+import PasswordReset from './components/PasswordReset';
 import './App.css';
 
 export default function App() {
@@ -42,6 +45,9 @@ export default function App() {
         <Route path="/books" element={<RequireAuth title="📚 책 검색"><BookSearch /></RequireAuth>} />
         <Route path="/map" element={<RequireAuth title="📍 장소 검색"><MapSearch /></RequireAuth>} />
         <Route path="/users" element={<UserList />} />
+        <Route path="/me/edit" element={<RequireAuth title="👤 회원정보 수정"><ProfileEdit /></RequireAuth>} />
+        <Route path="/forgot" element={<PasswordForgot />} />
+        <Route path="/reset" element={<PasswordReset />} />
       </Routes>
     </div>
   );
