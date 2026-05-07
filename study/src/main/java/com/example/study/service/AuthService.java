@@ -9,6 +9,8 @@ import com.example.study.dto.response.KakaoTokenResponse;
 import com.example.study.dto.response.KakaoUserResponse;
 import com.example.study.entity.User;
 import com.example.study.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,6 +23,8 @@ import java.util.Optional;
 
 @Service
 public class AuthService {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     public static final class Result {
         public enum Code { OK, USERNAME_TAKEN, INVALID_CREDENTIALS, INVALID_TOKEN, KAKAO_ONLY, CURRENT_PASSWORD_MISMATCH, NOT_FOUND }
@@ -140,8 +144,37 @@ public class AuthService {
     }
 
     public User syncKakaoUser(String code) {
-        KakaoTokenResponse token = kakaoOAuth.exchangeCode(code);
-        KakaoUserResponse me = kakaoOAuth.fetchUser(token.accessToken());
+        log.info("[KakaoLogin] code 수신 길이={} prefix={}",
+                code == null ? 0 : code.length(),
+                code == null ? "null" : code.substring(0, Math.min(8, code.length())));
+
+        KakaoTokenResponse token;
+        try {
+            token = kakaoOAuth.exchangeCode(code);
+        } catch (Exception e) {
+            log.warn("[KakaoLogin] 토큰 교환 실패: {}", e.getMessage());
+            throw e;
+        }
+        if (token == null || token.accessToken() == null || token.accessToken().isBlank()) {
+            log.warn("[KakaoLogin] 토큰 응답이 비어있거나 accessToken=null. token={}", token);
+            throw new IllegalStateException("카카오 토큰 응답에 access token이 없습니다.");
+        }
+        String at = token.accessToken();
+        log.info("[KakaoLogin] 토큰 OK type={} expiresIn={} atLen={} atPrefix={}",
+                token.tokenType(), token.expiresIn(), at.length(),
+                at.substring(0, Math.min(6, at.length())));
+
+        KakaoUserResponse me;
+        try {
+            me = kakaoOAuth.fetchUser(at);
+        } catch (Exception e) {
+            log.warn("[KakaoLogin] 사용자 정보 조회 실패: {}", e.getMessage());
+            throw e;
+        }
+        log.info("[KakaoLogin] 사용자 OK kakaoId={} hasAccount={} hasProfile={}",
+                me == null ? null : me.id(),
+                me != null && me.kakaoAccount() != null,
+                me != null && me.kakaoAccount() != null && me.kakaoAccount().profile() != null);
 
         User user = userRepository.findByKakaoId(me.id()).orElseGet(() -> {
             User created = new User();
