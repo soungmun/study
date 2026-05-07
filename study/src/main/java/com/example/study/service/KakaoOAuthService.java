@@ -1,7 +1,7 @@
 package com.example.study.service;
 
-import com.example.study.dto.KakaoTokenResponse;
-import com.example.study.dto.KakaoUserResponse;
+import com.example.study.dto.response.KakaoTokenResponse;
+import com.example.study.dto.response.KakaoUserResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;

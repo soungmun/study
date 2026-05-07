@@ -1,6 +1,6 @@
 package com.example.study.controller;
 
-import com.example.study.dto.PlaceSearchResponse;
+import com.example.study.dto.response.PlaceSearchResponse;
 import com.example.study.service.PlaceService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

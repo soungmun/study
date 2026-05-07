@@ -1,7 +1,10 @@
 package com.example.study.service;
 
-import com.example.study.dto.AirQualityResponse;
+import com.example.study.dto.response.AirQualityResponse;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -32,8 +35,8 @@ public class AirQualityService {
 
         Current cur = body != null ? body.current() : null;
         Double pm10 = cur != null ? cur.pm10() : null;
-        Double pm25 = cur != null ? cur.pm2_5() : null;
-        Integer aqi = cur != null ? cur.european_aqi() : null;
+        Double pm25 = cur != null ? cur.pm25() : null;
+        Integer aqi = cur != null ? cur.europeanAqi() : null;
 
         Map<String, String> g10 = pm10Grade(pm10);
         Map<String, String> g25 = pm25Grade(pm25);
@@ -72,10 +75,11 @@ public class AirQualityService {
     private record OpenMeteoAir(Current current) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     private record Current(
             String time,
             Double pm10,
-            Double pm2_5,
-            Integer european_aqi
+            @JsonProperty("pm2_5") Double pm25,
+            Integer europeanAqi
     ) {}
 }

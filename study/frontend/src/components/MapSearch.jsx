@@ -31,6 +31,7 @@ export default function MapSearch() {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
   const markersRef = useRef([]);
+  const labelsRef = useRef([]);
   const infoWindowRef = useRef(null);
   const customMarkerRef = useRef(null);
   const geocoderRef = useRef(null);
@@ -222,6 +223,8 @@ export default function MapSearch() {
 
     markersRef.current.forEach((m) => m.setMap(null));
     markersRef.current = [];
+    labelsRef.current.forEach((l) => l.setMap(null));
+    labelsRef.current = [];
     infoWindowRef.current?.close();
 
     const docs = result?.documents ?? [];
@@ -241,6 +244,33 @@ export default function MapSearch() {
         focusPlace(p);
       });
       markersRef.current.push(marker);
+
+      const lastCat = (p.category_name || '').split('>').map((s) => s.trim()).filter(Boolean).pop();
+      const subText = p.category_group_name || lastCat || '';
+      const labelEl = document.createElement('div');
+      labelEl.className = 'map-place-label';
+      const nameEl = document.createElement('div');
+      nameEl.className = 'map-place-label-name';
+      nameEl.textContent = p.place_name;
+      labelEl.appendChild(nameEl);
+      if (subText) {
+        const subEl = document.createElement('div');
+        subEl.className = 'map-place-label-sub';
+        subEl.textContent = subText;
+        labelEl.appendChild(subEl);
+      }
+      labelEl.addEventListener('click', () => focusPlace(p));
+      const label = new kakao.maps.CustomOverlay({
+        position: pos,
+        content: labelEl,
+        yAnchor: 2.4,
+        xAnchor: 0.5,
+        clickable: true,
+        zIndex: 3,
+      });
+      label.setMap(map);
+      labelsRef.current.push(label);
+
       bounds.extend(pos);
     });
     map.setBounds(bounds);
@@ -347,6 +377,8 @@ export default function MapSearch() {
     if (kakaoReady) {
       markersRef.current.forEach((m) => m.setMap(null));
       markersRef.current = [];
+      labelsRef.current.forEach((l) => l.setMap(null));
+      labelsRef.current = [];
       infoWindowRef.current?.close();
       const kakao = window.kakao;
       mapInstance.current.setCenter(new kakao.maps.LatLng(DEFAULT_CENTER.lat, DEFAULT_CENTER.lng));

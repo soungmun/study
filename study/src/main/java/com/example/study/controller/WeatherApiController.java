@@ -1,6 +1,6 @@
 package com.example.study.controller;
 
-import com.example.study.dto.WeatherResponse;
+import com.example.study.dto.response.WeatherResponse;
 import com.example.study.service.WeatherService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

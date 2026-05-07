@@ -1,33 +1,27 @@
 package com.example.study.controller;
 
-import com.example.study.dto.KakaoTokenResponse;
-import com.example.study.dto.KakaoUserResponse;
-import com.example.study.dto.LoginRequest;
-import com.example.study.dto.PasswordForgotRequest;
-import com.example.study.dto.PasswordResetRequest;
-import com.example.study.dto.SignupRequest;
-import com.example.study.dto.UserResponse;
-import com.example.study.dto.UserUpdateRequest;
+import com.example.study.dto.request.LoginRequest;
+import com.example.study.dto.response.MessageResponse;
+import com.example.study.dto.response.UserResponse;
 import com.example.study.entity.User;
 import com.example.study.repository.UserRepository;
-import com.example.study.service.EmailService;
+import com.example.study.service.AuthService;
 import com.example.study.service.KakaoOAuthService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
-import java.time.LocalDateTime;
-import java.util.Base64;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -36,90 +30,49 @@ public class AuthController {
     public static final String SESSION_USER_KEY = "LOGIN_USER_ID";
     private static final String SESSION_RETURN_TO = "RETURN_TO";
 
+    private final AuthService authService;
     private final KakaoOAuthService kakao;
     private final UserRepository userRepository;
-    private final EmailService emailService;
     private final String frontendUrl;
-    private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-    private final SecureRandom random = new SecureRandom();
 
     public AuthController(
+            AuthService authService,
             KakaoOAuthService kakao,
             UserRepository userRepository,
-            EmailService emailService,
             @Value("${app.frontend.url}") String frontendUrl
     ) {
+        this.authService = authService;
         this.kakao = kakao;
         this.userRepository = userRepository;
-        this.emailService = emailService;
         this.frontendUrl = frontendUrl;
-    }
-
-    @PostMapping("/signup")
-    public ResponseEntity<?> signup(@Valid @RequestBody SignupRequest req, HttpSession session) {
-        if (userRepository.existsByUsername(req.username())) {
-            return ResponseEntity.status(409).body(Map.of("message", "이미 사용 중인 아이디입니다."));
-        }
-        User u = new User();
-        u.setUsername(req.username());
-        u.setPassword(passwordEncoder.encode(req.password()));
-        if (req.nickname() != null && !req.nickname().isBlank()) {
-            u.setNickname(req.nickname());
-        }
-        u.setEmail(req.email().trim());
-        userRepository.save(u);
-        session.setAttribute(SESSION_USER_KEY, u.getId());
-        emailService.sendWelcome(u.getEmail(),
-                u.getNickname() != null ? u.getNickname() : u.getUsername());
-        return ResponseEntity.ok(UserResponse.from(u));
-    }
-
-    @PostMapping("/password/forgot")
-    public ResponseEntity<?> forgotPassword(@Valid @RequestBody PasswordForgotRequest req) {
-        userRepository.findByEmail(req.email().trim()).ifPresent(u -> {
-            if (u.getPassword() == null || u.getPassword().isBlank()) {
-                return;
-            }
-            byte[] buf = new byte[32];
-            random.nextBytes(buf);
-            String token = Base64.getUrlEncoder().withoutPadding().encodeToString(buf);
-            u.setResetToken(token);
-            u.setResetTokenExpiresAt(LocalDateTime.now().plusMinutes(30));
-            userRepository.save(u);
-            String resetUrl = frontendUrl + "/reset?token=" + token;
-            emailService.sendPasswordReset(u.getEmail(),
-                    u.getNickname() != null ? u.getNickname() : u.getUsername(),
-                    resetUrl);
-        });
-        return ResponseEntity.ok(Map.of("message",
-                "해당 이메일이 등록되어 있다면 재설정 링크를 발송했습니다."));
-    }
-
-    @PostMapping("/password/reset")
-    public ResponseEntity<?> resetPassword(@Valid @RequestBody PasswordResetRequest req) {
-        return userRepository.findByResetToken(req.token())
-                .filter(u -> u.getResetTokenExpiresAt() != null
-                        && u.getResetTokenExpiresAt().isAfter(LocalDateTime.now()))
-                .map(u -> {
-                    u.setPassword(passwordEncoder.encode(req.newPassword()));
-                    u.setResetToken(null);
-                    u.setResetTokenExpiresAt(null);
-                    userRepository.save(u);
-                    return ResponseEntity.ok((Object) Map.of("message", "비밀번호가 변경되었습니다."));
-                })
-                .orElseGet(() -> ResponseEntity.status(400).body(
-                        Map.of("message", "유효하지 않거나 만료된 재설정 링크입니다.")));
     }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest req, HttpSession session) {
-        return userRepository.findByUsername(req.username())
-                .filter(u -> u.getPassword() != null && passwordEncoder.matches(req.password(), u.getPassword()))
+        return authService.login(req)
                 .map(u -> {
                     session.setAttribute(SESSION_USER_KEY, u.getId());
                     return ResponseEntity.ok((Object) UserResponse.from(u));
                 })
-                .orElseGet(() -> ResponseEntity.status(401).body(Map.of("message", "아이디 또는 비밀번호가 일치하지 않습니다.")));
+                .orElseGet(() -> ResponseEntity.status(401)
+                        .body(MessageResponse.of("아이디 또는 비밀번호가 일치하지 않습니다.")));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(HttpSession session) {
+        session.invalidate();
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<UserResponse> me(HttpSession session) {
+        Object id = session.getAttribute(SESSION_USER_KEY);
+        if (!(id instanceof Long userId)) {
+            return ResponseEntity.status(401).build();
+        }
+        return userRepository.findById(userId)
+                .map(u -> ResponseEntity.ok(UserResponse.from(u)))
+                .orElseGet(() -> ResponseEntity.status(401).build());
     }
 
     @GetMapping("/kakao/login")
@@ -154,23 +107,12 @@ public class AuthController {
         }
 
         try {
-            KakaoTokenResponse token = kakao.exchangeCode(code);
-            KakaoUserResponse me = kakao.fetchUser(token.accessToken());
-
-            User user = userRepository.findByKakaoId(me.id()).orElseGet(User::new);
-            user.setKakaoId(me.id());
-            if (me.kakaoAccount() != null) {
-                user.setEmail(me.kakaoAccount().email());
-                if (me.kakaoAccount().profile() != null) {
-                    user.setNickname(me.kakaoAccount().profile().nickname());
-                    user.setProfileImage(me.kakaoAccount().profile().profileImageUrl());
-                }
-            }
-            userRepository.save(user);
+            User user = authService.syncKakaoUser(code);
             session.setAttribute(SESSION_USER_KEY, user.getId());
             res.sendRedirect(base);
         } catch (Exception e) {
-            redirectWithError(res, base, "token_exchange_failed", e.getMessage() != null ? e.getMessage() : "");
+            redirectWithError(res, base, "token_exchange_failed",
+                    e.getMessage() != null ? e.getMessage() : "");
         }
     }
 
@@ -179,65 +121,5 @@ public class AuthController {
         res.sendRedirect(base + sep
                 + "auth_error=" + URLEncoder.encode(reason, StandardCharsets.UTF_8)
                 + "&auth_error_description=" + URLEncoder.encode(desc, StandardCharsets.UTF_8));
-    }
-
-    @GetMapping("/me")
-    public ResponseEntity<UserResponse> me(HttpSession session) {
-        Object id = session.getAttribute(SESSION_USER_KEY);
-        if (!(id instanceof Long userId)) {
-            return ResponseEntity.status(401).build();
-        }
-        return userRepository.findById(userId)
-                .map(u -> ResponseEntity.ok(UserResponse.from(u)))
-                .orElseGet(() -> ResponseEntity.status(401).build());
-    }
-
-    @PostMapping("/logout")
-    public ResponseEntity<Void> logout(HttpSession session) {
-        session.invalidate();
-        return ResponseEntity.noContent().build();
-    }
-
-    @PutMapping("/me")
-    public ResponseEntity<?> updateMe(
-            @Valid @RequestBody UserUpdateRequest req,
-            HttpSession session
-    ) {
-        Object id = session.getAttribute(SESSION_USER_KEY);
-        if (!(id instanceof Long userId)) {
-            return ResponseEntity.status(401).body(Map.of("message", "로그인이 필요합니다."));
-        }
-        return userRepository.findById(userId)
-                .map(u -> {
-                    boolean passwordChanged = false;
-                    if (req.nickname() != null && !req.nickname().isBlank()) {
-                        u.setNickname(req.nickname().trim());
-                    }
-                    if (req.email() != null && !req.email().isBlank()) {
-                        u.setEmail(req.email().trim());
-                    }
-                    if (req.newPassword() != null && !req.newPassword().isBlank()) {
-                        if (u.getKakaoId() != null && (u.getPassword() == null || u.getPassword().isBlank())) {
-                            return ResponseEntity.status(400).body((Object) Map.of(
-                                    "message", "카카오 로그인 계정은 비밀번호를 변경할 수 없습니다."));
-                        }
-                        if (u.getPassword() != null && !u.getPassword().isBlank()) {
-                            if (req.currentPassword() == null
-                                    || !passwordEncoder.matches(req.currentPassword(), u.getPassword())) {
-                                return ResponseEntity.status(400).body((Object) Map.of(
-                                        "message", "현재 비밀번호가 일치하지 않습니다."));
-                            }
-                        }
-                        u.setPassword(passwordEncoder.encode(req.newPassword()));
-                        passwordChanged = true;
-                    }
-                    userRepository.save(u);
-                    if (passwordChanged && u.getEmail() != null && !u.getEmail().isBlank()) {
-                        emailService.sendPasswordChanged(u.getEmail(),
-                                u.getNickname() != null ? u.getNickname() : u.getUsername());
-                    }
-                    return ResponseEntity.ok((Object) UserResponse.from(u));
-                })
-                .orElseGet(() -> ResponseEntity.status(401).body(Map.of("message", "사용자를 찾을 수 없습니다.")));
     }
 }

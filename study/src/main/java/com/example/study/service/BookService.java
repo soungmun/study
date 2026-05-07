@@ -1,6 +1,6 @@
 package com.example.study.service;
 
-import com.example.study.dto.BookSearchResponse;
+import com.example.study.dto.response.BookSearchResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;

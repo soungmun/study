@@ -1,4 +1,4 @@
-package com.example.study.dto;
+package com.example.study.dto.response;
 
 public record WeatherResponse(
         double latitude,

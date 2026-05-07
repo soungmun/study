@@ -1,7 +1,9 @@
 package com.example.study.service;
 
-import com.example.study.dto.WeatherResponse;
+import com.example.study.dto.response.WeatherResponse;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -30,7 +32,7 @@ public class WeatherService {
                 .retrieve()
                 .body(OpenMeteoResponse.class);
 
-        OpenMeteoCurrent cw = body != null ? body.current_weather() : null;
+        OpenMeteoCurrent cw = body != null ? body.currentWeather() : null;
         Integer code = cw != null ? cw.weathercode() : null;
         Map<String, String> meta = describe(code);
 
@@ -74,9 +76,11 @@ public class WeatherService {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    private record OpenMeteoResponse(OpenMeteoCurrent current_weather) {}
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    private record OpenMeteoResponse(OpenMeteoCurrent currentWeather) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     private record OpenMeteoCurrent(
             Double temperature,
             Double windspeed,
