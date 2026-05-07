@@ -4,6 +4,7 @@ import com.example.study.dto.request.BroadcastRequest;
 import com.example.study.dto.response.MessageResponse;
 import com.example.study.entity.User;
 import com.example.study.repository.UserRepository;
+import com.example.study.service.DailyMailScheduler;
 import com.example.study.service.EmailService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
@@ -24,15 +25,18 @@ public class AdminMailController {
 
     private final UserRepository userRepository;
     private final EmailService emailService;
+    private final DailyMailScheduler dailyMailScheduler;
     private final String adminUsername;
 
     public AdminMailController(
             UserRepository userRepository,
             EmailService emailService,
+            DailyMailScheduler dailyMailScheduler,
             @Value("${app.admin.username:}") String adminUsername
     ) {
         this.userRepository = userRepository;
         this.emailService = emailService;
+        this.dailyMailScheduler = dailyMailScheduler;
         this.adminUsername = adminUsername;
     }
 
@@ -43,6 +47,16 @@ public class AdminMailController {
                 .filter(u -> u.getEmail() != null && !u.getEmail().isBlank())
                 .count() : 0L;
         return ResponseEntity.ok(Map.of("admin", admin, "subscribers", subscribers));
+    }
+
+    @PostMapping("/broadcast/daily-now")
+    public ResponseEntity<?> triggerDailyNow(HttpSession session) {
+        if (!isAdmin(session)) {
+            return ResponseEntity.status(403)
+                    .body(MessageResponse.of("관리자만 사용할 수 있는 기능입니다."));
+        }
+        dailyMailScheduler.sendDailyGreeting();
+        return ResponseEntity.ok(Map.of("triggered", true));
     }
 
     @PostMapping("/broadcast")

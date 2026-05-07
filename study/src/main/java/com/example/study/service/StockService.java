@@ -1,6 +1,7 @@
 package com.example.study.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -27,6 +28,7 @@ public class StockService {
     private final RestClient restClient = RestClient.builder()
             .defaultHeader(HttpHeaders.USER_AGENT, "Mozilla/5.0 (study-notice/1.0)")
             .build();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public record Quote(String name, Double price, Double change, Double changePercent) {}
 
@@ -38,11 +40,12 @@ public class StockService {
 
     private Quote fetchOne(Symbol s) {
         try {
-            JsonNode body = restClient.get()
+            String raw = restClient.get()
                     .uri(CHART_URL + s.code())
                     .retrieve()
-                    .body(JsonNode.class);
-            JsonNode meta = body.path("chart").path("result").path(0).path("meta");
+                    .body(String.class);
+            JsonNode meta = objectMapper.readTree(raw)
+                    .path("chart").path("result").path(0).path("meta");
             if (meta.isMissingNode() || meta.path("regularMarketPrice").isMissingNode()) {
                 log.warn("[Stock] {} meta 비어있음", s.code());
                 return new Quote(s.name(), null, null, null);
