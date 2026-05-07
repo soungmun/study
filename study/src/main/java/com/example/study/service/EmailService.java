@@ -81,6 +81,26 @@ public class EmailService {
         send(toEmail, subject, html);
     }
 
+    @Async
+    public void sendBroadcast(java.util.List<String> recipients, String subject, String html) {
+        if (recipients == null || recipients.isEmpty()) return;
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, false, StandardCharsets.UTF_8.name());
+            helper.setFrom(new InternetAddress(fromAddress, fromName, StandardCharsets.UTF_8.name()));
+            helper.setTo(fromAddress);
+            helper.setBcc(recipients.toArray(new String[0]));
+            helper.setSubject(subject);
+            helper.setText(html, true);
+            mailSender.send(message);
+            log.info("Broadcast email sent to {} recipients - {}", recipients.size(), subject);
+        } catch (MessagingException | UnsupportedEncodingException e) {
+            log.warn("Failed to send broadcast ({}): {}", subject, e.getMessage(), e);
+        } catch (Exception e) {
+            log.warn("Mail provider error for broadcast ({}): {}", subject, e.getMessage(), e);
+        }
+    }
+
     private void send(String to, String subject, String html) {
         try {
             MimeMessage message = mailSender.createMimeMessage();

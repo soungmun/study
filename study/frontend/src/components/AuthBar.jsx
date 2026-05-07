@@ -8,7 +8,7 @@ export default function AuthBar() {
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState(null);
   const [mode, setMode] = useState(null); // 'login' | 'signup' | null
-  const [form, setForm] = useState({ username: '', password: '', nickname: '', email: '' });
+  const [form, setForm] = useState({ username: '', password: '', nickname: '', email: '', notificationOptIn: false });
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState(null);
   const wrapRef = useRef(null);
@@ -71,6 +71,7 @@ export default function AuthBar() {
             password: form.password,
             nickname: form.nickname || null,
             email: form.email?.trim() || null,
+            notificationOptIn: !!form.notificationOptIn,
           }
         : { username: form.username, password: form.password };
       const r = await fetch(url, {
@@ -86,7 +87,7 @@ export default function AuthBar() {
       const data = await r.json();
       setUser(data);
       setMode(null);
-      setForm({ username: '', password: '', nickname: '', email: '' });
+      setForm({ username: '', password: '', nickname: '', email: '', notificationOptIn: false });
       window.dispatchEvent(new Event('auth-changed'));
     } catch (err) {
       setFormError(err.message);
@@ -190,6 +191,14 @@ export default function AuthBar() {
                 maxLength={200}
                 required
               />
+              <label className="auth-popover-checkbox">
+                <input
+                  type="checkbox"
+                  checked={form.notificationOptIn}
+                  onChange={(e) => setForm({ ...form, notificationOptIn: e.target.checked })}
+                />
+                <span>공지 메일 수신 동의 (선택)</span>
+              </label>
             </>
           )}
           {mode === 'login' && (

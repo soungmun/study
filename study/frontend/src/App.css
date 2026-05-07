@@ -1830,3 +1830,32 @@ button.ghost:hover:not(:disabled) {
 .auth-popover-extra a:hover {
   text-decoration: underline;
 }
+/* 단체 메일 동의 체크박스 */
+.auth-popover-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #475569;
+  cursor: pointer;
+  margin-top: -4px;
+}
+.auth-popover-checkbox input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.profile-edit-checkbox-row .profile-edit-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #475569;
+  cursor: pointer;
+}
+.profile-edit-checkbox input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}

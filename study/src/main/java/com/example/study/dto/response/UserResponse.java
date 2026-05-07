@@ -8,7 +8,8 @@ public record UserResponse(
         String username,
         String nickname,
         String profileImage,
-        String email
+        String email,
+        boolean notificationOptIn
 ) {
     public static UserResponse from(User user) {
         return new UserResponse(
@@ -17,7 +18,8 @@ public record UserResponse(
                 user.getUsername(),
                 user.getNickname(),
                 user.getProfileImage(),
-                user.getEmail()
+                user.getEmail(),
+                user.isNotificationOptIn()
         );
     }
 }

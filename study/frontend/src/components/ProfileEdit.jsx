@@ -13,6 +13,7 @@ export default function ProfileEdit() {
     currentPassword: '',
     newPassword: '',
     newPasswordConfirm: '',
+    notificationOptIn: false,
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -31,6 +32,7 @@ export default function ProfileEdit() {
           ...f,
           nickname: u.nickname || '',
           email: u.email || '',
+          notificationOptIn: !!u.notificationOptIn,
         }));
       })
       .finally(() => setLoading(false));
@@ -58,6 +60,7 @@ export default function ProfileEdit() {
     const body = {
       nickname: form.nickname?.trim() || null,
       email: form.email?.trim() || null,
+      notificationOptIn: !!form.notificationOptIn,
     };
     if (form.newPassword) {
       body.currentPassword = form.currentPassword || null;
@@ -144,6 +147,18 @@ export default function ProfileEdit() {
             placeholder="example@example.com"
             maxLength={200}
           />
+        </div>
+
+        <div className="profile-edit-row profile-edit-checkbox-row">
+          <label>공지 메일</label>
+          <label className="profile-edit-checkbox">
+            <input
+              type="checkbox"
+              checked={form.notificationOptIn}
+              onChange={(e) => setForm({ ...form, notificationOptIn: e.target.checked })}
+            />
+            <span>관리자가 보내는 공지 메일을 받을게요</span>
+          </label>
         </div>
 
         {!isKakaoOnly && (

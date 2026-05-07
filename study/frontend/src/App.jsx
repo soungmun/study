@@ -11,6 +11,7 @@ import RequireAuth from './components/RequireAuth';
 import ProfileEdit from './components/ProfileEdit';
 import PasswordForgot from './components/PasswordForgot';
 import PasswordReset from './components/PasswordReset';
+import AdminBroadcast from './components/AdminBroadcast';
 import './App.css';
 
 export default function App() {
@@ -45,6 +46,7 @@ export default function App() {
         <Route path="/me/edit" element={<RequireAuth title="👤 회원정보 수정"><ProfileEdit /></RequireAuth>} />
         <Route path="/forgot" element={<PasswordForgot />} />
         <Route path="/reset" element={<PasswordReset />} />
+        <Route path="/admin/broadcast" element={<RequireAuth title="📣 공지 메일 발송"><AdminBroadcast /></RequireAuth>} />
       </Routes>
     </div>
   );

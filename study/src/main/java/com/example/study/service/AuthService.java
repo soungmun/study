@@ -70,6 +70,7 @@ public class AuthService {
             u.setNickname(req.nickname());
         }
         u.setEmail(req.email().trim());
+        u.setNotificationOptIn(Boolean.TRUE.equals(req.notificationOptIn()));
         userRepository.save(u);
         emailService.sendWelcome(u.getEmail(), displayName(u));
         return Result.ok(u);
@@ -120,6 +121,9 @@ public class AuthService {
                     }
                     if (req.email() != null && !req.email().isBlank()) {
                         u.setEmail(req.email().trim());
+                    }
+                    if (req.notificationOptIn() != null) {
+                        u.setNotificationOptIn(req.notificationOptIn());
                     }
                     if (req.newPassword() != null && !req.newPassword().isBlank()) {
                         if (u.getKakaoId() != null

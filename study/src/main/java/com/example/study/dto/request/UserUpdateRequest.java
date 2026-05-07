@@ -15,5 +15,7 @@ public record UserUpdateRequest(
         String currentPassword,
 
         @Size(min = 6, max = 50, message = "새 비밀번호는 6~50자")
-        String newPassword
+        String newPassword,
+
+        Boolean notificationOptIn
 ) {}

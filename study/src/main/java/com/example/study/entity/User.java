@@ -47,6 +47,9 @@ public class User {
     @Column(name = "reset_token_expires_at")
     private LocalDateTime resetTokenExpiresAt;
 
+    @Column(name = "notification_opt_in", nullable = false)
+    private boolean notificationOptIn = false;
+
     @PrePersist
     void onCreate() {
         LocalDateTime now = LocalDateTime.now();
@@ -78,4 +81,6 @@ public class User {
     public void setResetToken(String resetToken) { this.resetToken = resetToken; }
     public LocalDateTime getResetTokenExpiresAt() { return resetTokenExpiresAt; }
     public void setResetTokenExpiresAt(LocalDateTime resetTokenExpiresAt) { this.resetTokenExpiresAt = resetTokenExpiresAt; }
+    public boolean isNotificationOptIn() { return notificationOptIn; }
+    public void setNotificationOptIn(boolean notificationOptIn) { this.notificationOptIn = notificationOptIn; }
 }
