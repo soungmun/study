@@ -29,6 +29,7 @@ public class AuthController {
 
     public static final String SESSION_USER_KEY = "LOGIN_USER_ID";
     private static final String SESSION_RETURN_TO = "RETURN_TO";
+    private static final String SESSION_KAKAO_LAST_CODE = "KAKAO_LAST_CODE";
 
     private final AuthService authService;
     private final KakaoOAuthService kakao;
@@ -105,6 +106,13 @@ public class AuthController {
             redirectWithError(res, base, reason, desc);
             return;
         }
+
+        Object lastCode = session.getAttribute(SESSION_KAKAO_LAST_CODE);
+        if (code.equals(lastCode)) {
+            res.sendRedirect(base);
+            return;
+        }
+        session.setAttribute(SESSION_KAKAO_LAST_CODE, code);
 
         try {
             User user = authService.syncKakaoUser(code);
