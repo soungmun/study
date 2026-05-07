@@ -31,9 +31,6 @@ export default function App() {
           <NavLink to="/map" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
             지도
           </NavLink>
-          <NavLink to="/users" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-            회원
-          </NavLink>
           <AuthBar />
         </nav>
       </header>
