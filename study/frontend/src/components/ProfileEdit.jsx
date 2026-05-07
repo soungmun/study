@@ -83,8 +83,14 @@ export default function ProfileEdit() {
         newPassword: '',
         newPasswordConfirm: '',
       }));
-      setSuccess('회원정보가 수정되었습니다.');
+      const passwordChanged = !!body.newPassword;
+      setSuccess(
+        passwordChanged
+          ? '비밀번호가 변경되었습니다. 안내 메일을 보냈어요. 잠시 후 홈으로 이동합니다.'
+          : '회원정보가 수정되었습니다. 잠시 후 홈으로 이동합니다.'
+      );
       window.dispatchEvent(new Event('auth-changed'));
+      setTimeout(() => navigate('/'), 1200);
     } catch (err) {
       setError(err.message);
     } finally {

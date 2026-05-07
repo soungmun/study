@@ -67,6 +67,20 @@ public class EmailService {
         send(toEmail, subject, html);
     }
 
+    @Async
+    public void sendPasswordChanged(String toEmail, String displayName) {
+        String subject = "[Study Notice] 비밀번호가 변경되었습니다";
+        String html = """
+                <div style="font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;color:#1e293b;">
+                  <h2 style="color:#6366f1;">비밀번호 변경 안내</h2>
+                  <p>%s님, 방금 계정의 비밀번호가 변경되었어요.</p>
+                  <p>본인이 변경한 것이 아니라면 즉시 비밀번호 찾기 기능으로 재설정하고 관리자에게 문의해 주세요.</p>
+                  <p style="color:#94a3b8;font-size:12px;">본 메일은 자동 발송되었습니다.</p>
+                </div>
+                """.formatted(displayName != null && !displayName.isBlank() ? displayName : "사용자");
+        send(toEmail, subject, html);
+    }
+
     private void send(String to, String subject, String html) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
@@ -78,9 +92,9 @@ public class EmailService {
             mailSender.send(message);
             log.info("Email sent to {} - {}", to, subject);
         } catch (MessagingException | UnsupportedEncodingException e) {
-            log.warn("Failed to send email to {}: {}", to, e.getMessage());
+            log.warn("Failed to send email to {} ({}): {}", to, subject, e.getMessage(), e);
         } catch (Exception e) {
-            log.warn("Mail provider error to {}: {}", to, e.getMessage());
+            log.warn("Mail provider error to {} ({}): {}", to, subject, e.getMessage(), e);
         }
     }
 }

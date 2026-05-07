@@ -209,6 +209,7 @@ public class AuthController {
         }
         return userRepository.findById(userId)
                 .map(u -> {
+                    boolean passwordChanged = false;
                     if (req.nickname() != null && !req.nickname().isBlank()) {
                         u.setNickname(req.nickname().trim());
                     }
@@ -228,8 +229,13 @@ public class AuthController {
                             }
                         }
                         u.setPassword(passwordEncoder.encode(req.newPassword()));
+                        passwordChanged = true;
                     }
                     userRepository.save(u);
+                    if (passwordChanged && u.getEmail() != null && !u.getEmail().isBlank()) {
+                        emailService.sendPasswordChanged(u.getEmail(),
+                                u.getNickname() != null ? u.getNickname() : u.getUsername());
+                    }
                     return ResponseEntity.ok((Object) UserResponse.from(u));
                 })
                 .orElseGet(() -> ResponseEntity.status(401).body(Map.of("message", "사용자를 찾을 수 없습니다.")));
