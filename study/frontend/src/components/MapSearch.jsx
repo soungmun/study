@@ -438,7 +438,7 @@ export default function MapSearch() {
           {!loading && documents.length > 0 && (
             <>
               <div className="book-meta">
-                <span>총 <strong>{meta.pageable_count.toLocaleString()}</strong>건</span>
+                <span>총 <strong>{(meta?.pageable_count ?? 0).toLocaleString()}</strong>건</span>
                 <span className="dot">·</span>
                 <span>{page} 페이지</span>
               </div>

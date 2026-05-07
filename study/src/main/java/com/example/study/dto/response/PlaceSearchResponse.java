@@ -12,7 +12,7 @@ public record PlaceSearchResponse(Meta meta, List<Document> documents) {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-    public record Meta(int totalCount, int pageableCount, boolean isEnd) {}
+    public record Meta(Integer totalCount, Integer pageableCount, Boolean isEnd) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
