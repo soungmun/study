@@ -143,14 +143,20 @@ public class AuthService {
         KakaoTokenResponse token = kakaoOAuth.exchangeCode(code);
         KakaoUserResponse me = kakaoOAuth.fetchUser(token.accessToken());
 
-        User user = userRepository.findByKakaoId(me.id()).orElseGet(User::new);
-        user.setKakaoId(me.id());
-        if (me.kakaoAccount() != null) {
-            user.setEmail(me.kakaoAccount().email());
-            if (me.kakaoAccount().profile() != null) {
-                user.setNickname(me.kakaoAccount().profile().nickname());
-                user.setProfileImage(me.kakaoAccount().profile().profileImageUrl());
+        User user = userRepository.findByKakaoId(me.id()).orElseGet(() -> {
+            User created = new User();
+            created.setKakaoId(me.id());
+            if (me.kakaoAccount() != null) {
+                created.setEmail(me.kakaoAccount().email());
+                if (me.kakaoAccount().profile() != null) {
+                    created.setNickname(me.kakaoAccount().profile().nickname());
+                }
             }
+            return created;
+        });
+
+        if (me.kakaoAccount() != null && me.kakaoAccount().profile() != null) {
+            user.setProfileImage(me.kakaoAccount().profile().profileImageUrl());
         }
         userRepository.save(user);
         return user;
