@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 const BASE_URL = 'http://localhost:8080/api/notices';
@@ -13,8 +13,11 @@ export default function NoticeDetail() {
   const navigate = useNavigate();
   const [notice, setNotice] = useState(null);
   const [error, setError] = useState(null);
+  const fetchedIdRef = useRef(null);
 
   useEffect(() => {
+    if (fetchedIdRef.current === id) return;
+    fetchedIdRef.current = id;
     fetch(`${BASE_URL}/${id}`)
       .then(async (r) => {
         if (!r.ok) throw new Error(await readError(r));
