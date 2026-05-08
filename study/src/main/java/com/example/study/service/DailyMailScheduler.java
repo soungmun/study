@@ -34,7 +34,7 @@ public class DailyMailScheduler {
         this.stockService = stockService;
     }
 
-    @Scheduled(cron = "0 0 9 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 0 20 * * *", zone = "Asia/Seoul")
     public void sendDailyGreeting() {
         List<String> recipients = userRepository.findByNotificationOptInTrue().stream()
                 .map(User::getEmail)
@@ -46,7 +46,7 @@ public class DailyMailScheduler {
             return;
         }
         String today = LocalDate.now(ZoneId.of("Asia/Seoul")).format(DATE_FMT);
-        String subject = "[Study Notice] " + today + " 오늘 하루도 좋은 하루 되세요!";
+        String subject = "[Study Notice] " + today + " 오늘도 수고하셨어요!";
         List<StockService.Quote> quotes = stockService.fetchWatchlist();
         String html = buildHtml(today, quotes);
         emailService.sendBroadcast(recipients, subject, html);
@@ -60,9 +60,9 @@ public class DailyMailScheduler {
         }
         return """
                 <div style="font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;color:#1e293b;line-height:1.7;">
-                  <h2 style="color:#6366f1;margin-bottom:8px;">☀️ %s</h2>
-                  <p style="font-size:15px;">안녕하세요!</p>
-                  <p style="font-size:15px;">오늘 하루도 좋은 하루 보내세요. 활기차고 즐거운 하루가 되시길 바랍니다 🙂</p>
+                  <h2 style="color:#6366f1;margin-bottom:8px;">🌆 %s</h2>
+                  <p style="font-size:15px;">오늘 하루도 수고하셨어요!</p>
+                  <p style="font-size:15px;">편안한 저녁 보내시고 푹 쉬세요 🙂</p>
 
                   <h3 style="color:#1e293b;margin-top:28px;border-bottom:2px solid #e2e8f0;padding-bottom:6px;">📈 오늘의 주요 지수·종목</h3>
                   <table style="border-collapse:collapse;width:100%%;font-size:14px;margin-top:8px;">
@@ -79,7 +79,7 @@ public class DailyMailScheduler {
                   <p style="color:#94a3b8;font-size:11px;margin-top:6px;">출처: Yahoo Finance · 발송 시점 직전 시세</p>
 
                   <p style="color:#94a3b8;font-size:12px;margin-top:24px;">
-                    본 메일은 매일 오전 9시에 자동 발송됩니다. 수신을 원치 않으시면
+                    본 메일은 매일 오후 8시에 자동 발송됩니다. 수신을 원치 않으시면
                     사이트 회원정보 수정에서 '공지 메일 수신 동의'를 해제해 주세요.
                   </p>
                 </div>
