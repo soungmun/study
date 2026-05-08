@@ -3,8 +3,6 @@ package com.example.study.service;
 import com.example.study.dto.response.AirQualityResponse;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -72,14 +70,13 @@ public class AirQualityService {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    private record OpenMeteoAir(Current current) {}
+    public record OpenMeteoAir(Current current) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-    private record Current(
+    public record Current(
             String time,
             Double pm10,
             @JsonProperty("pm2_5") Double pm25,
-            Integer europeanAqi
+            @JsonProperty("european_aqi") Integer europeanAqi
     ) {}
 }
