@@ -118,7 +118,6 @@ export default function MapSearch() {
           category_group_name: poi.category_group_name || '근처 장소',
           road_address_name: poi.road_address_name || roadAddr,
           address_name: poi.address_name || jibunAddr,
-          phone: poi.phone,
           place_url: poi.place_url,
           x: String(lng),
           y: String(lat),
@@ -314,7 +313,6 @@ export default function MapSearch() {
         ${place.place_name ? `<div style="font-weight:700;color:#1e1b4b;margin-bottom:4px;">${place.place_name}</div>` : ''}
         ${place.road_address_name ? `<div style="color:#475569;">${place.road_address_name}</div>` : ''}
         ${place.address_name && place.address_name !== place.road_address_name ? `<div style="color:#94a3b8;font-size:12px;">${place.address_name}</div>` : ''}
-        ${place.phone ? `<div style="color:#0891b2;margin-top:4px;">📞 ${place.phone}</div>` : ''}
         ${place.place_url ? `<a href="${place.place_url}" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;color:#a855f7;text-decoration:none;font-weight:600;">카카오맵에서 보기 →</a>` : ''}
       </div>
     `;
