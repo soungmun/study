@@ -93,7 +93,7 @@ public class EmailService {
             helper.setSubject(subject);
             helper.setText(html, true);
             mailSender.send(message);
-            log.info("Broadcast email sent to {} recipients - {}", recipients.size(), subject);
+            log.info("[Mail] 전송 완료 (단체) → 수신자 {}명 | 제목: {}", recipients.size(), subject);
         } catch (MessagingException | UnsupportedEncodingException e) {
             log.warn("Failed to send broadcast ({}): {}", subject, e.getMessage(), e);
         } catch (Exception e) {
@@ -110,7 +110,7 @@ public class EmailService {
             helper.setSubject(subject);
             helper.setText(html, true);
             mailSender.send(message);
-            log.info("Email sent to {} - {}", to, subject);
+            log.info("[Mail] 전송 완료 → {} | 제목: {}", to, subject);
         } catch (MessagingException | UnsupportedEncodingException e) {
             log.warn("Failed to send email to {} ({}): {}", to, subject, e.getMessage(), e);
         } catch (Exception e) {
