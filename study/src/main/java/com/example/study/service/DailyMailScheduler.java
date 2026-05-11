@@ -4,11 +4,18 @@ import com.example.study.entity.User;
 import com.example.study.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
@@ -19,6 +26,10 @@ public class DailyMailScheduler {
     private static final Logger log = LoggerFactory.getLogger(DailyMailScheduler.class);
     private static final DateTimeFormatter DATE_FMT =
             DateTimeFormatter.ofPattern("yyyy년 M월 d일 EEEE", Locale.KOREAN);
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+    private static final LocalTime DAILY_TIME = LocalTime.of(20, 0);
+    private static final Path STATE_FILE =
+            Path.of(System.getProperty("user.home"), ".study-notice-last-daily.txt");
 
     private final UserRepository userRepository;
     private final EmailService emailService;
@@ -36,21 +47,61 @@ public class DailyMailScheduler {
 
     @Scheduled(cron = "0 0 20 * * *", zone = "Asia/Seoul")
     public void sendDailyGreeting() {
+        trySendForToday("정시");
+    }
+
+    @EventListener(ApplicationReadyEvent.class)
+    public void catchUpOnStartup() {
+        ZonedDateTime now = ZonedDateTime.now(KST);
+        if (now.toLocalTime().isBefore(DAILY_TIME)) {
+            log.info("[DailyMail] 시작 시점 {} (KST) — 오늘 20:00 이전, 정시 발송 대기", now.toLocalTime());
+            return;
+        }
+        trySendForToday("기동시점-catchup");
+    }
+
+    private synchronized void trySendForToday(String trigger) {
+        LocalDate today = LocalDate.now(KST);
+        LocalDate lastSent = readLastSent();
+        if (today.equals(lastSent)) {
+            log.info("[DailyMail] [{}] 오늘({})은 이미 발송됨 — 스킵", trigger, today);
+            return;
+        }
         List<String> recipients = userRepository.findByNotificationOptInTrue().stream()
                 .map(User::getEmail)
                 .filter(e -> e != null && !e.isBlank())
                 .distinct()
                 .toList();
         if (recipients.isEmpty()) {
-            log.info("[DailyMail] 수신 동의자 0명 — 발송 스킵");
+            log.info("[DailyMail] [{}] 수신 동의자 0명 — 발송 스킵", trigger);
             return;
         }
-        String today = LocalDate.now(ZoneId.of("Asia/Seoul")).format(DATE_FMT);
-        String subject = "[Study Notice] " + today + " 오늘도 수고하셨어요!";
+        String todayStr = today.format(DATE_FMT);
+        String subject = "[Study Notice] " + todayStr + " 오늘도 수고하셨어요!";
         List<StockService.Quote> quotes = stockService.fetchWatchlist();
-        String html = buildHtml(today, quotes);
+        String html = buildHtml(todayStr, quotes);
         emailService.sendBroadcast(recipients, subject, html);
-        log.info("[DailyMail] 발송 큐 등록 완료 — 수신자 {}명", recipients.size());
+        writeLastSent(today);
+        log.info("[DailyMail] [{}] 발송 큐 등록 완료 — 수신자 {}명", trigger, recipients.size());
+    }
+
+    private LocalDate readLastSent() {
+        try {
+            if (!Files.exists(STATE_FILE)) return null;
+            String s = Files.readString(STATE_FILE).trim();
+            return s.isEmpty() ? null : LocalDate.parse(s);
+        } catch (Exception e) {
+            log.warn("[DailyMail] 상태 파일 읽기 실패: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    private void writeLastSent(LocalDate date) {
+        try {
+            Files.writeString(STATE_FILE, date.toString());
+        } catch (IOException e) {
+            log.warn("[DailyMail] 상태 파일 기록 실패: {}", e.getMessage());
+        }
     }
 
     private String buildHtml(String today, List<StockService.Quote> quotes) {

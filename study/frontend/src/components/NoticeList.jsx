@@ -53,8 +53,8 @@ export default function NoticeList() {
     setPageNo(0);
   };
 
-  const notices = page?.content ?? [];
-  const totalPages = page?.totalPages ?? 0;
+  const notices = Array.isArray(page?.content) ? page.content : [];
+  const totalPages = Number.isFinite(page?.totalPages) ? page.totalPages : 0;
   const isFirst = page?.first ?? true;
   const isLast = page?.last ?? true;
 
