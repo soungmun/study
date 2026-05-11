@@ -43,7 +43,6 @@ export default function MapSearch() {
   const [submitted, setSubmitted] = useState('');
   const [page, setPage] = useState(1);
   const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [customPlace, setCustomPlace] = useState(null);
@@ -192,7 +191,6 @@ export default function MapSearch() {
       return;
     }
     const controller = new AbortController();
-    setLoading(true);
     setError(null);
     const params = new URLSearchParams({
       query: submitted.trim(),
@@ -206,12 +204,10 @@ export default function MapSearch() {
       })
       .then((data) => {
         setResult(data);
-        setLoading(false);
       })
       .catch((e) => {
         if (e.name === 'AbortError') return;
         setError(e.message);
-        setLoading(false);
       });
     return () => controller.abort();
   }, [submitted, page]);
@@ -387,10 +383,6 @@ export default function MapSearch() {
     }
   };
 
-  const documents = result?.documents ?? [];
-  const meta = result?.meta;
-  const isEnd = meta?.is_end ?? true;
-
   return (
     <div className="card">
       <div className="toolbar">
@@ -416,59 +408,6 @@ export default function MapSearch() {
       {error && <div className="error">에러: {error}</div>}
 
       <div className="map-layout">
-        <div className="map-list">
-          {loading && (
-            <div className="book-empty">
-              <div className="spinner" />
-              <p>검색 중…</p>
-            </div>
-          )}
-          {!loading && submitted && documents.length === 0 && !error && (
-            <div className="book-empty">
-              <div className="book-empty-icon">📭</div>
-              <p>검색 결과가 없습니다.</p>
-            </div>
-          )}
-          {!loading && !submitted && (
-            <div className="book-empty">
-              <div className="book-empty-icon">🔍</div>
-              <p>장소를 검색해보세요</p>
-            </div>
-          )}
-          {!loading && documents.length > 0 && (
-            <>
-              <div className="book-meta">
-                <span>총 <strong>{(meta?.pageable_count ?? 0).toLocaleString()}</strong>건</span>
-                <span className="dot">·</span>
-                <span>{page} 페이지</span>
-              </div>
-              <ul className="place-list">
-                {documents.map((p) => (
-                  <li
-                    key={p.id}
-                    className={`place-item ${selectedId === p.id ? 'active' : ''}`}
-                    onClick={() => focusPlace(p)}
-                  >
-                    <div className="place-name">{p.place_name}</div>
-                    {p.category_name && (
-                      <div className="place-category">{p.category_name}</div>
-                    )}
-                    <div className="place-addr">
-                      {p.road_address_name || p.address_name}
-                    </div>
-                    {p.phone && <div className="place-phone">📞 {p.phone}</div>}
-                  </li>
-                ))}
-              </ul>
-              <div className="pagination">
-                <button onClick={() => setPage(1)} disabled={page === 1}>«</button>
-                <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>‹</button>
-                <span className="page-num active">{page}</span>
-                <button onClick={() => setPage((p) => p + 1)} disabled={isEnd}>›</button>
-              </div>
-            </>
-          )}
-        </div>
         <div className="map-canvas-wrap">
           <div className="map-canvas" ref={mapRef} />
           <div className="map-hint">🖱 지도를 클릭하면 그 위치의 주소가 오른쪽에 표시돼요</div>

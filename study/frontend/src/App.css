@@ -992,20 +992,9 @@ button.ghost:hover:not(:disabled) {
 
 .map-layout {
   display: grid;
-  grid-template-columns: 320px 1fr 300px;
+  grid-template-columns: 1fr 300px;
   gap: 16px;
   min-height: 540px;
-}
-
-.map-list {
-  display: flex;
-  flex-direction: column;
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
-  background: #fff;
-  padding: 14px;
-  overflow: auto;
-  max-height: 600px;
 }
 
 .map-canvas-wrap {
@@ -1542,7 +1531,7 @@ button.ghost:hover:not(:disabled) {
 
 @media (max-width: 1080px) and (min-width: 641px) {
   .map-layout {
-    grid-template-columns: 280px 1fr;
+    grid-template-columns: 1fr;
   }
 
   .place-detail {
