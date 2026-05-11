@@ -1,5 +1,7 @@
 package com.example.study.service;
 
+import com.example.study.dto.response.AirQualityResponse;
+import com.example.study.dto.response.WeatherResponse;
 import com.example.study.entity.User;
 import com.example.study.repository.UserRepository;
 import org.slf4j.Logger;
@@ -31,21 +33,31 @@ public class DailyMailScheduler {
     private static final Path STATE_FILE =
             Path.of(System.getProperty("user.home"), ".study-notice-last-daily.txt");
 
+    // 서울 시청 좌표 — 날씨/미세먼지 기준
+    private static final double SEOUL_LAT = 37.5665;
+    private static final double SEOUL_LNG = 126.9780;
+
     private final UserRepository userRepository;
     private final EmailService emailService;
     private final StockService stockService;
     private final NewsService newsService;
+    private final WeatherService weatherService;
+    private final AirQualityService airQualityService;
 
     public DailyMailScheduler(
             UserRepository userRepository,
             EmailService emailService,
             StockService stockService,
-            NewsService newsService
+            NewsService newsService,
+            WeatherService weatherService,
+            AirQualityService airQualityService
     ) {
         this.userRepository = userRepository;
         this.emailService = emailService;
         this.stockService = stockService;
         this.newsService = newsService;
+        this.weatherService = weatherService;
+        this.airQualityService = airQualityService;
     }
 
     @Scheduled(cron = "0 0 20 * * *", zone = "Asia/Seoul")
@@ -83,7 +95,9 @@ public class DailyMailScheduler {
         String subject = "[Study Notice] " + todayStr + " 오늘도 수고하셨어요!";
         List<StockService.Quote> quotes = stockService.fetchWatchlist();
         List<NewsService.Headline> news = newsService.fetchTop(8);
-        String html = buildHtml(todayStr, quotes, news);
+        WeatherResponse weather = safeWeather();
+        AirQualityResponse air = safeAir();
+        String html = buildHtml(todayStr, weather, air, quotes, news);
         emailService.sendBroadcast(recipients, subject, html);
         writeLastSent(today);
         log.info("[DailyMail] [{}] 발송 큐 등록 완료 — 수신자 {}명", trigger, recipients.size());
@@ -108,7 +122,8 @@ public class DailyMailScheduler {
         }
     }
 
-    private String buildHtml(String today, List<StockService.Quote> quotes, List<NewsService.Headline> news) {
+    private String buildHtml(String today, WeatherResponse weather, AirQualityResponse air,
+                              List<StockService.Quote> quotes, List<NewsService.Headline> news) {
         StringBuilder rows = new StringBuilder();
         for (StockService.Quote q : quotes) {
             rows.append(stockRow(q));
@@ -118,6 +133,8 @@ public class DailyMailScheduler {
                   <h2 style="color:#6366f1;margin-bottom:8px;">🌆 %s</h2>
                   <p style="font-size:15px;">오늘 하루도 수고하셨어요!</p>
                   <p style="font-size:15px;">편안한 저녁 보내시고 푹 쉬세요 🙂</p>
+
+                  %s
 
                   <h3 style="color:#1e293b;margin-top:28px;border-bottom:2px solid #e2e8f0;padding-bottom:6px;">📈 오늘의 주요 지수·종목</h3>
                   <table style="border-collapse:collapse;width:100%%;font-size:14px;margin-top:8px;">
@@ -140,7 +157,78 @@ public class DailyMailScheduler {
                     사이트 회원정보 수정에서 '공지 메일 수신 동의'를 해제해 주세요.
                   </p>
                 </div>
-                """.formatted(today, rows.toString(), newsSection(news));
+                """.formatted(today, weatherAirSection(weather, air), rows.toString(), newsSection(news));
+    }
+
+    private WeatherResponse safeWeather() {
+        try {
+            return weatherService.getWeather(SEOUL_LAT, SEOUL_LNG);
+        } catch (Exception e) {
+            log.warn("[DailyMail] 서울 날씨 조회 실패: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    private AirQualityResponse safeAir() {
+        try {
+            return airQualityService.get(SEOUL_LAT, SEOUL_LNG);
+        } catch (Exception e) {
+            log.warn("[DailyMail] 서울 미세먼지 조회 실패: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    private String weatherAirSection(WeatherResponse w, AirQualityResponse a) {
+        if (w == null && a == null) return "";
+
+        String weatherCell;
+        if (w == null || w.temperature() == null) {
+            weatherCell = "<div style=\"color:#94a3b8;\">날씨 정보 없음</div>";
+        } else {
+            String icon = w.icon() == null ? "" : w.icon();
+            String desc = w.description() == null ? "" : w.description();
+            weatherCell = """
+                    <div style="font-size:13px;color:#64748b;margin-bottom:4px;">기온</div>
+                    <div style="font-size:28px;font-weight:700;color:#1e293b;">%s %.1f°C</div>
+                    <div style="font-size:13px;color:#475569;margin-top:2px;">%s</div>
+                    """.formatted(icon, w.temperature(), desc);
+        }
+
+        String airCell;
+        if (a == null || (a.pm10() == null && a.pm25() == null)) {
+            airCell = "<div style=\"color:#94a3b8;\">미세먼지 정보 없음</div>";
+        } else {
+            String pm10 = a.pm10() == null ? "-" : String.format("%.0f", a.pm10());
+            String pm25 = a.pm25() == null ? "-" : String.format("%.0f", a.pm25());
+            String g10 = a.pm10Grade() == null ? "" : a.pm10Grade();
+            String g25 = a.pm25Grade() == null ? "" : a.pm25Grade();
+            String c10 = a.pm10Color() == null ? "#64748b" : a.pm10Color();
+            String c25 = a.pm25Color() == null ? "#64748b" : a.pm25Color();
+            airCell = """
+                    <div style="font-size:13px;color:#64748b;margin-bottom:4px;">미세먼지</div>
+                    <div style="margin-bottom:6px;">
+                      <span style="font-size:13px;color:#475569;">PM10</span>
+                      <span style="font-weight:700;margin:0 6px;">%s</span>
+                      <span style="background:%s;color:#fff;font-size:12px;padding:2px 8px;border-radius:999px;">%s</span>
+                    </div>
+                    <div>
+                      <span style="font-size:13px;color:#475569;">PM2.5</span>
+                      <span style="font-weight:700;margin:0 6px;">%s</span>
+                      <span style="background:%s;color:#fff;font-size:12px;padding:2px 8px;border-radius:999px;">%s</span>
+                    </div>
+                    """.formatted(pm10, c10, g10, pm25, c25, g25);
+        }
+
+        return """
+                <h3 style="color:#1e293b;margin-top:28px;border-bottom:2px solid #e2e8f0;padding-bottom:6px;">🌤️ 오늘의 서울 날씨·미세먼지</h3>
+                <table style="border-collapse:collapse;width:100%%;margin-top:8px;">
+                  <tr>
+                    <td style="width:50%%;padding:14px;background:#f8fafc;border-radius:10px 0 0 10px;vertical-align:top;">%s</td>
+                    <td style="width:50%%;padding:14px;background:#f1f5f9;border-radius:0 10px 10px 0;vertical-align:top;">%s</td>
+                  </tr>
+                </table>
+                <p style="color:#94a3b8;font-size:11px;margin-top:6px;">출처: Open-Meteo · 서울시청 좌표 기준</p>
+                """.formatted(weatherCell, airCell);
     }
 
     private String newsSection(List<NewsService.Headline> news) {
