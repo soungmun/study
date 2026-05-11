@@ -3,6 +3,7 @@ package com.example.study.controller;
 import com.example.study.dto.request.CommentRequest;
 import com.example.study.dto.response.CommentResponse;
 import com.example.study.dto.response.MessageResponse;
+import com.example.study.service.CommentLikeService;
 import com.example.study.service.CommentService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
@@ -23,9 +24,20 @@ import java.util.List;
 public class CommentController {
 
     private final CommentService commentService;
+    private final CommentLikeService commentLikeService;
 
-    public CommentController(CommentService commentService) {
+    public CommentController(CommentService commentService, CommentLikeService commentLikeService) {
         this.commentService = commentService;
+        this.commentLikeService = commentLikeService;
+    }
+
+    @PostMapping("/comments/{commentId}/like")
+    public ResponseEntity<?> toggleLike(@PathVariable Long commentId, HttpSession session) {
+        Long me = currentUserId(session);
+        if (me == null) {
+            return ResponseEntity.status(401).body(MessageResponse.of("로그인이 필요합니다."));
+        }
+        return ResponseEntity.ok(commentLikeService.toggle(commentId, me));
     }
 
     @GetMapping("/notices/{noticeId}/comments")

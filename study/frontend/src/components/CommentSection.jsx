@@ -85,6 +85,25 @@ export default function CommentSection({ noticeId }) {
     }
   };
 
+  const toggleLike = async (id) => {
+    try {
+      const r = await fetch(`${API}/comments/${id}/like`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!r.ok) {
+        if (r.status === 401) { alert('로그인이 필요합니다.'); return; }
+        throw new Error(await readError(r));
+      }
+      const { liked, count } = await r.json();
+      setComments((prev) => prev.map((c) =>
+        c.id === id ? { ...c, iLiked: liked, likeCount: count } : c
+      ));
+    } catch (err) {
+      alert(`좋아요 실패: ${err.message}`);
+    }
+  };
+
   const remove = async (id) => {
     if (!confirm('이 댓글을 삭제할까요?')) return;
     try {
@@ -154,7 +173,28 @@ export default function CommentSection({ noticeId }) {
                 </div>
               </div>
             ) : (
-              <div style={{ whiteSpace: 'pre-wrap', color: '#334155', lineHeight: 1.6 }}>{c.content}</div>
+              <>
+                <div style={{ whiteSpace: 'pre-wrap', color: '#334155', lineHeight: 1.6 }}>{c.content}</div>
+                <div style={{ marginTop: 8 }}>
+                  <button
+                    type="button"
+                    onClick={() => toggleLike(c.id)}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      padding: '2px 10px',
+                      background: 'transparent',
+                      border: c.iLiked ? '1px solid #ef4444' : '1px solid #cbd5e1',
+                      color: c.iLiked ? '#ef4444' : '#64748b',
+                      borderRadius: 999,
+                      fontSize: 12,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <span>{c.iLiked ? '❤️' : '🤍'}</span>
+                    <span>{c.likeCount ?? 0}</span>
+                  </button>
+                </div>
+              </>
             )}
           </li>
         ))}

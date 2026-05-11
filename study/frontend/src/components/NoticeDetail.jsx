@@ -14,6 +14,8 @@ export default function NoticeDetail() {
   const navigate = useNavigate();
   const [notice, setNotice] = useState(null);
   const [error, setError] = useState(null);
+  const [likers, setLikers] = useState(null); // null = 미오픈, 배열 = 오픈됨
+  const [loadingLikers, setLoadingLikers] = useState(false);
   const fetchedIdRef = useRef(null);
 
   useEffect(() => {
@@ -27,6 +29,21 @@ export default function NoticeDetail() {
       .then(setNotice)
       .catch((e) => setError(e.message));
   }, [id]);
+
+  const toggleLikersList = async () => {
+    if (likers !== null) { setLikers(null); return; }
+    setLoadingLikers(true);
+    try {
+      const r = await fetch(`${BASE_URL}/${id}/likes`, { credentials: 'include' });
+      if (!r.ok) throw new Error(await readError(r));
+      const data = await r.json();
+      setLikers(Array.isArray(data) ? data : []);
+    } catch (e) {
+      alert(`좋아요 목록 실패: ${e.message}`);
+    } finally {
+      setLoadingLikers(false);
+    }
+  };
 
   const toggleLike = async () => {
     try {
@@ -45,6 +62,11 @@ export default function NoticeDetail() {
       }
       const { liked, count } = await r.json();
       setNotice((prev) => prev && { ...prev, iLiked: liked, likeCount: count });
+      // 목록이 펼쳐져 있으면 즉시 갱신
+      if (likers !== null) {
+        const lr = await fetch(`${BASE_URL}/${id}/likes`, { credentials: 'include' });
+        if (lr.ok) setLikers(await lr.json());
+      }
     } catch (e) {
       alert(`좋아요 실패: ${e.message}`);
     }
@@ -76,7 +98,7 @@ export default function NoticeDetail() {
       </div>
       <pre className="content">{notice.content}</pre>
 
-      <div style={{ display: 'flex', justifyContent: 'center', margin: '16px 0' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '16px 0', gap: 8 }}>
         <button
           type="button"
           onClick={toggleLike}
@@ -102,6 +124,43 @@ export default function NoticeDetail() {
             {notice.likeCount ?? 0}
           </span>
         </button>
+
+        {(notice.likeCount ?? 0) > 0 && (
+          <button
+            type="button"
+            onClick={toggleLikersList}
+            style={{ background: 'transparent', border: 'none', color: '#6366f1', fontSize: 13, cursor: 'pointer', textDecoration: 'underline' }}
+          >
+            {likers === null ? '누가 좋아했는지 보기' : '닫기'}
+          </button>
+        )}
+
+        {loadingLikers && <div style={{ color: '#94a3b8', fontSize: 13 }}>불러오는 중…</div>}
+
+        {likers !== null && likers.length > 0 && (
+          <div style={{ width: '100%', maxWidth: 480, padding: 10, background: '#f8fafc', borderRadius: 8 }}>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {likers.map((u) => (
+                <li
+                  key={`${u.userId}-${u.likedAt}`}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    background: '#fff', padding: '4px 10px', borderRadius: 999,
+                    border: '1px solid #e2e8f0', fontSize: 13, color: '#1e293b',
+                  }}
+                  title={u.likedAt}
+                >
+                  {u.profileImage ? (
+                    <img src={u.profileImage} alt="" style={{ width: 18, height: 18, borderRadius: '50%' }} />
+                  ) : (
+                    <span style={{ width: 18, height: 18, borderRadius: '50%', background: '#cbd5e1', display: 'inline-block' }} />
+                  )}
+                  <span>{u.nickname}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
 
       <div className="actions">

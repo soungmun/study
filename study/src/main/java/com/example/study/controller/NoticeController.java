@@ -62,9 +62,14 @@ public class NoticeController {
         return ResponseEntity.ok(noticeLikeService.toggle(id, me));
     }
 
+    @GetMapping("/{id}/likes")
+    public java.util.List<com.example.study.dto.response.LikedUserResponse> likers(@PathVariable Long id) {
+        return noticeLikeService.listLikers(id);
+    }
+
     @PostMapping
-    public Notice create(@Valid @RequestBody Notice request) {
-        return noticeService.create(request);
+    public Notice create(@Valid @RequestBody Notice request, HttpSession session) {
+        return noticeService.create(request, currentUserId(session));
     }
 
     @PutMapping("/{id}")

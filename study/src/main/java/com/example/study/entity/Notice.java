@@ -32,6 +32,9 @@ public class Notice {
     @Column(nullable = false, length = 100)
     private String author;
 
+    @Column(name = "author_id")
+    private Long authorId;
+
     @NotBlank(message = "제목을 입력하세요.")
     @Size(max = 200, message = "제목은 200자 이하여야 합니다.")
     @Column(nullable = false, length = 200)

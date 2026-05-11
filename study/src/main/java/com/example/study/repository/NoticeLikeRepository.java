@@ -18,4 +18,6 @@ public interface NoticeLikeRepository extends JpaRepository<NoticeLike, Long> {
 
     @Query("SELECT l.noticeId, COUNT(l) FROM NoticeLike l WHERE l.noticeId IN :ids GROUP BY l.noticeId")
     List<Object[]> countGroupByNoticeIds(@Param("ids") Collection<Long> ids);
+
+    List<NoticeLike> findByNoticeIdOrderByCreatedAtDesc(Long noticeId);
 }

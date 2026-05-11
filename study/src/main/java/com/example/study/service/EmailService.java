@@ -82,6 +82,51 @@ public class EmailService {
     }
 
     @Async
+    public void sendNoticeLiked(String toEmail, String authorName, String likerName,
+                                 String noticeTitle, String noticeUrl) {
+        String subject = "[Study Notice] " + likerName + "님이 회원님의 게시글에 좋아요 ❤️";
+        String html = """
+                <div style="font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;color:#1e293b;line-height:1.7;">
+                  <h2 style="color:#ef4444;">❤️ 새로운 좋아요</h2>
+                  <p>%s님, 안녕하세요!</p>
+                  <p><strong>%s</strong> 님이 회원님의 게시글을 좋아합니다.</p>
+                  <div style="margin:16px 0;padding:14px;background:#f8fafc;border-left:4px solid #ef4444;border-radius:6px;">
+                    <div style="font-size:13px;color:#64748b;margin-bottom:4px;">게시글</div>
+                    <div style="font-size:16px;font-weight:700;">%s</div>
+                  </div>
+                  <p><a href="%s" style="display:inline-block;padding:10px 16px;background:#6366f1;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;">게시글 보러가기</a></p>
+                  <p style="color:#94a3b8;font-size:12px;margin-top:24px;">본 메일은 회원님의 게시글에 좋아요가 추가될 때 자동 발송됩니다.</p>
+                </div>
+                """.formatted(escape(authorName), escape(likerName), escape(noticeTitle), noticeUrl);
+        send(toEmail, subject, html);
+    }
+
+    @Async
+    public void sendCommentLiked(String toEmail, String commentAuthor, String likerName,
+                                  String noticeTitle, String commentExcerpt, String noticeUrl) {
+        String subject = "[Study Notice] " + likerName + "님이 회원님의 댓글에 좋아요 ❤️";
+        String html = """
+                <div style="font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;color:#1e293b;line-height:1.7;">
+                  <h2 style="color:#ef4444;">❤️ 새로운 좋아요 (댓글)</h2>
+                  <p>%s님, 안녕하세요!</p>
+                  <p><strong>%s</strong> 님이 회원님의 댓글을 좋아합니다.</p>
+                  <div style="margin:16px 0;padding:14px;background:#f8fafc;border-left:4px solid #ef4444;border-radius:6px;">
+                    <div style="font-size:13px;color:#64748b;margin-bottom:4px;">게시글: %s</div>
+                    <div style="font-size:14px;color:#334155;white-space:pre-wrap;">%s</div>
+                  </div>
+                  <p><a href="%s" style="display:inline-block;padding:10px 16px;background:#6366f1;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;">게시글 보러가기</a></p>
+                  <p style="color:#94a3b8;font-size:12px;margin-top:24px;">본 메일은 회원님의 댓글에 좋아요가 추가될 때 자동 발송됩니다.</p>
+                </div>
+                """.formatted(escape(commentAuthor), escape(likerName), escape(noticeTitle), escape(commentExcerpt), noticeUrl);
+        send(toEmail, subject, html);
+    }
+
+    private static String escape(String s) {
+        if (s == null) return "";
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+    }
+
+    @Async
     public void sendBroadcast(java.util.List<String> recipients, String subject, String html) {
         if (recipients == null || recipients.isEmpty()) return;
         try {

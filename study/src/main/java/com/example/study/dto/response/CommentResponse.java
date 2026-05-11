@@ -14,9 +14,12 @@ public record CommentResponse(
         @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime createdAt,
         @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime updatedAt,
         boolean edited,
-        boolean mine
+        boolean mine,
+        long likeCount,
+        boolean iLiked
 ) {
-    public static CommentResponse of(Comment c, String authorName, boolean mine) {
+    public static CommentResponse of(Comment c, String authorName, boolean mine,
+                                      long likeCount, boolean iLiked) {
         boolean edited = c.getUpdatedAt() != null
                 && c.getCreatedAt() != null
                 && c.getUpdatedAt().isAfter(c.getCreatedAt().plusSeconds(1));
@@ -29,7 +32,9 @@ public record CommentResponse(
                 c.getCreatedAt(),
                 c.getUpdatedAt(),
                 edited,
-                mine
+                mine,
+                likeCount,
+                iLiked
         );
     }
 }

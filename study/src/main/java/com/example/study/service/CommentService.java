@@ -12,7 +12,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -22,13 +21,16 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final NoticeRepository noticeRepository;
     private final UserRepository userRepository;
+    private final CommentLikeService commentLikeService;
 
     public CommentService(CommentRepository commentRepository,
                           NoticeRepository noticeRepository,
-                          UserRepository userRepository) {
+                          UserRepository userRepository,
+                          CommentLikeService commentLikeService) {
         this.commentRepository = commentRepository;
         this.noticeRepository = noticeRepository;
         this.userRepository = userRepository;
+        this.commentLikeService = commentLikeService;
     }
 
     public List<CommentResponse> listByNotice(Long noticeId, Long currentUserId) {
@@ -38,16 +40,23 @@ public class CommentService {
         List<Comment> comments = commentRepository.findByNoticeIdOrderByCreatedAtAsc(noticeId);
         if (comments.isEmpty()) return List.of();
 
-        // 작성자 닉네임 한 번에 조회 (N+1 방지)
+        // 작성자 닉네임 일괄
         Set<Long> userIds = comments.stream().map(Comment::getUserId).collect(Collectors.toSet());
         Map<Long, String> nameById = userRepository.findAllById(userIds).stream()
                 .collect(Collectors.toMap(User::getId, this::displayName));
+
+        // 댓글 좋아요 카운트 + 내가 누른 것 일괄
+        List<Long> commentIds = comments.stream().map(Comment::getId).toList();
+        Map<Long, Long> likeCounts = commentLikeService.countsByCommentIds(commentIds);
+        Set<Long> myLikes = commentLikeService.likedCommentIdsByUser(currentUserId, commentIds);
 
         return comments.stream()
                 .map(c -> CommentResponse.of(
                         c,
                         nameById.getOrDefault(c.getUserId(), "(탈퇴 회원)"),
-                        currentUserId != null && currentUserId.equals(c.getUserId())
+                        currentUserId != null && currentUserId.equals(c.getUserId()),
+                        likeCounts.getOrDefault(c.getId(), 0L),
+                        myLikes.contains(c.getId())
                 ))
                 .toList();
     }
@@ -60,7 +69,7 @@ public class CommentService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
         Comment saved = commentRepository.save(new Comment(noticeId, userId, content.trim()));
-        return CommentResponse.of(saved, displayName(user), true);
+        return CommentResponse.of(saved, displayName(user), true, 0L, false);
     }
 
     @Transactional
@@ -72,7 +81,11 @@ public class CommentService {
         }
         c.setContent(content.trim());
         User user = userRepository.findById(userId).orElse(null);
-        return CommentResponse.of(c, displayName(user), true);
+        long likeCount = commentLikeService.countsByCommentIds(List.of(commentId))
+                .getOrDefault(commentId, 0L);
+        boolean iLiked = commentLikeService.likedCommentIdsByUser(userId, List.of(commentId))
+                .contains(commentId);
+        return CommentResponse.of(c, displayName(user), true, likeCount, iLiked);
     }
 
     @Transactional

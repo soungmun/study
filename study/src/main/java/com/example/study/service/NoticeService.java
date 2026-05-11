@@ -68,8 +68,9 @@ public class NoticeService {
     }
 
     @Transactional
-    public Notice create(Notice request) {
+    public Notice create(Notice request, Long currentUserId) {
         Notice notice = new Notice(request.getAuthor(), request.getTitle(), request.getContent());
+        notice.setAuthorId(currentUserId);
         return noticeRepository.save(notice);
     }
 
