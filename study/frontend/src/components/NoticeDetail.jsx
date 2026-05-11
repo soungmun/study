@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import CommentSection from './CommentSection';
 
 const BASE_URL = 'http://localhost:8080/api/notices';
 
@@ -57,6 +58,8 @@ export default function NoticeDetail() {
         <button type="button" className="success" onClick={() => navigate(`/notices/${id}/edit`)}>수정</button>
         <button type="button" className="danger" onClick={remove}>삭제</button>
       </div>
+
+      <CommentSection noticeId={id} />
     </div>
   );
 }
