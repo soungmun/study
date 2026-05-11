@@ -5,6 +5,7 @@ import NoticeCreate from './components/NoticeCreate';
 import NoticeEdit from './components/NoticeEdit';
 import BookSearch from './components/BookSearch';
 import MapSearch from './components/MapSearch';
+import StockTopList from './components/StockTopList';
 import UserList from './components/UserList';
 import AuthBar from './components/AuthBar';
 import RequireAuth from './components/RequireAuth';
@@ -32,6 +33,9 @@ export default function App() {
           <NavLink to="/map" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
             지도
           </NavLink>
+          <NavLink to="/stocks" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+            주식
+          </NavLink>
           <AuthBar />
         </nav>
       </header>
@@ -42,6 +46,7 @@ export default function App() {
         <Route path="/notices/:id/edit" element={<RequireAuth title="✏️ 공지 수정"><NoticeEdit /></RequireAuth>} />
         <Route path="/books" element={<RequireAuth title="📚 책 검색"><BookSearch /></RequireAuth>} />
         <Route path="/map" element={<RequireAuth title="📍 장소 검색"><MapSearch /></RequireAuth>} />
+        <Route path="/stocks" element={<RequireAuth title="📈 주식"><StockTopList /></RequireAuth>} />
         <Route path="/users" element={<UserList />} />
         <Route path="/me/edit" element={<RequireAuth title="👤 회원정보 수정"><ProfileEdit /></RequireAuth>} />
         <Route path="/forgot" element={<PasswordForgot />} />
