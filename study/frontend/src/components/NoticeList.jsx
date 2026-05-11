@@ -104,7 +104,19 @@ export default function NoticeList() {
             return (
               <tr key={n.id} onClick={() => navigate(`/notices/${n.id}`)} className="row">
                 <td><span className={badgeClass(seq)}>{seq}</span></td>
-                <td className="title">{n.title}</td>
+                <td className="title">
+                  <span>{n.title}</span>
+                  {n.commentCount > 0 && (
+                    <span style={{ marginLeft: 8, fontSize: 12, color: '#6366f1', fontWeight: 600 }}>
+                      💬 {n.commentCount}
+                    </span>
+                  )}
+                  {n.likeCount > 0 && (
+                    <span style={{ marginLeft: 6, fontSize: 12, color: '#ef4444', fontWeight: 600 }}>
+                      ❤️ {n.likeCount}
+                    </span>
+                  )}
+                </td>
                 <td className="author hide-sm">{n.author}</td>
                 <td className="author hide-sm">{n.content}</td>
                 <td className="date hide-sm">{n.createdAt}</td>

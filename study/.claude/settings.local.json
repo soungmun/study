@@ -4,7 +4,8 @@
       "Bash(curl -s -o /dev/null -w \"API /places/search -> %{http_code}\\\\n\" \"http://localhost:8080/api/places/search?query=%EA%B0%95%EB%82%A8%EC%97%AD&size=3\")",
       "Bash(curl -s \"http://localhost:8080/api/places/search?query=%EA%B0%95%EB%82%A8%EC%97%AD&size=2\")",
       "Bash(npm run *)",
-      "PowerShell(Get-CimInstance *)"
+      "PowerShell(Get-CimInstance *)",
+      "PowerShell(Get-Process *)"
     ]
   }
 }
