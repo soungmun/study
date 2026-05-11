@@ -34,15 +34,18 @@ public class DailyMailScheduler {
     private final UserRepository userRepository;
     private final EmailService emailService;
     private final StockService stockService;
+    private final NewsService newsService;
 
     public DailyMailScheduler(
             UserRepository userRepository,
             EmailService emailService,
-            StockService stockService
+            StockService stockService,
+            NewsService newsService
     ) {
         this.userRepository = userRepository;
         this.emailService = emailService;
         this.stockService = stockService;
+        this.newsService = newsService;
     }
 
     @Scheduled(cron = "0 0 20 * * *", zone = "Asia/Seoul")
@@ -79,7 +82,8 @@ public class DailyMailScheduler {
         String todayStr = today.format(DATE_FMT);
         String subject = "[Study Notice] " + todayStr + " 오늘도 수고하셨어요!";
         List<StockService.Quote> quotes = stockService.fetchWatchlist();
-        String html = buildHtml(todayStr, quotes);
+        List<NewsService.Headline> news = newsService.fetchTop(8);
+        String html = buildHtml(todayStr, quotes, news);
         emailService.sendBroadcast(recipients, subject, html);
         writeLastSent(today);
         log.info("[DailyMail] [{}] 발송 큐 등록 완료 — 수신자 {}명", trigger, recipients.size());
@@ -104,7 +108,7 @@ public class DailyMailScheduler {
         }
     }
 
-    private String buildHtml(String today, List<StockService.Quote> quotes) {
+    private String buildHtml(String today, List<StockService.Quote> quotes, List<NewsService.Headline> news) {
         StringBuilder rows = new StringBuilder();
         for (StockService.Quote q : quotes) {
             rows.append(stockRow(q));
@@ -129,12 +133,45 @@ public class DailyMailScheduler {
                   </table>
                   <p style="color:#94a3b8;font-size:11px;margin-top:6px;">출처: Yahoo Finance · 발송 시점 직전 시세</p>
 
+                  %s
+
                   <p style="color:#94a3b8;font-size:12px;margin-top:24px;">
                     본 메일은 매일 오후 8시에 자동 발송됩니다. 수신을 원치 않으시면
                     사이트 회원정보 수정에서 '공지 메일 수신 동의'를 해제해 주세요.
                   </p>
                 </div>
-                """.formatted(today, rows.toString());
+                """.formatted(today, rows.toString(), newsSection(news));
+    }
+
+    private String newsSection(List<NewsService.Headline> news) {
+        if (news == null || news.isEmpty()) {
+            return "";
+        }
+        StringBuilder items = new StringBuilder();
+        for (NewsService.Headline h : news) {
+            String src = h.source() == null || h.source().isBlank()
+                    ? ""
+                    : "<div style=\"color:#64748b;font-size:12px;margin-top:2px;\">" + escape(h.source()) + "</div>";
+            items.append("""
+                    <li style="padding:10px 0;border-bottom:1px solid #f1f5f9;">
+                      <a href="%s" target="_blank" rel="noopener" style="color:#1e293b;text-decoration:none;font-weight:600;">%s</a>
+                      %s
+                    </li>
+                    """.formatted(escape(h.link()), escape(h.title()), src));
+        }
+        return """
+                <h3 style="color:#1e293b;margin-top:28px;border-bottom:2px solid #e2e8f0;padding-bottom:6px;">📰 오늘의 주식 주요 뉴스</h3>
+                <ul style="list-style:none;padding:0;margin:8px 0 0;font-size:14px;">%s</ul>
+                <p style="color:#94a3b8;font-size:11px;margin-top:6px;">출처: Google News (검색어: 주식·증시·코스피)</p>
+                """.formatted(items.toString());
+    }
+
+    private static String escape(String s) {
+        if (s == null) return "";
+        return s.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;");
     }
 
     private String stockRow(StockService.Quote q) {
