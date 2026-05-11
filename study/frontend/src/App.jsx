@@ -36,6 +36,9 @@ export default function App() {
           <NavLink to="/stocks" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
             주식
           </NavLink>
+          <NavLink to="/admin/broadcast" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+            관리자
+          </NavLink>
           <AuthBar />
         </nav>
       </header>
