@@ -27,7 +27,7 @@ public class AuthService {
     private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     public static final class Result {
-        public enum Code { OK, USERNAME_TAKEN, INVALID_CREDENTIALS, INVALID_TOKEN, KAKAO_ONLY, CURRENT_PASSWORD_MISMATCH, NOT_FOUND }
+        public enum Code { OK, USERNAME_TAKEN, INVALID_CREDENTIALS, INVALID_TOKEN, KAKAO_ONLY, CURRENT_PASSWORD_MISMATCH, NOT_FOUND, EMAIL_NOT_VERIFIED }
 
         public final Code code;
         public final User user;
@@ -43,6 +43,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final EmailService emailService;
     private final KakaoOAuthService kakaoOAuth;
+    private final EmailVerificationService emailVerificationService;
     private final String frontendUrl;
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private final SecureRandom random = new SecureRandom();
@@ -51,17 +52,22 @@ public class AuthService {
             UserRepository userRepository,
             EmailService emailService,
             KakaoOAuthService kakaoOAuth,
+            EmailVerificationService emailVerificationService,
             @Value("${app.frontend.url}") String frontendUrl
     ) {
         this.userRepository = userRepository;
         this.emailService = emailService;
         this.kakaoOAuth = kakaoOAuth;
+        this.emailVerificationService = emailVerificationService;
         this.frontendUrl = frontendUrl;
     }
 
     public Result signup(SignupRequest req) {
         if (userRepository.existsByUsername(req.username())) {
             return Result.fail(Result.Code.USERNAME_TAKEN);
+        }
+        if (!emailVerificationService.isEmailVerified(req.email())) {
+            return Result.fail(Result.Code.EMAIL_NOT_VERIFIED);
         }
         User u = new User();
         u.setUsername(req.username());
@@ -72,6 +78,7 @@ public class AuthService {
         u.setEmail(req.email().trim());
         u.setNotificationOptIn(Boolean.TRUE.equals(req.notificationOptIn()));
         userRepository.save(u);
+        emailVerificationService.consume(req.email());
         emailService.sendWelcome(u.getEmail(), displayName(u));
         return Result.ok(u);
     }

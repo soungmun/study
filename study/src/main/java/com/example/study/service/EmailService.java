@@ -81,6 +81,31 @@ public class EmailService {
         send(toEmail, subject, html);
     }
 
+    /** 회원가입 인증번호 메일 (동기 — 발송 결과를 사용자가 즉시 알아야 하므로) */
+    public void sendVerificationCode(String toEmail, String code, int validMinutes) throws MessagingException, UnsupportedEncodingException {
+        String subject = "[Study Notice] 이메일 인증번호: " + code;
+        String html = """
+                <div style="font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;color:#1e293b;line-height:1.7;">
+                  <h2 style="color:#6366f1;">📧 이메일 인증</h2>
+                  <p>회원가입을 위한 인증번호입니다. 회원가입 화면에 아래 6자리 숫자를 입력해 주세요.</p>
+                  <div style="margin:20px 0;padding:18px;background:#f8fafc;border:2px dashed #6366f1;border-radius:10px;text-align:center;">
+                    <div style="font-size:32px;font-weight:800;letter-spacing:8px;color:#6366f1;font-family:monospace;">%s</div>
+                  </div>
+                  <p style="color:#475569;">인증번호는 <strong>%d분</strong> 동안 유효합니다.</p>
+                  <p style="color:#94a3b8;font-size:12px;margin-top:24px;">본인이 요청하지 않았다면 이 메일은 무시해 주세요.</p>
+                </div>
+                """.formatted(code, validMinutes);
+        // 동기 발송 — 예외를 호출자에게 전달
+        MimeMessage message = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(message, false, StandardCharsets.UTF_8.name());
+        helper.setFrom(new InternetAddress(fromAddress, fromName, StandardCharsets.UTF_8.name()));
+        helper.setTo(toEmail);
+        helper.setSubject(subject);
+        helper.setText(html, true);
+        mailSender.send(message);
+        log.info("[Mail] 인증번호 발송 완료 → {}", toEmail);
+    }
+
     @Async
     public void sendNoticeLiked(String toEmail, String authorName, String likerName,
                                  String noticeTitle, String noticeUrl) {

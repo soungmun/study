@@ -13,6 +13,25 @@ export default function AuthBar() {
   const [formError, setFormError] = useState(null);
   const wrapRef = useRef(null);
 
+  // 이메일 인증 상태
+  const [emailVer, setEmailVer] = useState({
+    sent: false,            // 인증번호 발송됨?
+    verifiedEmail: null,    // 인증 완료된 이메일 (form.email 과 비교용)
+    code: '',               // 사용자가 입력한 코드
+    sending: false,         // 발송 중
+    verifying: false,       // 검증 중
+    cooldownSec: 0,         // 재발송 쿨다운
+    msg: null,              // "인증번호를 발송했어요" 같은 안내
+    err: null,              // 인증 관련 에러
+  });
+
+  // 쿨다운 타이머
+  useEffect(() => {
+    if (emailVer.cooldownSec <= 0) return;
+    const t = setTimeout(() => setEmailVer((p) => ({ ...p, cooldownSec: p.cooldownSec - 1 })), 1000);
+    return () => clearTimeout(t);
+  }, [emailVer.cooldownSec]);
+
   useEffect(() => {
     const url = new URL(window.location.href);
     const err = url.searchParams.get('auth_error');
@@ -53,6 +72,60 @@ export default function AuthBar() {
     window.location.href = `${API}/kakao/login?returnTo=${encodeURIComponent(returnTo)}`;
   };
 
+  const requestEmailCode = async () => {
+    const email = form.email?.trim();
+    if (!email) {
+      setEmailVer((p) => ({ ...p, err: '이메일을 입력해 주세요.', msg: null }));
+      return;
+    }
+    setEmailVer((p) => ({ ...p, sending: true, err: null, msg: null }));
+    try {
+      const r = await fetch(`${API}/email/send-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.message || '발송 실패');
+      setEmailVer((p) => ({
+        ...p,
+        sending: false,
+        sent: true,
+        msg: `인증번호를 발송했어요. 메일함을 확인해 주세요. (${Math.round((data.expiresInSeconds ?? 300) / 60)}분 안에 입력)`,
+        cooldownSec: 60,
+        verifiedEmail: null,
+      }));
+    } catch (err) {
+      setEmailVer((p) => ({ ...p, sending: false, err: err.message }));
+    }
+  };
+
+  const verifyEmailCode = async () => {
+    const email = form.email?.trim();
+    const code = emailVer.code?.trim();
+    if (!email || !code) {
+      setEmailVer((p) => ({ ...p, err: '이메일과 인증번호를 모두 입력해 주세요.' }));
+      return;
+    }
+    setEmailVer((p) => ({ ...p, verifying: true, err: null }));
+    try {
+      const r = await fetch(`${API}/email/verify-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.message || '인증 실패');
+      setEmailVer((p) => ({ ...p, verifying: false, verifiedEmail: email, msg: '✅ 인증되었습니다.', err: null }));
+    } catch (err) {
+      setEmailVer((p) => ({ ...p, verifying: false, err: err.message }));
+    }
+  };
+
+  const resetEmailVer = () => setEmailVer({
+    sent: false, verifiedEmail: null, code: '', sending: false, verifying: false, cooldownSec: 0, msg: null, err: null,
+  });
+
   const onLogout = async () => {
     await fetch(`${API}/logout`, { method: 'POST', credentials: 'include' });
     setUser(null);
@@ -61,8 +134,15 @@ export default function AuthBar() {
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    setSubmitting(true);
     setFormError(null);
+    if (mode === 'signup') {
+      const email = form.email?.trim();
+      if (!email || emailVer.verifiedEmail !== email) {
+        setFormError('이메일 인증을 먼저 완료해 주세요.');
+        return;
+      }
+    }
+    setSubmitting(true);
     try {
       const url = mode === 'signup' ? `${API}/signup` : `${API}/login`;
       const body = mode === 'signup'
@@ -88,6 +168,7 @@ export default function AuthBar() {
       setUser(data);
       setMode(null);
       setForm({ username: '', password: '', nickname: '', email: '', notificationOptIn: false });
+      resetEmailVer();
       window.dispatchEvent(new Event('auth-changed'));
     } catch (err) {
       setFormError(err.message);
@@ -183,14 +264,71 @@ export default function AuthBar() {
                 value={form.nickname}
                 onChange={(e) => setForm({ ...form, nickname: e.target.value })}
               />
-              <input
-                type="email"
-                placeholder="이메일 (필수)"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                maxLength={200}
-                required
-              />
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input
+                  type="email"
+                  placeholder="이메일 (필수)"
+                  value={form.email}
+                  onChange={(e) => {
+                    setForm({ ...form, email: e.target.value });
+                    if (emailVer.verifiedEmail || emailVer.sent) resetEmailVer();
+                  }}
+                  maxLength={200}
+                  required
+                  disabled={emailVer.verifiedEmail === form.email?.trim() && !!form.email}
+                  style={{ flex: 1 }}
+                />
+                <button
+                  type="button"
+                  onClick={requestEmailCode}
+                  disabled={emailVer.sending || emailVer.cooldownSec > 0 || !form.email?.trim() || emailVer.verifiedEmail === form.email?.trim()}
+                  style={{
+                    padding: '0 12px', fontSize: 12, fontWeight: 600,
+                    borderRadius: 8, border: '1px solid #cbd5e1',
+                    background: emailVer.verifiedEmail === form.email?.trim() ? '#22c55e' : '#fff',
+                    color: emailVer.verifiedEmail === form.email?.trim() ? '#fff' : '#475569',
+                    cursor: 'pointer', whiteSpace: 'nowrap',
+                  }}
+                >
+                  {emailVer.verifiedEmail === form.email?.trim() && form.email
+                    ? '✓ 인증완료'
+                    : emailVer.sending
+                      ? '발송 중…'
+                      : emailVer.cooldownSec > 0
+                        ? `${emailVer.cooldownSec}s`
+                        : (emailVer.sent ? '재발송' : '인증번호 받기')}
+                </button>
+              </div>
+
+              {emailVer.sent && emailVer.verifiedEmail !== form.email?.trim() && (
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <input
+                    type="text"
+                    placeholder="6자리 인증번호"
+                    value={emailVer.code}
+                    onChange={(e) => setEmailVer((p) => ({ ...p, code: e.target.value.replace(/\D/g, '').slice(0, 6) }))}
+                    maxLength={6}
+                    inputMode="numeric"
+                    style={{ flex: 1, letterSpacing: 4, fontFamily: 'monospace', textAlign: 'center' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={verifyEmailCode}
+                    disabled={emailVer.verifying || emailVer.code.length !== 6}
+                    style={{
+                      padding: '0 14px', fontSize: 12, fontWeight: 600,
+                      borderRadius: 8, border: '1px solid #6366f1',
+                      background: '#6366f1', color: '#fff', cursor: 'pointer', whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {emailVer.verifying ? '확인…' : '확인'}
+                  </button>
+                </div>
+              )}
+
+              {emailVer.msg && <div style={{ fontSize: 12, color: emailVer.verifiedEmail ? '#16a34a' : '#475569' }}>{emailVer.msg}</div>}
+              {emailVer.err && <div style={{ fontSize: 12, color: '#ef4444' }}>{emailVer.err}</div>}
+
               <label className="auth-popover-checkbox">
                 <input
                   type="checkbox"

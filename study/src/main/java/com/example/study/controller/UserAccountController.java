@@ -39,6 +39,8 @@ public class UserAccountController {
             }
             case USERNAME_TAKEN -> ResponseEntity.status(409)
                     .body(MessageResponse.of("이미 사용 중인 아이디입니다."));
+            case EMAIL_NOT_VERIFIED -> ResponseEntity.status(400)
+                    .body(MessageResponse.of("이메일 인증을 완료해 주세요."));
             default -> ResponseEntity.status(400)
                     .body(MessageResponse.of("회원가입 처리에 실패했습니다."));
         };
