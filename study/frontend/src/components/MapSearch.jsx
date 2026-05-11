@@ -245,10 +245,12 @@ export default function MapSearch() {
       const subText = p.category_group_name || lastCat || '';
       const labelEl = document.createElement('div');
       labelEl.className = 'map-place-label';
-      const nameEl = document.createElement('div');
-      nameEl.className = 'map-place-label-name';
-      nameEl.textContent = p.place_name;
-      labelEl.appendChild(nameEl);
+      if (p.place_name) {
+        const nameEl = document.createElement('div');
+        nameEl.className = 'map-place-label-name';
+        nameEl.textContent = p.place_name;
+        labelEl.appendChild(nameEl);
+      }
       if (subText) {
         const subEl = document.createElement('div');
         subEl.className = 'map-place-label-sub';
