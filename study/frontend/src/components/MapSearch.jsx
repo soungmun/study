@@ -340,11 +340,11 @@ export default function MapSearch() {
 
     const html = `
       <div style="padding:8px 10px;font-size:13px;line-height:1.5;min-width:180px;max-width:240px;">
-        <div style="font-weight:700;color:#1e1b4b;margin-bottom:4px;">${place.place_name}</div>
+        ${place.place_name ? `<div style="font-weight:700;color:#1e1b4b;margin-bottom:4px;">${place.place_name}</div>` : ''}
         ${place.road_address_name ? `<div style="color:#475569;">${place.road_address_name}</div>` : ''}
         ${place.address_name && place.address_name !== place.road_address_name ? `<div style="color:#94a3b8;font-size:12px;">${place.address_name}</div>` : ''}
         ${place.phone ? `<div style="color:#0891b2;margin-top:4px;">📞 ${place.phone}</div>` : ''}
-        <a href="${place.place_url}" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;color:#a855f7;text-decoration:none;font-weight:600;">카카오맵에서 보기 →</a>
+        ${place.place_url ? `<a href="${place.place_url}" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;color:#a855f7;text-decoration:none;font-weight:600;">카카오맵에서 보기 →</a>` : ''}
       </div>
     `;
     const tempMarker = markersRef.current.find((m) => {
