@@ -4,10 +4,6 @@ import com.example.study.dto.request.KakaoPayReadyRequest;
 import com.example.study.dto.response.KakaoPayReadyResponse;
 import com.example.study.entity.Payment;
 import com.example.study.repository.PaymentRepository;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -81,7 +77,7 @@ public class KakaoPayService {
         body.put("cancel_url", cancelUrl + "?orderId=" + partnerOrderId);
         body.put("fail_url", failUrl + "?orderId=" + partnerOrderId);
 
-        ReadyApiResponse res;
+        Map<String, Object> res;
         try {
             res = restClient.post()
                     .uri(apiBase + "/online/v1/payment/ready")
@@ -89,29 +85,47 @@ public class KakaoPayService {
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(body)
                     .retrieve()
-                    .body(ReadyApiResponse.class);
+                    .body(new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {});
         } catch (HttpStatusCodeException e) {
             String respBody = e.getResponseBodyAsString();
             log.error("[KakaoPay] ready 실패 status={} body={}", e.getStatusCode(), respBody);
             throw new IllegalStateException("카카오페이 결제 준비 실패 (" + e.getStatusCode() + "): " + respBody);
         }
-        if (res == null || res.tid() == null) {
+        log.info("[KakaoPay] ready 응답: {}", res);
+        if (res == null) {
             throw new IllegalStateException("카카오페이 응답이 비어 있습니다.");
         }
+        String tid = str(res, "tid");
+        String pcUrl = str(res, "next_redirect_pc_url", "nextRedirectPcUrl");
+        String mobileUrl = str(res, "next_redirect_mobile_url", "nextRedirectMobileUrl");
+        String appUrl = str(res, "next_redirect_app_url", "nextRedirectAppUrl");
+        String androidScheme = str(res, "android_app_scheme", "androidAppScheme");
+        String iosScheme = str(res, "ios_app_scheme", "iosAppScheme");
+        if (tid == null) {
+            throw new IllegalStateException("카카오페이 응답에 tid가 없습니다: " + res);
+        }
 
-        payment.setTid(res.tid());
+        payment.setTid(tid);
         paymentRepository.save(payment);
 
         return new KakaoPayReadyResponse(
                 payment.getId(),
-                res.tid(),
+                tid,
                 partnerOrderId,
-                res.nextRedirectPcUrl(),
-                res.nextRedirectMobileUrl(),
-                res.nextRedirectAppUrl(),
-                res.androidAppScheme(),
-                res.iosAppScheme()
+                pcUrl,
+                mobileUrl,
+                appUrl,
+                androidScheme,
+                iosScheme
         );
+    }
+
+    private static String str(Map<String, Object> map, String... keys) {
+        for (String k : keys) {
+            Object v = map.get(k);
+            if (v != null) return v.toString();
+        }
+        return null;
     }
 
     @Transactional
@@ -128,7 +142,7 @@ public class KakaoPayService {
         body.put("partner_user_id", payment.getPartnerUserId());
         body.put("pg_token", pgToken);
 
-        ApproveApiResponse res;
+        Map<String, Object> res;
         try {
             res = restClient.post()
                     .uri(apiBase + "/online/v1/payment/approve")
@@ -136,17 +150,19 @@ public class KakaoPayService {
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(body)
                     .retrieve()
-                    .body(ApproveApiResponse.class);
+                    .body(new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {});
         } catch (HttpStatusCodeException e) {
-            log.error("[KakaoPay] approve 실패 status={} body={}", e.getStatusCode(), e.getResponseBodyAsString());
+            String respBody = e.getResponseBodyAsString();
+            log.error("[KakaoPay] approve 실패 status={} body={}", e.getStatusCode(), respBody);
             payment.setStatus(Payment.Status.FAILED);
             paymentRepository.save(payment);
-            throw new IllegalStateException("카카오페이 결제 승인에 실패했습니다: " + e.getStatusCode());
+            throw new IllegalStateException("카카오페이 결제 승인 실패 (" + e.getStatusCode() + "): " + respBody);
         }
+        log.info("[KakaoPay] approve 응답: {}", res);
 
         payment.setStatus(Payment.Status.APPROVED);
-        payment.setAid(res != null ? res.aid() : null);
-        payment.setPaymentMethodType(res != null ? res.paymentMethodType() : null);
+        payment.setAid(str(res, "aid"));
+        payment.setPaymentMethodType(str(res, "payment_method_type", "paymentMethodType"));
         payment.setApprovedAt(LocalDateTime.now());
         return paymentRepository.save(payment);
     }
@@ -172,30 +188,4 @@ public class KakaoPayService {
         }
     }
 
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-    public record ReadyApiResponse(
-            String tid,
-            String nextRedirectPcUrl,
-            String nextRedirectMobileUrl,
-            String nextRedirectAppUrl,
-            String androidAppScheme,
-            String iosAppScheme,
-            String createdAt
-    ) {}
-
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-    public record ApproveApiResponse(
-            String aid,
-            String tid,
-            String cid,
-            @JsonProperty("partner_order_id") String partnerOrderId,
-            @JsonProperty("partner_user_id") String partnerUserId,
-            @JsonProperty("payment_method_type") String paymentMethodType,
-            String itemName,
-            Integer quantity,
-            String createdAt,
-            String approvedAt
-    ) {}
 }
