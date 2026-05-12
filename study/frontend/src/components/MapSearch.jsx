@@ -143,6 +143,7 @@ export default function MapSearch() {
     const kakao = window.kakao;
     const map = mapInstance.current;
     if (!kakao || !map) return;
+    infoWindowRef.current?.close();
     const pos = new kakao.maps.LatLng(lat, lng);
     if (customMarkerRef.current) {
       customMarkerRef.current.setMap(null);
@@ -308,14 +309,16 @@ export default function MapSearch() {
     map.panTo(pos);
     setSelectedId(place.id);
 
-    const html = `
-      <div style="padding:8px 10px;font-size:13px;line-height:1.5;min-width:180px;max-width:240px;">
-        ${place.place_name ? `<div style="font-weight:700;color:#1e1b4b;margin-bottom:4px;">${place.place_name}</div>` : ''}
-        ${place.road_address_name ? `<div style="color:#475569;">${place.road_address_name}</div>` : ''}
-        ${place.address_name && place.address_name !== place.road_address_name ? `<div style="color:#94a3b8;font-size:12px;">${place.address_name}</div>` : ''}
-        ${place.place_url ? `<a href="${place.place_url}" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;color:#a855f7;text-decoration:none;font-weight:600;">카카오맵에서 보기 →</a>` : ''}
-      </div>
-    `;
+    infoWindowRef.current?.close();
+
+    const parts = [
+      place.place_name ? `<div style="font-weight:700;color:#1e1b4b;margin-bottom:4px;">${place.place_name}</div>` : '',
+      place.road_address_name ? `<div style="color:#475569;">${place.road_address_name}</div>` : '',
+      place.address_name && place.address_name !== place.road_address_name ? `<div style="color:#94a3b8;font-size:12px;">${place.address_name}</div>` : '',
+      place.place_url ? `<a href="${place.place_url}" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;color:#a855f7;text-decoration:none;font-weight:600;">카카오맵에서 보기 →</a>` : '',
+    ].filter(Boolean);
+    if (parts.length === 0) return;
+    const html = `<div style="padding:8px 10px;font-size:13px;line-height:1.5;min-width:180px;max-width:240px;">${parts.join('')}</div>`;
     const tempMarker = markersRef.current.find((m) => {
       const p = m.getPosition();
       return p.getLat() === pos.getLat() && p.getLng() === pos.getLng();
@@ -377,7 +380,6 @@ export default function MapSearch() {
       <div className="map-layout">
         <div className="map-canvas-wrap">
           <div className="map-canvas" ref={mapRef} />
-          <div className="map-hint">🖱 지도를 클릭하면 그 위치의 주소가 오른쪽에 표시돼요</div>
         </div>
         <PlaceDetail
           place={selectedPlace}
@@ -405,12 +407,13 @@ function PlaceDetail({ place, weather, weatherLoading, weatherError, air, airLoa
 
   const lastCat = (place.category_name || '').split('>').map((s) => s.trim()).filter(Boolean).pop();
   const summary = place.category_group_name || lastCat || '';
+  const displayName = place.place_name || place.road_address_name || place.address_name || '선택한 위치';
 
   return (
     <aside className="place-detail">
       <div className="place-detail-header">
-        <div className="place-detail-name">{place.place_name}</div>
-        <div className="place-detail-summary">{summary}</div>
+        <div className="place-detail-name">{displayName}</div>
+        {summary && <div className="place-detail-summary">{summary}</div>}
       </div>
 
       <div className="place-detail-body">
