@@ -8,6 +8,9 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -16,6 +19,61 @@ public class WeatherService {
     private static final String WEATHER_URL = "https://api.open-meteo.com/v1/forecast";
 
     private final RestClient restClient = RestClient.create();
+
+    public WeatherResponse getTomorrow(double lat, double lng) {
+        LocalDate tomorrow = LocalDate.now(ZoneId.of("Asia/Seoul")).plusDays(1);
+        URI uri = UriComponentsBuilder.fromUriString(WEATHER_URL)
+                .queryParam("latitude", lat)
+                .queryParam("longitude", lng)
+                .queryParam("daily", "temperature_2m_max,temperature_2m_min,weathercode")
+                .queryParam("timezone", "Asia/Seoul")
+                .queryParam("start_date", tomorrow.toString())
+                .queryParam("end_date", tomorrow.toString())
+                .build()
+                .toUri();
+
+        OpenMeteoResponse body = restClient.get()
+                .uri(uri)
+                .retrieve()
+                .body(OpenMeteoResponse.class);
+
+        OpenMeteoDaily d = body != null ? body.daily() : null;
+        Double tMax = first(d != null ? d.temperatureMax() : null);
+        Double tMin = first(d != null ? d.temperatureMin() : null);
+        Integer code = firstInt(d != null ? d.weathercode() : null);
+        String time = firstString(d != null ? d.time() : null);
+
+        Double avg = (tMax != null && tMin != null) ? (tMax + tMin) / 2.0 : (tMax != null ? tMax : tMin);
+        Map<String, String> meta = describe(code);
+        String desc = meta.get("description");
+        if (tMax != null && tMin != null) {
+            desc = String.format("%s · 최저 %.1f°C / 최고 %.1f°C", desc, tMin, tMax);
+        }
+
+        return new WeatherResponse(
+                lat,
+                lng,
+                avg,
+                null,
+                null,
+                code,
+                desc,
+                meta.get("icon"),
+                time
+        );
+    }
+
+    private static Double first(List<Double> list) {
+        return list == null || list.isEmpty() ? null : list.get(0);
+    }
+
+    private static Integer firstInt(List<Integer> list) {
+        return list == null || list.isEmpty() ? null : list.get(0);
+    }
+
+    private static String firstString(List<String> list) {
+        return list == null || list.isEmpty() ? null : list.get(0);
+    }
 
     public WeatherResponse getWeather(double lat, double lng) {
         URI uri = UriComponentsBuilder.fromUriString(WEATHER_URL)
@@ -76,7 +134,8 @@ public class WeatherService {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record OpenMeteoResponse(
-            @JsonProperty("current_weather") OpenMeteoCurrent currentWeather
+            @JsonProperty("current_weather") OpenMeteoCurrent currentWeather,
+            OpenMeteoDaily daily
     ) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -86,5 +145,13 @@ public class WeatherService {
             Integer winddirection,
             Integer weathercode,
             String time
+    ) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record OpenMeteoDaily(
+            List<String> time,
+            @JsonProperty("temperature_2m_max") List<Double> temperatureMax,
+            @JsonProperty("temperature_2m_min") List<Double> temperatureMin,
+            List<Integer> weathercode
     ) {}
 }

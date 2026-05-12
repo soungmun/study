@@ -8,6 +8,9 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -16,6 +19,66 @@ public class AirQualityService {
     private static final String AIR_URL = "https://air-quality-api.open-meteo.com/v1/air-quality";
 
     private final RestClient restClient = RestClient.create();
+
+    public AirQualityResponse getTomorrow(double lat, double lng) {
+        LocalDate tomorrow = LocalDate.now(ZoneId.of("Asia/Seoul")).plusDays(1);
+        URI uri = UriComponentsBuilder.fromUriString(AIR_URL)
+                .queryParam("latitude", lat)
+                .queryParam("longitude", lng)
+                .queryParam("hourly", "pm10,pm2_5,european_aqi")
+                .queryParam("timezone", "Asia/Seoul")
+                .queryParam("start_date", tomorrow.toString())
+                .queryParam("end_date", tomorrow.toString())
+                .build()
+                .toUri();
+
+        OpenMeteoAir body = restClient.get()
+                .uri(uri)
+                .retrieve()
+                .body(OpenMeteoAir.class);
+
+        Hourly h = body != null ? body.hourly() : null;
+        Double pm10 = avg(h != null ? h.pm10() : null);
+        Double pm25 = avg(h != null ? h.pm25() : null);
+        Integer aqi = avgInt(h != null ? h.europeanAqi() : null);
+        String time = (h != null && h.time() != null && !h.time().isEmpty()) ? h.time().get(0) : null;
+
+        Map<String, String> g10 = pm10Grade(pm10);
+        Map<String, String> g25 = pm25Grade(pm25);
+
+        return new AirQualityResponse(
+                lat,
+                lng,
+                pm10,
+                pm25,
+                aqi,
+                g10.get("grade"),
+                g25.get("grade"),
+                g10.get("color"),
+                g25.get("color"),
+                time
+        );
+    }
+
+    private static Double avg(List<Double> list) {
+        if (list == null || list.isEmpty()) return null;
+        double sum = 0;
+        int n = 0;
+        for (Double v : list) {
+            if (v != null) { sum += v; n++; }
+        }
+        return n == 0 ? null : sum / n;
+    }
+
+    private static Integer avgInt(List<Integer> list) {
+        if (list == null || list.isEmpty()) return null;
+        long sum = 0;
+        int n = 0;
+        for (Integer v : list) {
+            if (v != null) { sum += v; n++; }
+        }
+        return n == 0 ? null : (int) Math.round((double) sum / n);
+    }
 
     public AirQualityResponse get(double lat, double lng) {
         URI uri = UriComponentsBuilder.fromUriString(AIR_URL)
@@ -70,7 +133,7 @@ public class AirQualityService {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record OpenMeteoAir(Current current) {}
+    public record OpenMeteoAir(Current current, Hourly hourly) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Current(
@@ -78,5 +141,13 @@ public class AirQualityService {
             Double pm10,
             @JsonProperty("pm2_5") Double pm25,
             @JsonProperty("european_aqi") Integer europeanAqi
+    ) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record Hourly(
+            List<String> time,
+            List<Double> pm10,
+            @JsonProperty("pm2_5") List<Double> pm25,
+            @JsonProperty("european_aqi") List<Integer> europeanAqi
     ) {}
 }

@@ -162,18 +162,18 @@ public class DailyMailScheduler {
 
     private WeatherResponse safeWeather() {
         try {
-            return weatherService.getWeather(SEOUL_LAT, SEOUL_LNG);
+            return weatherService.getTomorrow(SEOUL_LAT, SEOUL_LNG);
         } catch (Exception e) {
-            log.warn("[DailyMail] 서울 날씨 조회 실패: {}", e.getMessage());
+            log.warn("[DailyMail] 서울 내일 날씨 조회 실패: {}", e.getMessage());
             return null;
         }
     }
 
     private AirQualityResponse safeAir() {
         try {
-            return airQualityService.get(SEOUL_LAT, SEOUL_LNG);
+            return airQualityService.getTomorrow(SEOUL_LAT, SEOUL_LNG);
         } catch (Exception e) {
-            log.warn("[DailyMail] 서울 미세먼지 조회 실패: {}", e.getMessage());
+            log.warn("[DailyMail] 서울 내일 미세먼지 조회 실패: {}", e.getMessage());
             return null;
         }
     }
@@ -220,7 +220,7 @@ public class DailyMailScheduler {
         }
 
         return """
-                <h3 style="color:#1e293b;margin-top:28px;border-bottom:2px solid #e2e8f0;padding-bottom:6px;">🌤️ 오늘의 서울 날씨·미세먼지</h3>
+                <h3 style="color:#1e293b;margin-top:28px;border-bottom:2px solid #e2e8f0;padding-bottom:6px;">🌤️ 내일의 서울 날씨·미세먼지</h3>
                 <table style="border-collapse:collapse;width:100%%;margin-top:8px;">
                   <tr>
                     <td style="width:50%%;padding:14px;background:#f8fafc;border-radius:10px 0 0 10px;vertical-align:top;">%s</td>
