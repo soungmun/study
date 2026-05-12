@@ -62,7 +62,7 @@ public class DailyMailScheduler {
 
     @Scheduled(cron = "0 0 20 * * *", zone = "Asia/Seoul")
     public void sendDailyGreeting() {
-        trySendForToday("정시");
+        trySendForToday("정시", false);
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -72,15 +72,22 @@ public class DailyMailScheduler {
             log.info("[DailyMail] 시작 시점 {} (KST) — 오늘 20:00 이전, 정시 발송 대기", now.toLocalTime());
             return;
         }
-        trySendForToday("기동시점-catchup");
+        trySendForToday("기동시점-catchup", false);
     }
 
-    private synchronized void trySendForToday(String trigger) {
+    /** 관리자 강제 재발송 — 상태 파일 무시, 동기 발송 후 결과 반환. */
+    public synchronized DailyMailResult forceSendNow() {
+        return trySendForToday("강제-재발송", true);
+    }
+
+    public record DailyMailResult(boolean sent, int recipientCount, String message) {}
+
+    private synchronized DailyMailResult trySendForToday(String trigger, boolean force) {
         LocalDate today = LocalDate.now(KST);
         LocalDate lastSent = readLastSent();
-        if (today.equals(lastSent)) {
+        if (!force && today.equals(lastSent)) {
             log.info("[DailyMail] [{}] 오늘({})은 이미 발송됨 — 스킵", trigger, today);
-            return;
+            return new DailyMailResult(false, 0, "오늘 이미 발송됨 (force=true로 재시도 가능)");
         }
         List<String> recipients = userRepository.findByNotificationOptInTrue().stream()
                 .map(User::getEmail)
@@ -89,7 +96,7 @@ public class DailyMailScheduler {
                 .toList();
         if (recipients.isEmpty()) {
             log.info("[DailyMail] [{}] 수신 동의자 0명 — 발송 스킵", trigger);
-            return;
+            return new DailyMailResult(false, 0, "수신 동의자가 없음");
         }
         String todayStr = today.format(DATE_FMT);
         String subject = "[Study Notice] " + todayStr + " 오늘도 수고하셨어요!";
@@ -98,9 +105,15 @@ public class DailyMailScheduler {
         WeatherResponse weather = safeWeather();
         AirQualityResponse air = safeAir();
         String html = buildHtml(todayStr, weather, air, quotes, news);
-        emailService.sendBroadcast(recipients, subject, html);
-        writeLastSent(today);
-        log.info("[DailyMail] [{}] 발송 큐 등록 완료 — 수신자 {}명", trigger, recipients.size());
+        try {
+            emailService.sendBroadcastSync(recipients, subject, html);
+            writeLastSent(today);
+            log.info("[DailyMail] [{}] 발송 완료 — 수신자 {}명", trigger, recipients.size());
+            return new DailyMailResult(true, recipients.size(), "발송 성공");
+        } catch (RuntimeException e) {
+            log.warn("[DailyMail] [{}] 발송 실패 — {}", trigger, e.getMessage());
+            return new DailyMailResult(false, recipients.size(), "발송 실패: " + e.getMessage());
+        }
     }
 
     private LocalDate readLastSent() {

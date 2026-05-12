@@ -153,7 +153,12 @@ public class EmailService {
 
     @Async
     public void sendBroadcast(java.util.List<String> recipients, String subject, String html) {
-        if (recipients == null || recipients.isEmpty()) return;
+        sendBroadcastSync(recipients, subject, html);
+    }
+
+    /** 동기 단체 메일 — 호출자에게 발송 성공/실패 결과를 즉시 알려야 할 때 사용. */
+    public boolean sendBroadcastSync(java.util.List<String> recipients, String subject, String html) {
+        if (recipients == null || recipients.isEmpty()) return false;
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, false, StandardCharsets.UTF_8.name());
@@ -164,10 +169,13 @@ public class EmailService {
             helper.setText(html, true);
             mailSender.send(message);
             log.info("[Mail] 전송 완료 (단체) → 수신자 {}명 | 제목: {}", recipients.size(), subject);
+            return true;
         } catch (MessagingException | UnsupportedEncodingException e) {
             log.warn("Failed to send broadcast ({}): {}", subject, e.getMessage(), e);
+            throw new RuntimeException("메일 전송 실패: " + e.getMessage(), e);
         } catch (Exception e) {
             log.warn("Mail provider error for broadcast ({}): {}", subject, e.getMessage(), e);
+            throw new RuntimeException("메일 제공자 오류: " + e.getMessage(), e);
         }
     }
 

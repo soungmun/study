@@ -50,10 +50,22 @@ public class AdminMailController {
     }
 
     @PostMapping("/broadcast/daily-now")
-    public ResponseEntity<?> triggerDailyNow(HttpSession session) {
+    public ResponseEntity<?> triggerDailyNow(
+            @org.springframework.web.bind.annotation.RequestParam(value = "force", defaultValue = "false") boolean force,
+            HttpSession session
+    ) {
         if (!isAdmin(session)) {
             return ResponseEntity.status(403)
                     .body(MessageResponse.of("관리자만 사용할 수 있는 기능입니다."));
+        }
+        if (force) {
+            DailyMailScheduler.DailyMailResult result = dailyMailScheduler.forceSendNow();
+            return ResponseEntity.ok(Map.of(
+                    "triggered", true,
+                    "sent", result.sent(),
+                    "recipients", result.recipientCount(),
+                    "message", result.message()
+            ));
         }
         dailyMailScheduler.sendDailyGreeting();
         return ResponseEntity.ok(Map.of("triggered", true));
