@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 const API = 'http://localhost:8080/api/payments/kakao';
 
@@ -77,7 +78,7 @@ export default function KakaoPay() {
     <div className="card">
       <div className="toolbar">
         <h2>💳 카카오페이 결제</h2>
-        <span className="muted">단건결제 (테스트 CID)</span>
+        <Link to="/pay/history" className="nav-link">🧾 결제 내역 보기</Link>
       </div>
 
       <div className="kakao-pay-presets">

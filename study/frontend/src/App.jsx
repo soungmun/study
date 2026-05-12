@@ -14,6 +14,7 @@ import PasswordForgot from './components/PasswordForgot';
 import PasswordReset from './components/PasswordReset';
 import AdminBroadcast from './components/AdminBroadcast';
 import KakaoPay from './components/KakaoPay';
+import KakaoPayHistory from './components/KakaoPayHistory';
 import { KakaoPaySuccess, KakaoPayFail } from './components/KakaoPayResult';
 import './App.css';
 
@@ -38,8 +39,11 @@ export default function App() {
           <NavLink to="/stocks" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
             주식
           </NavLink>
-          <NavLink to="/pay" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+          <NavLink to="/pay" end className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
             결제
+          </NavLink>
+          <NavLink to="/pay/history" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+            결제내역
           </NavLink>
           <NavLink to="/admin/broadcast" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
             관리자
@@ -61,6 +65,7 @@ export default function App() {
         <Route path="/reset" element={<PasswordReset />} />
         <Route path="/admin/broadcast" element={<RequireAuth title="📣 공지 메일 발송"><AdminBroadcast /></RequireAuth>} />
         <Route path="/pay" element={<RequireAuth title="💳 카카오페이 결제"><KakaoPay /></RequireAuth>} />
+        <Route path="/pay/history" element={<RequireAuth title="🧾 결제 내역"><KakaoPayHistory /></RequireAuth>} />
         <Route path="/pay/success" element={<RequireAuth title="💳 결제 결과"><KakaoPaySuccess /></RequireAuth>} />
         <Route path="/pay/fail" element={<RequireAuth title="💳 결제 결과"><KakaoPayFail /></RequireAuth>} />
       </Routes>

@@ -3,6 +3,7 @@ package com.example.study.controller;
 import com.example.study.dto.request.KakaoPayReadyRequest;
 import com.example.study.dto.response.KakaoPayReadyResponse;
 import com.example.study.entity.Payment;
+import com.example.study.repository.PaymentRepository;
 import com.example.study.service.KakaoPayService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
@@ -19,18 +20,29 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.util.Collections;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/payments/kakao")
 public class PaymentController {
 
     private final KakaoPayService kakaoPayService;
+    private final PaymentRepository paymentRepository;
 
     @Value("${app.frontend.url}")
     private String frontendUrl;
 
-    public PaymentController(KakaoPayService kakaoPayService) {
+    public PaymentController(KakaoPayService kakaoPayService, PaymentRepository paymentRepository) {
         this.kakaoPayService = kakaoPayService;
+        this.paymentRepository = paymentRepository;
+    }
+
+    @GetMapping("/my")
+    public List<Payment> myPayments(HttpSession session) {
+        Long userId = currentUserId(session);
+        if (userId == null) return Collections.emptyList();
+        return paymentRepository.findByUserIdOrderByCreatedAtDesc(userId);
     }
 
     @PostMapping("/ready")
