@@ -91,8 +91,9 @@ public class KakaoPayService {
                     .retrieve()
                     .body(ReadyApiResponse.class);
         } catch (HttpStatusCodeException e) {
-            log.error("[KakaoPay] ready 실패 status={} body={}", e.getStatusCode(), e.getResponseBodyAsString());
-            throw new IllegalStateException("카카오페이 결제 준비에 실패했습니다: " + e.getStatusCode());
+            String respBody = e.getResponseBodyAsString();
+            log.error("[KakaoPay] ready 실패 status={} body={}", e.getStatusCode(), respBody);
+            throw new IllegalStateException("카카오페이 결제 준비 실패 (" + e.getStatusCode() + "): " + respBody);
         }
         if (res == null || res.tid() == null) {
             throw new IllegalStateException("카카오페이 응답이 비어 있습니다.");
