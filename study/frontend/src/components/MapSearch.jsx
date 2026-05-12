@@ -51,6 +51,7 @@ export default function MapSearch() {
   const [air, setAir] = useState(null);
   const [airLoading, setAirLoading] = useState(false);
   const [airError, setAirError] = useState(null);
+  const [fallbackAddress, setFallbackAddress] = useState('');
 
   const findNearestPlace = (lat, lng) =>
     new Promise((resolve) => {
@@ -65,7 +66,7 @@ export default function MapSearch() {
       const places = placesRef.current;
       const opts = {
         location: new kakao.maps.LatLng(lat, lng),
-        radius: 80,
+        radius: 300,
         sort: kakao.maps.services.SortBy.DISTANCE,
       };
       let pending = POI_CATEGORIES.length;
@@ -105,19 +106,36 @@ export default function MapSearch() {
       });
     });
 
-    Promise.all([findNearestPlace(lat, lng), coord2AddressPromise]).then(([poi, addr]) => {
+    const coord2RegionPromise = new Promise((resolve) => {
+      const geocoder = geocoderRef.current;
+      if (!geocoder) {
+        resolve(null);
+        return;
+      }
+      geocoder.coord2RegionCode(lng, lat, (res, status) => {
+        const ok = status === kakao.maps.services.Status.OK && Array.isArray(res) && res.length > 0;
+        resolve(ok ? res : null);
+      });
+    });
+
+    Promise.all([findNearestPlace(lat, lng), coord2AddressPromise, coord2RegionPromise]).then(([poi, addr, regions]) => {
       const buildingName = addr?.road_address?.building_name;
       const roadAddr = addr?.road_address?.address_name || '';
       const jibunAddr = addr?.address?.address_name || '';
+      const regionAddr =
+        regions?.find((r) => r.region_type === 'B')?.address_name ||
+        regions?.find((r) => r.region_type === 'H')?.address_name ||
+        regions?.[0]?.address_name ||
+        '';
 
       if (poi) {
         setCustomPlace({
           id: CUSTOM_ID,
-          place_name: poi.place_name,
-          category_name: poi.category_name || '지도에서 선택한 위치',
+          place_name: poi.place_name || poi.road_address_name || poi.address_name || roadAddr || jibunAddr || regionAddr || '',
+          category_name: poi.category_name || '',
           category_group_name: poi.category_group_name || '근처 장소',
-          road_address_name: poi.road_address_name || roadAddr,
-          address_name: poi.address_name || jibunAddr,
+          road_address_name: poi.road_address_name || roadAddr || regionAddr,
+          address_name: poi.address_name || jibunAddr || regionAddr,
           place_url: poi.place_url,
           x: String(lng),
           y: String(lat),
@@ -125,14 +143,15 @@ export default function MapSearch() {
         return;
       }
 
-      const placeName = buildingName || fallbackName || roadAddr || jibunAddr || '지도에서 선택한 위치';
+      const coordsLabel = `위도 ${Number(lat).toFixed(5)}, 경도 ${Number(lng).toFixed(5)}`;
+      const placeName = buildingName || roadAddr || jibunAddr || regionAddr || fallbackName || coordsLabel;
       setCustomPlace({
         id: CUSTOM_ID,
         place_name: placeName,
-        category_name: '지도에서 선택한 좌표',
-        category_group_name: buildingName ? '건물' : '커스텀 핀',
-        road_address_name: roadAddr,
-        address_name: jibunAddr,
+        category_name: '',
+        category_group_name: buildingName ? '건물' : '',
+        road_address_name: roadAddr || regionAddr,
+        address_name: jibunAddr || regionAddr,
         x: String(lng),
         y: String(lat),
       });
@@ -301,6 +320,49 @@ export default function MapSearch() {
     return () => controller.abort();
   }, [selectedPlace?.id, selectedPlace?.x, selectedPlace?.y]);
 
+  useEffect(() => {
+    setFallbackAddress('');
+    if (!selectedPlace) return;
+    const hasName =
+      selectedPlace.place_name ||
+      selectedPlace.road_address_name ||
+      selectedPlace.address_name;
+    if (hasName) return;
+    const lat = parseFloat(selectedPlace.y);
+    const lng = parseFloat(selectedPlace.x);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+    const kakao = window.kakao;
+    if (!kakao?.maps?.services) return;
+    if (!geocoderRef.current) {
+      geocoderRef.current = new kakao.maps.services.Geocoder();
+    }
+    let cancelled = false;
+    const geocoder = geocoderRef.current;
+    geocoder.coord2Address(lng, lat, (res, status) => {
+      if (cancelled) return;
+      if (status === kakao.maps.services.Status.OK && res?.[0]) {
+        const r = res[0];
+        const addr = r.road_address?.address_name || r.address?.address_name || '';
+        if (addr) {
+          setFallbackAddress(addr);
+          return;
+        }
+      }
+      geocoder.coord2RegionCode(lng, lat, (rres, rstatus) => {
+        if (cancelled) return;
+        if (rstatus === kakao.maps.services.Status.OK && Array.isArray(rres)) {
+          const region =
+            rres.find((r) => r.region_type === 'B')?.address_name ||
+            rres.find((r) => r.region_type === 'H')?.address_name ||
+            rres[0]?.address_name ||
+            '';
+          if (region) setFallbackAddress(region);
+        }
+      });
+    });
+    return () => { cancelled = true; };
+  }, [selectedPlace?.id, selectedPlace?.x, selectedPlace?.y, selectedPlace?.place_name, selectedPlace?.road_address_name, selectedPlace?.address_name]);
+
   const focusPlace = (place) => {
     if (!kakaoReady) return;
     const kakao = window.kakao;
@@ -389,13 +451,14 @@ export default function MapSearch() {
           air={air}
           airLoading={airLoading}
           airError={airError}
+          fallbackAddress={fallbackAddress}
         />
       </div>
     </div>
   );
 }
 
-function PlaceDetail({ place, weather, weatherLoading, weatherError, air, airLoading, airError }) {
+function PlaceDetail({ place, weather, weatherLoading, weatherError, air, airLoading, airError, fallbackAddress }) {
   if (!place) {
     return (
       <aside className="place-detail place-detail-empty">
@@ -407,12 +470,17 @@ function PlaceDetail({ place, weather, weatherLoading, weatherError, air, airLoa
 
   const lastCat = (place.category_name || '').split('>').map((s) => s.trim()).filter(Boolean).pop();
   const summary = place.category_group_name || lastCat || '';
-  const displayName = place.place_name || place.road_address_name || place.address_name || '선택한 위치';
+  const displayName =
+    place.place_name ||
+    place.road_address_name ||
+    place.address_name ||
+    fallbackAddress ||
+    '';
 
   return (
     <aside className="place-detail">
       <div className="place-detail-header">
-        <div className="place-detail-name">{displayName}</div>
+        {displayName && <div className="place-detail-name">{displayName}</div>}
         {summary && <div className="place-detail-summary">{summary}</div>}
       </div>
 
