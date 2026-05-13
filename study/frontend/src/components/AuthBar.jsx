@@ -72,6 +72,11 @@ export default function AuthBar() {
     window.location.href = `${API}/kakao/login?returnTo=${encodeURIComponent(returnTo)}`;
   };
 
+  const onNaverLogin = () => {
+    const returnTo = `${window.location.origin}/`;
+    window.location.href = `${API}/naver/login?returnTo=${encodeURIComponent(returnTo)}`;
+  };
+
   const requestEmailCode = async () => {
     const email = form.email?.trim();
     if (!email) {
@@ -230,6 +235,12 @@ export default function AuthBar() {
           카카오
         </button>
       )}
+      {!mode && (
+        <button type="button" className="naver-login-btn" onClick={onNaverLogin}>
+          <span className="naver-login-icon" aria-hidden="true">N</span>
+          네이버
+        </button>
+      )}
 
       {mode && (
         <form className="auth-popover" onSubmit={onSubmit}>
@@ -362,6 +373,14 @@ export default function AuthBar() {
               </svg>
             </span>
             카카오로 {mode === 'signup' ? '가입' : '로그인'}
+          </button>
+          <button
+            type="button"
+            className="naver-login-btn auth-popover-naver"
+            onClick={onNaverLogin}
+          >
+            <span className="naver-login-icon" aria-hidden="true">N</span>
+            네이버로 {mode === 'signup' ? '가입' : '로그인'}
           </button>
           <div className="auth-popover-switch">
             {mode === 'signup' ? '이미 계정이 있나요?' : '아직 계정이 없나요?'}{' '}

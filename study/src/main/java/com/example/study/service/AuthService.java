@@ -7,6 +7,8 @@ import com.example.study.dto.request.SignupRequest;
 import com.example.study.dto.request.UserUpdateRequest;
 import com.example.study.dto.response.KakaoTokenResponse;
 import com.example.study.dto.response.KakaoUserResponse;
+import com.example.study.dto.response.NaverTokenResponse;
+import com.example.study.dto.response.NaverUserResponse;
 import com.example.study.entity.User;
 import com.example.study.repository.UserRepository;
 import org.slf4j.Logger;
@@ -43,6 +45,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final EmailService emailService;
     private final KakaoOAuthService kakaoOAuth;
+    private final NaverOAuthService naverOAuth;
     private final EmailVerificationService emailVerificationService;
     private final String frontendUrl;
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
@@ -52,12 +55,14 @@ public class AuthService {
             UserRepository userRepository,
             EmailService emailService,
             KakaoOAuthService kakaoOAuth,
+            NaverOAuthService naverOAuth,
             EmailVerificationService emailVerificationService,
             @Value("${app.frontend.url}") String frontendUrl
     ) {
         this.userRepository = userRepository;
         this.emailService = emailService;
         this.kakaoOAuth = kakaoOAuth;
+        this.naverOAuth = naverOAuth;
         this.emailVerificationService = emailVerificationService;
         this.frontendUrl = frontendUrl;
     }
@@ -133,7 +138,7 @@ public class AuthService {
                         u.setNotificationOptIn(req.notificationOptIn());
                     }
                     if (req.newPassword() != null && !req.newPassword().isBlank()) {
-                        if (u.getKakaoId() != null
+                        if ((u.getKakaoId() != null || u.getNaverId() != null)
                                 && (u.getPassword() == null || u.getPassword().isBlank())) {
                             return Result.fail(Result.Code.KAKAO_ONLY);
                         }
@@ -201,6 +206,62 @@ public class AuthService {
 
         if (me.kakaoAccount() != null && me.kakaoAccount().profile() != null) {
             user.setProfileImage(me.kakaoAccount().profile().profileImageUrl());
+        }
+        userRepository.save(user);
+        return user;
+    }
+
+    public User syncNaverUser(String code, String state) {
+        log.info("[NaverLogin] code 수신 길이={} prefix={}",
+                code == null ? 0 : code.length(),
+                code == null ? "null" : code.substring(0, Math.min(8, code.length())));
+
+        NaverTokenResponse token;
+        try {
+            token = naverOAuth.exchangeCode(code, state);
+        } catch (Exception e) {
+            log.warn("[NaverLogin] 토큰 교환 실패: {}", e.getMessage());
+            throw e;
+        }
+        if (token == null || token.accessToken() == null || token.accessToken().isBlank()) {
+            log.warn("[NaverLogin] 토큰 응답이 비어있거나 accessToken=null. token={}", token);
+            throw new IllegalStateException("네이버 토큰 응답에 access token이 없습니다.");
+        }
+        String at = token.accessToken();
+        log.info("[NaverLogin] 토큰 OK type={} expiresIn={} atLen={}",
+                token.tokenType(), token.expiresIn(), at.length());
+
+        NaverUserResponse me;
+        try {
+            me = naverOAuth.fetchUser(at);
+        } catch (Exception e) {
+            log.warn("[NaverLogin] 사용자 정보 조회 실패: {}", e.getMessage());
+            throw e;
+        }
+        if (me == null || me.response() == null || me.response().id() == null) {
+            log.warn("[NaverLogin] 사용자 응답 비정상: {}", me);
+            throw new IllegalStateException("네이버 사용자 정보를 가져올 수 없습니다.");
+        }
+        NaverUserResponse.NaverAccount account = me.response();
+        log.info("[NaverLogin] 사용자 OK naverId={} hasEmail={} hasNickname={}",
+                account.id(),
+                account.email() != null,
+                account.nickname() != null);
+
+        User user = userRepository.findByNaverId(account.id()).orElseGet(() -> {
+            User created = new User();
+            created.setNaverId(account.id());
+            created.setEmail(account.email());
+            if (account.nickname() != null && !account.nickname().isBlank()) {
+                created.setNickname(account.nickname());
+            } else if (account.name() != null && !account.name().isBlank()) {
+                created.setNickname(account.name());
+            }
+            return created;
+        });
+
+        if (account.profileImage() != null && !account.profileImage().isBlank()) {
+            user.setProfileImage(account.profileImage());
         }
         userRepository.save(user);
         return user;

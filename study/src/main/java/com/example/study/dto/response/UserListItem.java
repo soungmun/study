@@ -9,6 +9,7 @@ public record UserListItem(
         String username,
         String nickname,
         Long kakaoId,
+        String naverId,
         String email,
         LocalDateTime createdAt
 ) {
@@ -18,6 +19,7 @@ public record UserListItem(
                 u.getUsername(),
                 u.getNickname(),
                 u.getKakaoId(),
+                u.getNaverId(),
                 u.getEmail(),
                 u.getCreatedAt()
         );
