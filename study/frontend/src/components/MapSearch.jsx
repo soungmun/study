@@ -27,10 +27,22 @@ const POI_CATEGORIES = [
   'CT1', 'AT4', 'SW8', 'AD5', 'MT1', 'PO3', 'SC4', 'OL7',
 ];
 
+const RESTAURANT_RADIUS_M = 800;
+const RESTAURANT_MAX = 15;
+const RESTAURANT_MARKER_IMAGE =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 32 40">' +
+      '<path d="M16 0C7.16 0 0 7.16 0 16c0 11 16 24 16 24s16-13 16-24C32 7.16 24.84 0 16 0z" fill="#ef4444" stroke="#7f1d1d" stroke-width="1.5"/>' +
+      '<text x="16" y="22" text-anchor="middle" font-size="16" font-family="Apple Color Emoji,Segoe UI Emoji">🍽️</text>' +
+    '</svg>'
+  );
+
 export default function MapSearch() {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
   const markersRef = useRef([]);
+  const restaurantMarkersRef = useRef([]);
   const infoWindowRef = useRef(null);
   const customMarkerRef = useRef(null);
   const geocoderRef = useRef(null);
@@ -52,6 +64,8 @@ export default function MapSearch() {
   const [airLoading, setAirLoading] = useState(false);
   const [airError, setAirError] = useState(null);
   const [fallbackAddress, setFallbackAddress] = useState('');
+  const [restaurants, setRestaurants] = useState([]);
+  const [restaurantsLoading, setRestaurantsLoading] = useState(false);
 
   const findNearestPlace = (lat, lng) =>
     new Promise((resolve) => {
@@ -321,6 +335,78 @@ export default function MapSearch() {
   }, [selectedPlace?.id, selectedPlace?.x, selectedPlace?.y]);
 
   useEffect(() => {
+    restaurantMarkersRef.current.forEach((m) => m.setMap(null));
+    restaurantMarkersRef.current = [];
+    setRestaurants([]);
+    setRestaurantsLoading(false);
+
+    if (!kakaoReady || !selectedPlace) return;
+    const kakao = window.kakao;
+    const map = mapInstance.current;
+    if (!kakao?.maps?.services?.Places || !map) return;
+
+    const lat = parseFloat(selectedPlace.y);
+    const lng = parseFloat(selectedPlace.x);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+    if (!placesRef.current) {
+      placesRef.current = new kakao.maps.services.Places();
+    }
+    setRestaurantsLoading(true);
+    let cancelled = false;
+
+    placesRef.current.categorySearch(
+      'FD6',
+      (data, status) => {
+        if (cancelled) return;
+        setRestaurantsLoading(false);
+        if (status !== kakao.maps.services.Status.OK || !Array.isArray(data)) return;
+        const list = data
+          .filter((d) => d.id !== selectedPlace.id)
+          .slice(0, RESTAURANT_MAX);
+        setRestaurants(list);
+
+        const markerImage = new kakao.maps.MarkerImage(
+          RESTAURANT_MARKER_IMAGE,
+          new kakao.maps.Size(32, 40),
+          { offset: new kakao.maps.Point(16, 40) }
+        );
+        list.forEach((r) => {
+          const pos = new kakao.maps.LatLng(parseFloat(r.y), parseFloat(r.x));
+          const marker = new kakao.maps.Marker({
+            position: pos,
+            map,
+            image: markerImage,
+            zIndex: 5,
+            title: r.place_name,
+          });
+          kakao.maps.event.addListener(marker, 'click', () => {
+            infoWindowRef.current?.close();
+            const html = `
+              <div style="padding:8px 10px;font-size:13px;line-height:1.5;min-width:180px;max-width:240px;">
+                <div style="font-weight:700;color:#7f1d1d;margin-bottom:4px;">🍽️ ${r.place_name}</div>
+                ${r.category_name ? `<div style="color:#475569;font-size:12px;margin-bottom:4px;">${r.category_name.split('>').slice(-1)[0].trim()}</div>` : ''}
+                ${r.road_address_name ? `<div style="color:#475569;">${r.road_address_name}</div>` : ''}
+                ${r.phone ? `<div style="color:#64748b;font-size:12px;margin-top:4px;">📞 ${r.phone}</div>` : ''}
+                ${r.place_url ? `<a href="${r.place_url}" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;color:#ef4444;text-decoration:none;font-weight:600;">카카오맵에서 보기 →</a>` : ''}
+              </div>`;
+            infoWindowRef.current?.setContent(html);
+            infoWindowRef.current?.open(map, marker);
+          });
+          restaurantMarkersRef.current.push(marker);
+        });
+      },
+      {
+        location: new kakao.maps.LatLng(lat, lng),
+        radius: RESTAURANT_RADIUS_M,
+        sort: kakao.maps.services.SortBy.DISTANCE,
+      }
+    );
+
+    return () => { cancelled = true; };
+  }, [kakaoReady, selectedPlace?.id, selectedPlace?.x, selectedPlace?.y]);
+
+  useEffect(() => {
     setFallbackAddress('');
     if (!selectedPlace) return;
     const hasName =
@@ -407,6 +493,8 @@ export default function MapSearch() {
     if (kakaoReady) {
       markersRef.current.forEach((m) => m.setMap(null));
       markersRef.current = [];
+      restaurantMarkersRef.current.forEach((m) => m.setMap(null));
+      restaurantMarkersRef.current = [];
       infoWindowRef.current?.close();
       const kakao = window.kakao;
       mapInstance.current.setCenter(new kakao.maps.LatLng(DEFAULT_CENTER.lat, DEFAULT_CENTER.lng));
@@ -452,13 +540,29 @@ export default function MapSearch() {
           airLoading={airLoading}
           airError={airError}
           fallbackAddress={fallbackAddress}
+          restaurants={restaurants}
+          restaurantsLoading={restaurantsLoading}
+          onRestaurantClick={(r) => {
+            const kakao = window.kakao;
+            const map = mapInstance.current;
+            if (!kakao || !map) return;
+            const pos = new kakao.maps.LatLng(parseFloat(r.y), parseFloat(r.x));
+            map.panTo(pos);
+            const marker = restaurantMarkersRef.current.find((m) => {
+              const p = m.getPosition();
+              return p.getLat() === pos.getLat() && p.getLng() === pos.getLng();
+            });
+            if (marker) {
+              kakao.maps.event.trigger(marker, 'click');
+            }
+          }}
         />
       </div>
     </div>
   );
 }
 
-function PlaceDetail({ place, weather, weatherLoading, weatherError, air, airLoading, airError, fallbackAddress }) {
+function PlaceDetail({ place, weather, weatherLoading, weatherError, air, airLoading, airError, fallbackAddress, restaurants, restaurantsLoading, onRestaurantClick }) {
   if (!place) {
     return (
       <aside className="place-detail place-detail-empty">
@@ -504,8 +608,51 @@ function PlaceDetail({ place, weather, weatherLoading, weatherError, air, airLoa
           loading={airLoading}
           error={airError}
         />
+
+        <RestaurantList
+          items={restaurants}
+          loading={restaurantsLoading}
+          onItemClick={onRestaurantClick}
+        />
       </div>
     </aside>
+  );
+}
+
+function RestaurantList({ items, loading, onItemClick }) {
+  return (
+    <div className="restaurant-card">
+      <div className="restaurant-card-title">🍽️ 주변 맛집 <span className="muted">(반경 800m)</span></div>
+      {loading && (
+        <div className="restaurant-card-status">
+          <span className="spinner spinner-sm" />
+          <span>주변 음식점을 찾는 중…</span>
+        </div>
+      )}
+      {!loading && (!items || items.length === 0) && (
+        <div className="restaurant-card-status muted">주변에 음식점이 없어요</div>
+      )}
+      {!loading && items && items.length > 0 && (
+        <ul className="restaurant-list">
+          {items.map((r) => {
+            const cat = (r.category_name || '').split('>').map((s) => s.trim()).filter(Boolean).pop() || '';
+            const dist = Number(r.distance);
+            const distLabel = Number.isFinite(dist)
+              ? (dist >= 1000 ? `${(dist / 1000).toFixed(1)}km` : `${dist}m`)
+              : '';
+            return (
+              <li key={r.id} className="restaurant-item" onClick={() => onItemClick?.(r)}>
+                <div className="restaurant-item-main">
+                  <div className="restaurant-item-name">{r.place_name}</div>
+                  {cat && <div className="restaurant-item-cat">{cat}</div>}
+                </div>
+                {distLabel && <div className="restaurant-item-dist">{distLabel}</div>}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
   );
 }
 

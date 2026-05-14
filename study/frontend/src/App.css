@@ -1640,6 +1640,97 @@ button.ghost:hover:not(:disabled) {
   border: 1px solid #7dd3fc;
 }
 
+.restaurant-card {
+  margin: 10px 18px 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.restaurant-card-title {
+  font-weight: 700;
+  font-size: 13px;
+  color: #7f1d1d;
+}
+
+.restaurant-card-status {
+  font-size: 12px;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.restaurant-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.restaurant-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #fee2e2;
+  background: #fef2f2;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.restaurant-item:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+}
+
+.restaurant-item-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.restaurant-item-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #7f1d1d;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.restaurant-item-cat {
+  font-size: 11px;
+  color: #b91c1c;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.restaurant-item-dist {
+  font-size: 11px;
+  font-weight: 700;
+  color: #b91c1c;
+  background: #fff;
+  border: 1px solid #fecaca;
+  border-radius: 999px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
 .user-badge-local {
   background: #ede9fe;
   color: #6d28d9;
