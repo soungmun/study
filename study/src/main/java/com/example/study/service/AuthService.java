@@ -5,6 +5,8 @@ import com.example.study.dto.request.PasswordForgotRequest;
 import com.example.study.dto.request.PasswordResetRequest;
 import com.example.study.dto.request.SignupRequest;
 import com.example.study.dto.request.UserUpdateRequest;
+import com.example.study.dto.response.GoogleTokenResponse;
+import com.example.study.dto.response.GoogleUserResponse;
 import com.example.study.dto.response.KakaoTokenResponse;
 import com.example.study.dto.response.KakaoUserResponse;
 import com.example.study.dto.response.NaverTokenResponse;
@@ -46,6 +48,7 @@ public class AuthService {
     private final EmailService emailService;
     private final KakaoOAuthService kakaoOAuth;
     private final NaverOAuthService naverOAuth;
+    private final GoogleOAuthService googleOAuth;
     private final EmailVerificationService emailVerificationService;
     private final String frontendUrl;
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
@@ -56,6 +59,7 @@ public class AuthService {
             EmailService emailService,
             KakaoOAuthService kakaoOAuth,
             NaverOAuthService naverOAuth,
+            GoogleOAuthService googleOAuth,
             EmailVerificationService emailVerificationService,
             @Value("${app.frontend.url}") String frontendUrl
     ) {
@@ -63,6 +67,7 @@ public class AuthService {
         this.emailService = emailService;
         this.kakaoOAuth = kakaoOAuth;
         this.naverOAuth = naverOAuth;
+        this.googleOAuth = googleOAuth;
         this.emailVerificationService = emailVerificationService;
         this.frontendUrl = frontendUrl;
     }
@@ -138,7 +143,7 @@ public class AuthService {
                         u.setNotificationOptIn(req.notificationOptIn());
                     }
                     if (req.newPassword() != null && !req.newPassword().isBlank()) {
-                        if ((u.getKakaoId() != null || u.getNaverId() != null)
+                        if ((u.getKakaoId() != null || u.getNaverId() != null || u.getGoogleId() != null)
                                 && (u.getPassword() == null || u.getPassword().isBlank())) {
                             return Result.fail(Result.Code.KAKAO_ONLY);
                         }
@@ -262,6 +267,59 @@ public class AuthService {
 
         if (account.profileImage() != null && !account.profileImage().isBlank()) {
             user.setProfileImage(account.profileImage());
+        }
+        userRepository.save(user);
+        return user;
+    }
+
+    public User syncGoogleUser(String code) {
+        log.info("[GoogleLogin] code 수신 길이={} prefix={}",
+                code == null ? 0 : code.length(),
+                code == null ? "null" : code.substring(0, Math.min(8, code.length())));
+
+        GoogleTokenResponse token;
+        try {
+            token = googleOAuth.exchangeCode(code);
+        } catch (Exception e) {
+            log.warn("[GoogleLogin] 토큰 교환 실패: {}", e.getMessage());
+            throw e;
+        }
+        if (token == null || token.accessToken() == null || token.accessToken().isBlank()) {
+            log.warn("[GoogleLogin] 토큰 응답이 비어있거나 accessToken=null. token={}", token);
+            throw new IllegalStateException("구글 토큰 응답에 access token이 없습니다.");
+        }
+        String at = token.accessToken();
+        log.info("[GoogleLogin] 토큰 OK type={} expiresIn={} atLen={}",
+                token.tokenType(), token.expiresIn(), at.length());
+
+        GoogleUserResponse me;
+        try {
+            me = googleOAuth.fetchUser(at);
+        } catch (Exception e) {
+            log.warn("[GoogleLogin] 사용자 정보 조회 실패: {}", e.getMessage());
+            throw e;
+        }
+        if (me == null || me.sub() == null || me.sub().isBlank()) {
+            log.warn("[GoogleLogin] 사용자 응답 비정상: {}", me);
+            throw new IllegalStateException("구글 사용자 정보를 가져올 수 없습니다.");
+        }
+        log.info("[GoogleLogin] 사용자 OK googleId={} hasEmail={} hasName={}",
+                me.sub(), me.email() != null, me.name() != null);
+
+        User user = userRepository.findByGoogleId(me.sub()).orElseGet(() -> {
+            User created = new User();
+            created.setGoogleId(me.sub());
+            created.setEmail(me.email());
+            if (me.name() != null && !me.name().isBlank()) {
+                created.setNickname(me.name());
+            } else if (me.givenName() != null && !me.givenName().isBlank()) {
+                created.setNickname(me.givenName());
+            }
+            return created;
+        });
+
+        if (me.picture() != null && !me.picture().isBlank()) {
+            user.setProfileImage(me.picture());
         }
         userRepository.save(user);
         return user;

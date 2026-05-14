@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
         uniqueConstraints = {
                 @UniqueConstraint(name = "uk_users_kakao_id", columnNames = "kakao_id"),
                 @UniqueConstraint(name = "uk_users_naver_id", columnNames = "naver_id"),
+                @UniqueConstraint(name = "uk_users_google_id", columnNames = "google_id"),
                 @UniqueConstraint(name = "uk_users_username", columnNames = "username")
         }
 )
@@ -23,6 +24,9 @@ public class User {
 
     @Column(name = "naver_id", length = 100)
     private String naverId;
+
+    @Column(name = "google_id", length = 100)
+    private String googleId;
 
     @Column(length = 50)
     private String username;
@@ -71,6 +75,8 @@ public class User {
     public void setKakaoId(Long kakaoId) { this.kakaoId = kakaoId; }
     public String getNaverId() { return naverId; }
     public void setNaverId(String naverId) { this.naverId = naverId; }
+    public String getGoogleId() { return googleId; }
+    public void setGoogleId(String googleId) { this.googleId = googleId; }
     public String getUsername() { return username; }
     public void setUsername(String username) { this.username = username; }
     public String getPassword() { return password; }
