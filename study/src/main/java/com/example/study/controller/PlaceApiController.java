@@ -24,4 +24,14 @@ public class PlaceApiController {
             @RequestParam(defaultValue = "15") int size) {
         return placeService.search(query, page, size);
     }
+
+    @GetMapping("/nearby")
+    public PlaceSearchResponse nearby(
+            @RequestParam double lat,
+            @RequestParam double lng,
+            @RequestParam(defaultValue = "FD6") String category,
+            @RequestParam(defaultValue = "800") int radius,
+            @RequestParam(defaultValue = "15") int size) {
+        return placeService.searchNearby(lat, lng, category, radius, size);
+    }
 }

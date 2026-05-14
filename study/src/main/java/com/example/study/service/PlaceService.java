@@ -14,6 +14,7 @@ import java.util.List;
 public class PlaceService {
 
     private static final String SEARCH_URL = "https://dapi.kakao.com/v2/local/search/keyword.json";
+    private static final String CATEGORY_URL = "https://dapi.kakao.com/v2/local/search/category.json";
 
     private final RestClient restClient = RestClient.create();
     private final String apiKey;
@@ -34,6 +35,34 @@ public class PlaceService {
                 .queryParam("query", query)
                 .queryParam("page", Math.max(1, Math.min(45, page)))
                 .queryParam("size", Math.max(1, Math.min(15, size)))
+                .build()
+                .encode()
+                .toUri();
+
+        return restClient.get()
+                .uri(uri)
+                .header(HttpHeaders.AUTHORIZATION, "KakaoAK " + apiKey)
+                .retrieve()
+                .body(PlaceSearchResponse.class);
+    }
+
+    public PlaceSearchResponse searchNearby(double lat, double lng, String categoryGroupCode, int radius, int size) {
+        if (categoryGroupCode == null || categoryGroupCode.isBlank()) {
+            return new PlaceSearchResponse(
+                    new PlaceSearchResponse.Meta(0, 0, true),
+                    List.of()
+            );
+        }
+        int clampedRadius = Math.max(1, Math.min(20000, radius));
+        int clampedSize = Math.max(1, Math.min(15, size));
+
+        URI uri = UriComponentsBuilder.fromUriString(CATEGORY_URL)
+                .queryParam("category_group_code", categoryGroupCode)
+                .queryParam("x", lng)
+                .queryParam("y", lat)
+                .queryParam("radius", clampedRadius)
+                .queryParam("size", clampedSize)
+                .queryParam("sort", "distance")
                 .build()
                 .encode()
                 .toUri();
