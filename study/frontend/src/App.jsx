@@ -16,7 +16,6 @@ import AdminBroadcast from './components/AdminBroadcast';
 import KakaoPay from './components/KakaoPay';
 import KakaoPayHistory from './components/KakaoPayHistory';
 import { KakaoPaySuccess, KakaoPayFail } from './components/KakaoPayResult';
-import Chat from './components/Chat';
 import './App.css';
 
 export default function App() {
@@ -46,9 +45,6 @@ export default function App() {
           <NavLink to="/pay/history" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
             결제내역
           </NavLink>
-          <NavLink to="/chat" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-            AI 챗
-          </NavLink>
           <NavLink to="/admin/broadcast" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
             관리자
           </NavLink>
@@ -72,7 +68,6 @@ export default function App() {
         <Route path="/pay/history" element={<RequireAuth title="🧾 결제 내역"><KakaoPayHistory /></RequireAuth>} />
         <Route path="/pay/success" element={<RequireAuth title="💳 결제 결과"><KakaoPaySuccess /></RequireAuth>} />
         <Route path="/pay/fail" element={<RequireAuth title="💳 결제 결과"><KakaoPayFail /></RequireAuth>} />
-        <Route path="/chat" element={<RequireAuth title="🤖 Claude 챗"><Chat /></RequireAuth>} />
       </Routes>
     </div>
   );
