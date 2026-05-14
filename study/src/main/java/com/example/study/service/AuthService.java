@@ -31,7 +31,7 @@ public class AuthService {
     private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     public static final class Result {
-        public enum Code { OK, USERNAME_TAKEN, INVALID_CREDENTIALS, INVALID_TOKEN, KAKAO_ONLY, CURRENT_PASSWORD_MISMATCH, NOT_FOUND, EMAIL_NOT_VERIFIED }
+        public enum Code { OK, USERNAME_TAKEN, INVALID_CREDENTIALS, INVALID_TOKEN, KAKAO_ONLY, SOCIAL_LOCKED, CURRENT_PASSWORD_MISMATCH, NOT_FOUND, EMAIL_NOT_VERIFIED }
 
         public final Code code;
         public final User user;
@@ -132,6 +132,15 @@ public class AuthService {
     public Result updateProfile(Long userId, UserUpdateRequest req) {
         return userRepository.findById(userId)
                 .map(u -> {
+                    boolean isSocialOnly = (u.getKakaoId() != null || u.getNaverId() != null || u.getGoogleId() != null)
+                            && (u.getPassword() == null || u.getPassword().isBlank());
+                    boolean emailRequested = req.email() != null && !req.email().isBlank()
+                            && !req.email().trim().equals(u.getEmail());
+                    boolean passwordRequested = req.newPassword() != null && !req.newPassword().isBlank();
+                    if (isSocialOnly && (emailRequested || passwordRequested)) {
+                        return Result.fail(Result.Code.SOCIAL_LOCKED);
+                    }
+
                     boolean passwordChanged = false;
                     if (req.nickname() != null && !req.nickname().isBlank()) {
                         u.setNickname(req.nickname().trim());

@@ -75,7 +75,9 @@ public class UserAccountController {
         return switch (result.code) {
             case OK -> ResponseEntity.ok(UserResponse.from(result.user));
             case KAKAO_ONLY -> ResponseEntity.status(400)
-                    .body(MessageResponse.of("카카오 로그인 계정은 비밀번호를 변경할 수 없습니다."));
+                    .body(MessageResponse.of("간편 로그인 계정은 비밀번호를 변경할 수 없습니다."));
+            case SOCIAL_LOCKED -> ResponseEntity.status(400)
+                    .body(MessageResponse.of("간편 로그인 계정은 이메일과 비밀번호를 변경할 수 없습니다."));
             case CURRENT_PASSWORD_MISMATCH -> ResponseEntity.status(400)
                     .body(MessageResponse.of("현재 비밀번호가 일치하지 않습니다."));
             default -> ResponseEntity.status(401)

@@ -38,7 +38,14 @@ export default function ProfileEdit() {
       .finally(() => setLoading(false));
   }, [navigate]);
 
-  const isKakaoOnly = user?.kakaoId && !user?.username;
+  const socialProvider = user?.kakaoId
+    ? '카카오'
+    : user?.naverId
+      ? '네이버'
+      : user?.googleId
+        ? '구글'
+        : null;
+  const isSocialOnly = !!socialProvider && !user?.username;
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -124,7 +131,11 @@ export default function ProfileEdit() {
       <form className="profile-edit-form" onSubmit={onSubmit}>
         <div className="profile-edit-row">
           <label>아이디</label>
-          <input type="text" value={user.username || '(카카오 로그인)'} disabled />
+          <input
+            type="text"
+            value={user.username || (socialProvider ? `(${socialProvider} 로그인)` : '')}
+            disabled
+          />
         </div>
 
         <div className="profile-edit-row">
@@ -146,6 +157,7 @@ export default function ProfileEdit() {
             onChange={(e) => setForm({ ...form, email: e.target.value })}
             placeholder="example@example.com"
             maxLength={200}
+            disabled={isSocialOnly}
           />
         </div>
 
@@ -161,7 +173,7 @@ export default function ProfileEdit() {
           </label>
         </div>
 
-        {!isKakaoOnly && (
+        {!isSocialOnly && (
           <fieldset className="profile-edit-pwd">
             <legend>비밀번호 변경 (선택)</legend>
             <div className="profile-edit-row">
@@ -197,9 +209,9 @@ export default function ProfileEdit() {
           </fieldset>
         )}
 
-        {isKakaoOnly && (
+        {isSocialOnly && (
           <div className="profile-edit-info">
-            카카오 로그인 계정은 비밀번호를 변경할 수 없습니다.
+            {socialProvider} 로그인 계정은 이메일과 비밀번호를 변경할 수 없습니다.
           </div>
         )}
 
