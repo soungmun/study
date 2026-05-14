@@ -48,7 +48,8 @@ public class KakaoOAuthService {
         UriComponentsBuilder b = UriComponentsBuilder.fromUriString(AUTHORIZE_URL)
                 .queryParam("response_type", "code")
                 .queryParam("client_id", clientId)
-                .queryParam("redirect_uri", redirectUri);
+                .queryParam("redirect_uri", redirectUri)
+                .queryParam("scope", "talk_message");
         if (state != null && !state.isBlank()) {
             b.queryParam("state", URLEncoder.encode(state, StandardCharsets.UTF_8));
         }
