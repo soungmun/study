@@ -378,18 +378,18 @@ export default function MapSearch() {
             map,
             image: markerImage,
             zIndex: 5,
-            title: r.placeName,
+            title: r.place_name,
           });
           kakao.maps.event.addListener(marker, 'click', () => {
             infoWindowRef.current?.close();
-            const lastCat = (r.categoryName || '').split('>').map((s) => s.trim()).filter(Boolean).pop() || '';
+            const lastCat = (r.category_name || '').split('>').map((s) => s.trim()).filter(Boolean).pop() || '';
             const html = `
               <div style="padding:8px 10px;font-size:13px;line-height:1.5;min-width:180px;max-width:240px;">
-                <div style="font-weight:700;color:#7f1d1d;margin-bottom:4px;">🍽️ ${r.placeName}</div>
+                <div style="font-weight:700;color:#7f1d1d;margin-bottom:4px;">🍽️ ${r.place_name}</div>
                 ${lastCat ? `<div style="color:#475569;font-size:12px;margin-bottom:4px;">${lastCat}</div>` : ''}
-                ${r.roadAddressName ? `<div style="color:#475569;">${r.roadAddressName}</div>` : ''}
+                ${r.road_address_name ? `<div style="color:#475569;">${r.road_address_name}</div>` : ''}
                 ${r.phone ? `<div style="color:#64748b;font-size:12px;margin-top:4px;">📞 ${r.phone}</div>` : ''}
-                ${r.placeUrl ? `<a href="${r.placeUrl}" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;color:#ef4444;text-decoration:none;font-weight:600;">카카오맵에서 보기 →</a>` : ''}
+                ${r.place_url ? `<a href="${r.place_url}" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;color:#ef4444;text-decoration:none;font-weight:600;">카카오맵에서 보기 →</a>` : ''}
               </div>`;
             infoWindowRef.current?.setContent(html);
             infoWindowRef.current?.open(map, marker);
@@ -634,7 +634,7 @@ function RestaurantList({ items, loading, onItemClick }) {
       {!loading && items && items.length > 0 && (
         <ul className="restaurant-list">
           {items.map((r) => {
-            const cat = (r.categoryName || '').split('>').map((s) => s.trim()).filter(Boolean).pop() || '';
+            const cat = (r.category_name || '').split('>').map((s) => s.trim()).filter(Boolean).pop() || '';
             const dist = Number(r.distance);
             const distLabel = Number.isFinite(dist)
               ? (dist >= 1000 ? `${(dist / 1000).toFixed(1)}km` : `${dist}m`)
@@ -642,7 +642,7 @@ function RestaurantList({ items, loading, onItemClick }) {
             return (
               <li key={r.id} className="restaurant-item" onClick={() => onItemClick?.(r)}>
                 <div className="restaurant-item-main">
-                  <div className="restaurant-item-name">{r.placeName}</div>
+                  <div className="restaurant-item-name">{r.place_name}</div>
                   {cat && <div className="restaurant-item-cat">{cat}</div>}
                 </div>
                 {distLabel && <div className="restaurant-item-dist">{distLabel}</div>}
