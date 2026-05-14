@@ -58,6 +58,16 @@ public class PlaceService {
         if (categoryGroupCode == null || categoryGroupCode.isBlank()) {
             return EMPTY;
         }
+        PlaceSearchResponse byCategory = searchByCategory(lat, lng, categoryGroupCode, radius, size);
+        if (byCategory.documents() != null && !byCategory.documents().isEmpty()) {
+            return byCategory;
+        }
+        // 카테고리 API 쿼터 초과 등으로 결과가 비면 키워드 검색으로 폴백
+        String fallbackQuery = "FD6".equalsIgnoreCase(categoryGroupCode) ? "맛집" : "주변";
+        return searchByKeyword(fallbackQuery, lat, lng, categoryGroupCode, radius, size);
+    }
+
+    private PlaceSearchResponse searchByCategory(double lat, double lng, String categoryGroupCode, int radius, int size) {
         int clampedRadius = Math.max(1, Math.min(20000, radius));
         int clampedSize = Math.max(1, Math.min(15, size));
 
@@ -81,13 +91,42 @@ public class PlaceService {
         } catch (HttpClientErrorException.BadRequest e) {
             String body = e.getResponseBodyAsString();
             if (body != null && body.contains("API limit has been exceeded")) {
-                log.warn("[PlaceService] 카카오 로컬 API 일일 쿼터 초과 — 빈 결과 반환");
+                log.warn("[PlaceService] 카카오 카테고리 API 쿼터 초과 — 키워드 검색 폴백");
                 return EMPTY;
             }
             log.warn("[PlaceService] 카카오 카테고리 검색 400: {}", body);
             return EMPTY;
         } catch (RestClientResponseException e) {
             log.warn("[PlaceService] 카카오 카테고리 검색 실패 status={}: {}",
+                    e.getStatusCode(), e.getResponseBodyAsString());
+            return EMPTY;
+        }
+    }
+
+    private PlaceSearchResponse searchByKeyword(String query, double lat, double lng, String categoryGroupCode, int radius, int size) {
+        int clampedRadius = Math.max(1, Math.min(20000, radius));
+        int clampedSize = Math.max(1, Math.min(15, size));
+
+        UriComponentsBuilder b = UriComponentsBuilder.fromUriString(SEARCH_URL)
+                .queryParam("query", query)
+                .queryParam("x", lng)
+                .queryParam("y", lat)
+                .queryParam("radius", clampedRadius)
+                .queryParam("size", clampedSize)
+                .queryParam("sort", "distance");
+        if (categoryGroupCode != null && !categoryGroupCode.isBlank()) {
+            b.queryParam("category_group_code", categoryGroupCode);
+        }
+        URI uri = b.build().encode().toUri();
+
+        try {
+            return restClient.get()
+                    .uri(uri)
+                    .header(HttpHeaders.AUTHORIZATION, "KakaoAK " + apiKey)
+                    .retrieve()
+                    .body(PlaceSearchResponse.class);
+        } catch (RestClientResponseException e) {
+            log.warn("[PlaceService] 카카오 키워드 폴백 실패 status={}: {}",
                     e.getStatusCode(), e.getResponseBodyAsString());
             return EMPTY;
         }
