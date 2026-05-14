@@ -1,33 +1,33 @@
 package com.example.study.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record PlaceSearchResponse(Meta meta, List<Document> documents) {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-    public record Meta(Integer totalCount, Integer pageableCount, Boolean isEnd) {}
+    public record Meta(
+            @JsonProperty("total_count") Integer totalCount,
+            @JsonProperty("pageable_count") Integer pageableCount,
+            @JsonProperty("is_end") Boolean isEnd
+    ) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public record Document(
             String id,
-            String placeName,
-            String categoryName,
-            String categoryGroupCode,
-            String categoryGroupName,
+            @JsonProperty("place_name") String placeName,
+            @JsonProperty("category_name") String categoryName,
+            @JsonProperty("category_group_code") String categoryGroupCode,
+            @JsonProperty("category_group_name") String categoryGroupName,
             String phone,
-            String addressName,
-            String roadAddressName,
+            @JsonProperty("address_name") String addressName,
+            @JsonProperty("road_address_name") String roadAddressName,
             String x,
             String y,
-            String placeUrl,
+            @JsonProperty("place_url") String placeUrl,
             String distance
     ) {}
 }
