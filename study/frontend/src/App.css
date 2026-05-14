@@ -1632,6 +1632,12 @@ button.ghost:hover:not(:disabled) {
   border: 1px solid #86efac;
 }
 
+.user-badge-google {
+  background: #e0f2fe;
+  color: #075985;
+  border: 1px solid #7dd3fc;
+}
+
 .user-badge-local {
   background: #ede9fe;
   color: #6d28d9;

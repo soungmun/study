@@ -111,6 +111,7 @@ export default function UserList() {
             {users.map((u) => {
               const isKakao = u.kakaoId != null;
               const isNaver = u.naverId != null;
+              const isGoogle = u.googleId != null;
               return (
                 <tr key={u.id}>
                   <td className="user-id">{u.id}</td>
@@ -119,9 +120,11 @@ export default function UserList() {
                   <td>{u.email || <span className="muted">—</span>}</td>
                   <td>
                     {isKakao ? (
-                      <span className="user-badge user-badge-kakao">카카오</span>
+                      <span className="user-badge user-badge-kakao">카카오로그인</span>
                     ) : isNaver ? (
-                      <span className="user-badge user-badge-naver">네이버</span>
+                      <span className="user-badge user-badge-naver">네이버로그인</span>
+                    ) : isGoogle ? (
+                      <span className="user-badge user-badge-google">구글로그인</span>
                     ) : (
                       <span className="user-badge user-badge-local">일반</span>
                     )}
