@@ -58,6 +58,18 @@ public class User {
     @Column(name = "notification_opt_in", nullable = false)
     private boolean notificationOptIn = false;
 
+    @Column(name = "kakao_access_token", length = 500)
+    private String kakaoAccessToken;
+
+    @Column(name = "kakao_refresh_token", length = 500)
+    private String kakaoRefreshToken;
+
+    @Column(name = "kakao_token_expires_at")
+    private LocalDateTime kakaoTokenExpiresAt;
+
+    @Column(name = "kakao_talk_opt_in", nullable = false)
+    private boolean kakaoTalkOptIn = true;
+
     @PrePersist
     void onCreate() {
         LocalDateTime now = LocalDateTime.now();
@@ -95,4 +107,12 @@ public class User {
     public void setResetTokenExpiresAt(LocalDateTime resetTokenExpiresAt) { this.resetTokenExpiresAt = resetTokenExpiresAt; }
     public boolean isNotificationOptIn() { return notificationOptIn; }
     public void setNotificationOptIn(boolean notificationOptIn) { this.notificationOptIn = notificationOptIn; }
+    public String getKakaoAccessToken() { return kakaoAccessToken; }
+    public void setKakaoAccessToken(String kakaoAccessToken) { this.kakaoAccessToken = kakaoAccessToken; }
+    public String getKakaoRefreshToken() { return kakaoRefreshToken; }
+    public void setKakaoRefreshToken(String kakaoRefreshToken) { this.kakaoRefreshToken = kakaoRefreshToken; }
+    public LocalDateTime getKakaoTokenExpiresAt() { return kakaoTokenExpiresAt; }
+    public void setKakaoTokenExpiresAt(LocalDateTime kakaoTokenExpiresAt) { this.kakaoTokenExpiresAt = kakaoTokenExpiresAt; }
+    public boolean isKakaoTalkOptIn() { return kakaoTalkOptIn; }
+    public void setKakaoTalkOptIn(boolean kakaoTalkOptIn) { this.kakaoTalkOptIn = kakaoTalkOptIn; }
 }

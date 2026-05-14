@@ -428,7 +428,8 @@
 }
 
 .auth-popover-kakao,
-.auth-popover-naver {
+.auth-popover-naver,
+.auth-popover-google {
   width: 100%;
   margin-left: 0;
   justify-content: center;
@@ -437,7 +438,8 @@
   font-size: 13.5px;
 }
 
-.auth-popover-naver {
+.auth-popover-naver,
+.auth-popover-google {
   margin-top: 6px;
 }
 

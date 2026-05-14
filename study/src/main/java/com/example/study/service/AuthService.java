@@ -221,6 +221,13 @@ public class AuthService {
         if (me.kakaoAccount() != null && me.kakaoAccount().profile() != null) {
             user.setProfileImage(me.kakaoAccount().profile().profileImageUrl());
         }
+        user.setKakaoAccessToken(at);
+        if (token.expiresIn() != null) {
+            user.setKakaoTokenExpiresAt(LocalDateTime.now().plusSeconds(token.expiresIn()));
+        }
+        if (token.refreshToken() != null && !token.refreshToken().isBlank()) {
+            user.setKakaoRefreshToken(token.refreshToken());
+        }
         userRepository.save(user);
         return user;
     }

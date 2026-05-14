@@ -48,11 +48,39 @@ public class KakaoOAuthService {
         UriComponentsBuilder b = UriComponentsBuilder.fromUriString(AUTHORIZE_URL)
                 .queryParam("response_type", "code")
                 .queryParam("client_id", clientId)
-                .queryParam("redirect_uri", redirectUri);
+                .queryParam("redirect_uri", redirectUri)
+                .queryParam("scope", "profile_nickname,profile_image,account_email,talk_message");
         if (state != null && !state.isBlank()) {
             b.queryParam("state", URLEncoder.encode(state, StandardCharsets.UTF_8));
         }
         return b.build().toUriString();
+    }
+
+    public KakaoTokenResponse refreshToken(String refreshToken) {
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        form.add("grant_type", "refresh_token");
+        form.add("client_id", clientId);
+        form.add("refresh_token", refreshToken);
+        if (clientSecret != null && !clientSecret.isBlank()) {
+            form.add("client_secret", clientSecret);
+        }
+
+        ResponseEntity<String> response = restClient.post()
+                .uri(URI.create(TOKEN_URL))
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .body(form)
+                .retrieve()
+                .toEntity(String.class);
+
+        String body = response.getBody();
+        log.info("[Kakao refresh] status={} bodyLen={}", response.getStatusCode(),
+                body == null ? 0 : body.length());
+        try {
+            return objectMapper.readValue(body, KakaoTokenResponse.class);
+        } catch (Exception e) {
+            throw new IllegalStateException(
+                    "카카오 refresh 응답 파싱 실패: " + e.getMessage() + " body=" + body, e);
+        }
     }
 
     public KakaoTokenResponse exchangeCode(String code) {

@@ -43,6 +43,7 @@ public class DailyMailScheduler {
     private final NewsService newsService;
     private final WeatherService weatherService;
     private final AirQualityService airQualityService;
+    private final KakaoTalkMessageService kakaoTalkMessageService;
 
     public DailyMailScheduler(
             UserRepository userRepository,
@@ -50,7 +51,8 @@ public class DailyMailScheduler {
             StockService stockService,
             NewsService newsService,
             WeatherService weatherService,
-            AirQualityService airQualityService
+            AirQualityService airQualityService,
+            KakaoTalkMessageService kakaoTalkMessageService
     ) {
         this.userRepository = userRepository;
         this.emailService = emailService;
@@ -58,6 +60,7 @@ public class DailyMailScheduler {
         this.newsService = newsService;
         this.weatherService = weatherService;
         this.airQualityService = airQualityService;
+        this.kakaoTalkMessageService = kakaoTalkMessageService;
     }
 
     @Scheduled(cron = "0 0 20 * * *", zone = "Asia/Seoul")
@@ -109,11 +112,44 @@ public class DailyMailScheduler {
             emailService.sendBroadcastSync(recipients, subject, html);
             writeLastSent(today);
             log.info("[DailyMail] [{}] 발송 완료 — 수신자 {}명", trigger, recipients.size());
-            return new DailyMailResult(true, recipients.size(), "발송 성공");
         } catch (RuntimeException e) {
             log.warn("[DailyMail] [{}] 발송 실패 — {}", trigger, e.getMessage());
             return new DailyMailResult(false, recipients.size(), "발송 실패: " + e.getMessage());
         }
+        int talkSent = sendKakaoTalks(todayStr, quotes);
+        log.info("[DailyMail] [{}] 카카오톡 발송 {}건", trigger, talkSent);
+        return new DailyMailResult(true, recipients.size(), "발송 성공 (카카오톡 " + talkSent + "건)");
+    }
+
+    private int sendKakaoTalks(String today, List<StockService.Quote> quotes) {
+        List<User> targets = userRepository.findByNotificationOptInTrue().stream()
+                .filter(u -> u.getKakaoId() != null)
+                .filter(User::isKakaoTalkOptIn)
+                .filter(u -> u.getKakaoAccessToken() != null && !u.getKakaoAccessToken().isBlank())
+                .toList();
+        if (targets.isEmpty()) return 0;
+        String text = buildKakaoText(today, quotes);
+        int ok = 0;
+        for (User u : targets) {
+            boolean sent = kakaoTalkMessageService.sendTextToSelf(u, text, null);
+            if (sent) ok++;
+        }
+        return ok;
+    }
+
+    private String buildKakaoText(String today, List<StockService.Quote> quotes) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("📈 ").append(today).append(" 시세\n");
+        for (StockService.Quote q : quotes) {
+            if (q.price() == null) continue;
+            double change = q.change() == null ? 0 : q.change();
+            double pct = q.changePercent() == null ? 0 : q.changePercent();
+            String sign = change > 0 ? "+" : "";
+            sb.append(q.name()).append(" ")
+                    .append(formatPrice(q.price()))
+                    .append(" (").append(sign).append(String.format(Locale.US, "%.2f", pct)).append("%)\n");
+        }
+        return sb.toString().trim();
     }
 
     private LocalDate readLastSent() {

@@ -173,6 +173,20 @@ export default function ProfileEdit() {
           </label>
         </div>
 
+        {user?.kakaoId && (
+          <div className="profile-edit-row profile-edit-checkbox-row">
+            <label>카카오톡 알림</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <span style={{ color: '#475569', fontSize: 13 }}>
+                매일 저녁 8시 주요 지수·종목 시세를 카카오톡 "나에게 보내기"로도 받으실 수 있어요.
+              </span>
+              <span style={{ color: '#94a3b8', fontSize: 12 }}>
+                (공지 메일 수신 동의 + 카카오 로그인 시 talk_message 동의 시 자동 발송)
+              </span>
+            </div>
+          </div>
+        )}
+
         {!isSocialOnly && (
           <fieldset className="profile-edit-pwd">
             <legend>비밀번호 변경 (선택)</legend>
