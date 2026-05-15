@@ -1,0 +1,604 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>Study 프로젝트 - 필수 백엔드 지식 정리</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  html, body { font-family: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; color:#1e293b; }
+  body { font-size: 11.5px; line-height: 1.6; }
+  h1 { font-size: 22px; margin: 0 0 4px; color:#4338ca; }
+  h2 { font-size: 16px; margin: 22px 0 8px; padding-bottom:4px; border-bottom: 2px solid #6366f1; color:#312e81; page-break-after: avoid; }
+  h3 { font-size: 13.5px; margin: 16px 0 6px; color:#1e1b4b; page-break-after: avoid; }
+  h4 { font-size: 12px; margin: 10px 0 4px; color:#334155; }
+  p { margin: 4px 0 8px; }
+  code, pre { font-family: "Consolas", "D2Coding", monospace; }
+  code { background:#eef2ff; color:#3730a3; padding:1px 4px; border-radius:3px; font-size: 10.5px; }
+  pre { background:#0f172a; color:#e2e8f0; padding:10px 12px; border-radius:6px; font-size:10px; overflow:auto; white-space:pre-wrap; word-break: break-all; }
+  ul, ol { margin: 4px 0 8px; padding-left: 20px; }
+  li { margin: 1px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 6px 0 10px; font-size: 10.5px; }
+  th, td { border: 1px solid #cbd5e1; padding: 5px 7px; vertical-align: top; }
+  th { background:#eef2ff; color:#3730a3; text-align:left; }
+  tr:nth-child(even) td { background:#f8fafc; }
+  .meta { color:#64748b; font-size: 10.5px; margin-bottom: 12px; }
+  .note {
+    background:#f1f5f9; border-left: 4px solid #6366f1; padding: 8px 10px;
+    border-radius: 4px; margin: 6px 0 12px; font-size: 10.8px;
+  }
+  .note b { color:#3730a3; }
+  .tip {
+    background:#ecfeff; border-left: 4px solid #06b6d4; padding: 8px 10px;
+    border-radius: 4px; margin: 6px 0 12px; font-size: 10.8px;
+  }
+  .warn {
+    background:#fef9c3; border-left: 4px solid #ca8a04; padding: 8px 10px;
+    border-radius: 4px; margin: 6px 0 12px; font-size: 10.8px;
+  }
+  .toc { background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:10px 14px; margin:10px 0 20px; }
+  .toc ol { margin: 0; padding-left: 20px; }
+  .toc li { margin: 2px 0; }
+  .page-break { page-break-before: always; }
+  .small { font-size: 10px; color:#64748b; }
+  .kw { color:#9333ea; font-weight:bold; }
+  .arrow { color:#6366f1; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<h1>Study 프로젝트 — 필수 백엔드 지식 정리</h1>
+<div class="meta">
+  본 문서는 앞선 <code>backend-data-flow.pdf</code>의 코드 흐름을 이해하기 위해
+  <b>실제로 알아야 하는 백엔드 핵심 개념</b>만 골라 정리한 학습용 자료입니다. <br />
+  대상: Spring Boot 4.x · Java 17 · Spring Data JPA · MariaDB · OAuth 2.0 · 카카오페이 · JavaMail.
+</div>
+
+<div class="toc">
+  <b>목차</b>
+  <ol>
+    <li>Spring Boot 기본 — 진입점·자동 구성·DI</li>
+    <li>웹 계층 — @RestController, ResponseEntity, DTO, 검증</li>
+    <li>Jackson JSON 매핑 (@JsonProperty)</li>
+    <li>서비스 계층과 트랜잭션 (@Transactional)</li>
+    <li>영속성 — JPA · JpaRepository · @Query · MyBatis</li>
+    <li>엔티티 매핑과 라이프사이클 콜백</li>
+    <li>데이터베이스 — MariaDB · 인덱스 · ddl-auto</li>
+    <li>세션 기반 인증 · HttpSession · 쿠키</li>
+    <li>비밀번호 보안 — BCrypt · SecureRandom · 재설정 토큰</li>
+    <li>CORS — 출처/메서드/자격 증명</li>
+    <li>OAuth 2.0 — Authorization Code · state · CSRF</li>
+    <li>외부 API 호출 — RestClient (vs RestTemplate/WebClient)</li>
+    <li>카카오페이 단건 결제 일반론 (ready / approve)</li>
+    <li>이메일 — JavaMailSender · SMTP · MimeMessage</li>
+    <li>비동기와 스케줄링 — @EnableAsync · @Scheduled · Cron</li>
+    <li>예외 처리 — @RestControllerAdvice · 전역 핸들러</li>
+    <li>OpenAPI / Swagger UI — springdoc</li>
+    <li>환경 설정 — application.properties · @Value · 환경변수</li>
+    <li>학습 체크리스트 / 추천 자료</li>
+  </ol>
+</div>
+
+<h2>1. Spring Boot 기본</h2>
+
+<h3>1-1. 어플리케이션 진입점</h3>
+<p><code>@SpringBootApplication</code> 한 어노테이션이 사실은 세 개를 합친 것입니다.</p>
+<ul>
+  <li><code>@Configuration</code> — 자바 기반 빈 정의 클래스.</li>
+  <li><code>@EnableAutoConfiguration</code> — classpath 의존성을 보고 <i>자동 구성</i> 활성화 (예: <code>spring-boot-starter-web</code> 있으면 톰캣/디스패처서블릿 자동 구성).</li>
+  <li><code>@ComponentScan</code> — 현재 패키지 이하의 <code>@Component/@Service/@Repository/@Controller</code> 빈 자동 등록.</li>
+</ul>
+
+<pre>@SpringBootApplication
+@EnableAsync          // 비동기 메일 발송용
+@EnableScheduling     // 매일 20시 일일 메일 스케줄러용
+public class StudyApplication {
+  public static void main(String[] args) {
+    SpringApplication.run(StudyApplication.class, args);
+  }
+}</pre>
+
+<h3>1-2. 의존성 주입(DI) / IoC 컨테이너</h3>
+<ul>
+  <li>스프링 컨테이너가 <b>빈(bean)</b>을 만들고 라이프사이클을 관리합니다.</li>
+  <li>주입 방식은 <b>생성자 주입을 표준</b>으로 사용합니다 (불변 + 테스트 용이 + 순환 의존성 탐지).</li>
+  <li>Lombok <code>@RequiredArgsConstructor</code> 로 final 필드 생성자를 자동 생성.</li>
+</ul>
+<pre>@Service
+@RequiredArgsConstructor
+public class AuthService {
+  private final UserRepository userRepository;          // 자동 주입
+  private final PasswordEncoder passwordEncoder;        // 자동 주입
+  private final EmailVerificationService emailService;  // 자동 주입
+}</pre>
+
+<h3>1-3. 빈 스코프 / 라이프사이클(필수만)</h3>
+<table>
+  <tr><th>스코프</th><th>의미</th><th>예</th></tr>
+  <tr><td>singleton (기본)</td><td>컨테이너당 1개 — 대부분의 서비스/리포지토리</td><td>AuthService</td></tr>
+  <tr><td>prototype</td><td>주입 때마다 새 인스턴스</td><td>특수 케이스</td></tr>
+  <tr><td>request / session</td><td>웹 요청·세션 단위</td><td>로그인 컨텍스트</td></tr>
+</table>
+
+<h2>2. 웹 계층</h2>
+
+<h3>2-1. 컨트롤러 어노테이션</h3>
+<table>
+  <tr><th>어노테이션</th><th>역할</th></tr>
+  <tr><td><code>@RestController</code></td><td><code>@Controller + @ResponseBody</code>. 메서드 반환값이 자동으로 JSON 직렬화.</td></tr>
+  <tr><td><code>@RequestMapping("/api/...")</code></td><td>클래스/메서드 단위 URL 매핑.</td></tr>
+  <tr><td><code>@GetMapping</code> 등</td><td>HTTP 메서드별 단축형.</td></tr>
+  <tr><td><code>@PathVariable</code></td><td>URL 경로 변수: <code>/notices/{id}</code>.</td></tr>
+  <tr><td><code>@RequestParam</code></td><td>쿼리/폼 파라미터: <code>?page=0&size=10</code>.</td></tr>
+  <tr><td><code>@RequestBody</code></td><td>요청 본문 JSON → 객체 역직렬화.</td></tr>
+  <tr><td><code>@RequestHeader</code></td><td>헤더 값 주입 (예: <code>X-Admin-Token</code>).</td></tr>
+</table>
+
+<h3>2-2. ResponseEntity</h3>
+<p>상태 코드/헤더/바디를 명시적으로 제어해야 할 때 사용합니다.</p>
+<pre>return ResponseEntity
+    .status(HttpStatus.CREATED)
+    .body(new UserResponse(...));
+
+// 302 redirect (카카오페이 approve 후 프론트로)
+return ResponseEntity.status(HttpStatus.FOUND)
+    .location(URI.create(frontendUrl + "/pay/success?...")).build();</pre>
+
+<h3>2-3. DTO와 Bean Validation</h3>
+<ul>
+  <li>엔티티를 직접 노출하지 말고 <b>request/response DTO</b>를 분리합니다 — 보안(비밀번호 해시 노출 방지) + 계약 분리.</li>
+  <li><code>@Valid</code> + Jakarta Validation 어노테이션으로 입력 검증을 컨트롤러에서 일괄 처리.</li>
+</ul>
+<pre>public record SignupRequest(
+    @NotBlank @Size(min=4, max=20) String username,
+    @NotBlank @Size(min=8) String password,
+    @Email @NotBlank String email
+) {}
+
+@PostMapping("/api/auth/signup")
+public UserResponse signup(@Valid @RequestBody SignupRequest req) { ... }</pre>
+<p>검증 실패 시 <code>MethodArgumentNotValidException</code> 이 발생 → 전역 핸들러에서 400 으로 변환.</p>
+
+<h2>3. Jackson JSON 매핑</h2>
+<p>스프링은 기본적으로 Jackson 으로 JSON ↔ 객체 변환합니다. 필드 이름이 외부 API 의 <code>snake_case</code> 와 다를 때 <code>@JsonProperty</code> 로 명시 매핑합니다 (커밋 <code>9357017</code> 의 PlaceSearchResponse 가 이 케이스).</p>
+<pre>public class PlaceItem {
+  @JsonProperty("place_name")    private String name;
+  @JsonProperty("road_address_name") private String roadAddress;
+  @JsonProperty("x")             private String lng;  // 경도
+  @JsonProperty("y")             private String lat;  // 위도
+}</pre>
+<ul>
+  <li><code>@JsonIgnore</code> — 직렬화/역직렬화에서 제외.</li>
+  <li><code>@JsonInclude(NON_NULL)</code> — null 필드 생략.</li>
+  <li><code>@JsonFormat(pattern="yyyy-MM-dd HH:mm:ss")</code> — 날짜 포맷.</li>
+</ul>
+
+<h2 class="page-break">4. 서비스 계층과 트랜잭션</h2>
+
+<h3>4-1. 책임 분리</h3>
+<ul>
+  <li>Controller : HTTP 입출력만 — 검증/세션/응답 코드.</li>
+  <li>Service : 비즈니스 규칙 + 트랜잭션 경계 + 외부 API 호출 조립.</li>
+  <li>Repository : DB 접근만 (CRUD/쿼리).</li>
+</ul>
+
+<h3>4-2. @Transactional 핵심</h3>
+<table>
+  <tr><th>속성</th><th>의미</th></tr>
+  <tr><td>전파(propagation)</td><td>기본 <code>REQUIRED</code> — 기존 트랜잭션 있으면 참여, 없으면 새로 시작.</td></tr>
+  <tr><td>격리(isolation)</td><td>기본은 DB 기본값(MariaDB 는 <code>REPEATABLE_READ</code>).</td></tr>
+  <tr><td>readOnly</td><td>읽기 전용 — 쓰기 쿼리 차단 + 성능 힌트.</td></tr>
+  <tr><td>rollbackFor</td><td>기본은 <b>RuntimeException + Error 만 롤백</b>. checked Exception 은 명시해야 롤백.</td></tr>
+</table>
+
+<div class="warn">
+<b>주의 — 자기 호출 함정</b>: 같은 빈 안의 메서드를 그냥 <code>this.method()</code> 로 호출하면 <code>@Transactional</code> 이 적용되지 않습니다. 스프링이 프록시로 트랜잭션을 걸기 때문에, 외부에서 진입할 때만 동작합니다.
+</div>
+
+<h2>5. 영속성 — JPA · JpaRepository</h2>
+
+<h3>5-1. JPA / Hibernate / Spring Data JPA</h3>
+<ul>
+  <li><b>JPA</b>: 자바 ORM 표준 스펙 (인터페이스 모음).</li>
+  <li><b>Hibernate</b>: JPA 의 가장 널리 쓰이는 구현체. Spring Boot 기본.</li>
+  <li><b>Spring Data JPA</b>: Repository 인터페이스만 정의하면 구현체를 자동 생성해 주는 추상화 계층.</li>
+</ul>
+
+<h3>5-2. JpaRepository 의 3가지 쿼리 작성법</h3>
+<pre>public interface NoticeRepository extends JpaRepository&lt;Notice, Long&gt; {
+  // ① 메서드 명명 규약 — 메서드 이름이 곧 쿼리
+  Page&lt;Notice&gt; findByTitleContainingOrContentContaining(
+      String t, String c, Pageable pageable);
+
+  // ② @Query — JPQL 직접 작성
+  @Query("select count(c) from Comment c where c.noticeId = :id")
+  long countCommentsByNoticeId(@Param("id") Long id);
+
+  // ③ 네이티브 SQL
+  @Query(value = "select * from notice where match(title,content) against(?1)",
+         nativeQuery = true)
+  List&lt;Notice&gt; fullTextSearch(String keyword);
+}</pre>
+
+<h3>5-3. Pageable / Page</h3>
+<pre>// 컨트롤러
+public Page&lt;NoticeListItem&gt; list(
+    @RequestParam(defaultValue = "0") int page,
+    @RequestParam(defaultValue = "10") int size) {
+  Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+  return service.search(type, keyword, pageable);
+}</pre>
+<p><code>Page&lt;T&gt;</code> 는 <code>content, totalElements, totalPages, number, size</code> 를 그대로 JSON 으로 반환합니다.</p>
+
+<h3>5-4. N+1 문제 (게시판 같은 1:N 에서 빈번)</h3>
+<p>게시글 100건을 가져온 뒤 각 글마다 댓글 수 SELECT → 총 101 쿼리. 해결책:</p>
+<ul>
+  <li><b>배치 조회</b>: 게시글 ID 들을 모아 <code>WHERE noticeId IN (...)</code> 1회 (이 프로젝트의 <code>enrich()</code> 패턴).</li>
+  <li><b>fetch join</b>: <code>@Query("select n from Notice n join fetch n.comments")</code>.</li>
+  <li><code>@EntityGraph</code>.</li>
+</ul>
+
+<h3>5-5. MyBatis</h3>
+<p>JPA 와 함께 쓰는 SQL 매핑 프레임워크. XML 또는 어노테이션으로 SQL 을 직접 작성. 복잡한 통계/리포트성 쿼리에 유리. 이 프로젝트는 스타터만 포함되어 있고 활성 매퍼는 없습니다.</p>
+
+<h2>6. 엔티티 매핑과 라이프사이클</h2>
+<pre>@Entity
+@Table(name = "notice",
+       indexes = @Index(name = "idx_notice_created", columnList = "created_at"))
+@Getter @Setter @NoArgsConstructor
+public class Notice {
+  @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
+
+  @Column(nullable = false, length = 200)
+  private String title;
+
+  @Column(columnDefinition = "TEXT")
+  private String content;
+
+  @Column(name = "view_count", nullable = false)
+  private int viewCount;
+
+  @Column(name = "created_at", updatable = false)
+  private LocalDateTime createdAt;
+
+  @Column(name = "updated_at")
+  private LocalDateTime updatedAt;
+
+  @PrePersist
+  void onCreate() { createdAt = updatedAt = LocalDateTime.now(); }
+
+  @PreUpdate
+  void onUpdate() { updatedAt = LocalDateTime.now(); }
+}</pre>
+
+<table>
+  <tr><th>어노테이션</th><th>역할</th></tr>
+  <tr><td>@Entity / @Table</td><td>DB 테이블 매핑.</td></tr>
+  <tr><td>@Id / @GeneratedValue</td><td>PK · 생성 전략(IDENTITY/SEQUENCE/UUID).</td></tr>
+  <tr><td>@Column</td><td>컬럼 속성: nullable, length, unique, name 등.</td></tr>
+  <tr><td>@Enumerated(EnumType.STRING)</td><td>Enum → 문자열 컬럼 저장 (예: Payment.status).</td></tr>
+  <tr><td>@PrePersist / @PreUpdate</td><td>저장/수정 직전 콜백 (생성·수정 시간 자동 채움).</td></tr>
+  <tr><td>@ManyToOne / @OneToMany</td><td>연관관계 (이 프로젝트는 ID 기반 느슨한 연관을 선호).</td></tr>
+</table>
+
+<h2 class="page-break">7. 데이터베이스 — MariaDB</h2>
+<ul>
+  <li>JDBC URL : <code>jdbc:mariadb://localhost:3306/notice</code>. 드라이버 <code>org.mariadb.jdbc.Driver</code>.</li>
+  <li>HikariCP 가 기본 커넥션 풀(부트가 자동 설정).</li>
+  <li><b>ddl-auto</b> 설정값:
+    <ul>
+      <li><code>none</code> — 아무것도 안 함 (운영 권장).</li>
+      <li><code>validate</code> — 매핑 검증만.</li>
+      <li><code>update</code> — 차이가 있으면 ALTER (이 프로젝트). <span class="warn" style="display:inline-block; padding:1px 6px;">데이터 손실은 안 나지만, 컬럼 삭제는 안 되고 쌓임</span></li>
+      <li><code>create / create-drop</code> — 매번 재생성 (개발 초기/테스트만).</li>
+    </ul>
+  </li>
+  <li><b>인덱스</b>: 자주 조회되는 컬럼(<code>email</code>, <code>kakao_id</code>, <code>(notice_id, created_at)</code>)에는 인덱스를 명시. UNIQUE 제약은 비즈니스 무결성 + 인덱스 효과 동시.</li>
+</ul>
+
+<h2>8. 세션 기반 인증</h2>
+
+<h3>8-1. 토큰 vs 세션</h3>
+<table>
+  <tr><th></th><th>세션 (이 프로젝트)</th><th>JWT 등 토큰</th></tr>
+  <tr><td>상태</td><td>서버에 사용자 상태 보관</td><td>서버 무상태(stateless)</td></tr>
+  <tr><td>인증 매개체</td><td><code>JSESSIONID</code> 쿠키</td><td><code>Authorization: Bearer ...</code></td></tr>
+  <tr><td>로그아웃</td><td><code>session.invalidate()</code> 즉시 무효</td><td>토큰 만료까지 살아있음(블랙리스트 필요)</td></tr>
+  <tr><td>스케일</td><td>여러 인스턴스 → 세션 클러스터/Redis 필요</td><td>스케일 용이</td></tr>
+</table>
+
+<h3>8-2. HttpSession 사용 패턴</h3>
+<pre>// 로그인 성공 시
+session.setAttribute(AuthController.SESSION_USER_KEY, user.getId());
+
+// 모든 보호 컨트롤러에서
+Long userId = (Long) session.getAttribute(AuthController.SESSION_USER_KEY);
+if (userId == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);</pre>
+
+<h3>8-3. 쿠키 보안</h3>
+<ul>
+  <li><code>HttpOnly</code> : JS 에서 쿠키 접근 차단 → XSS 로 세션 ID 탈취 방지.</li>
+  <li><code>Secure</code> : HTTPS 에서만 전송.</li>
+  <li><code>SameSite=Lax/Strict/None</code> : CSRF 완화. 이 프로젝트는 <code>Lax</code>.</li>
+</ul>
+
+<h2>9. 비밀번호 보안 — BCrypt</h2>
+<p>비밀번호는 <b>절대 평문 저장 금지</b>. 단방향 해시 + Salt 필수.</p>
+<pre>@Bean
+PasswordEncoder passwordEncoder() {
+  return new BCryptPasswordEncoder();   // 기본 강도 10
+}
+
+// 저장
+String hash = passwordEncoder.encode(rawPassword);
+
+// 검증
+boolean ok = passwordEncoder.matches(rawPassword, user.getPassword());</pre>
+<ul>
+  <li>BCrypt 는 Salt 가 해시 문자열에 포함되므로 <b>같은 비밀번호도 매번 다른 결과</b>가 나옵니다.</li>
+  <li>강도(round) 가 1 올라갈 때마다 연산량 2배 → 무차별 대입 비용 증가.</li>
+  <li>비밀번호 재설정 토큰은 <code>SecureRandom</code> + URL-safe Base64 32바이트, 만료시간(예: 30분), 1회용으로 운영.</li>
+</ul>
+
+<h2>10. CORS</h2>
+<p>브라우저는 <b>다른 출처(origin = scheme + host + port)</b> 로의 JS 요청을 기본 차단합니다. 백엔드가 응답 헤더로 허용을 명시해야 합니다.</p>
+<pre>@Configuration
+public class WebConfig implements WebMvcConfigurer {
+  @Override
+  public void addCorsMappings(CorsRegistry r) {
+    r.addMapping("/api/**")
+     .allowedOrigins("http://localhost:5173", "http://localhost:5174")
+     .allowedMethods("GET","POST","PUT","DELETE","OPTIONS")
+     .allowCredentials(true);  // 쿠키(세션) 동봉 허용
+  }
+}</pre>
+<div class="warn">
+<b>주의</b>: <code>allowCredentials=true</code> 면 <code>allowedOrigins</code> 에 와일드카드 <code>*</code> 를 못 씁니다. 정확한 출처를 나열하거나 <code>allowedOriginPatterns</code> 를 사용하세요.
+</div>
+
+<h2 class="page-break">11. OAuth 2.0 — Authorization Code Flow</h2>
+
+<h3>11-1. 흐름</h3>
+<pre>① 사용자가 "카카오로 로그인" 클릭
+   → 브라우저를 인가 서버로 redirect
+     GET kauth.kakao.com/oauth/authorize?
+         client_id=...&redirect_uri=...&response_type=code
+         &state=xxx           (CSRF 방지, 네이버/구글 필수)
+
+② 사용자가 인가 서버에서 로그인 + 동의
+
+③ 인가 서버가 우리 서버 callback 으로 redirect
+   GET /api/auth/kakao/callback?code=ABC&state=xxx
+
+④ 서버가 code 를 access_token 으로 교환 (서버↔서버)
+   POST kauth.kakao.com/oauth/token
+        grant_type=authorization_code & code=ABC & client_secret=...
+
+⑤ access_token 으로 사용자 프로필 조회
+   GET kapi.kakao.com/v2/user/me  Authorization: Bearer ...
+
+⑥ users 테이블에 upsert + 세션 부여</pre>
+
+<h3>11-2. 왜 code 를 한 번 더 교환할까?</h3>
+<ul>
+  <li>access_token 이 URL/브라우저 히스토리/로그에 노출되지 않게 하려고.</li>
+  <li>code 는 1회용 + 짧은 만료 → 탈취돼도 재사용 불가 (이 프로젝트는 <code>KAKAO_LAST_CODE</code> 로 재사용 추가 차단).</li>
+</ul>
+
+<h3>11-3. state 파라미터 (CSRF 방어)</h3>
+<p>로그인 요청 시 랜덤 문자열을 세션에 저장, 콜백에서 동일한지 검증. 공격자가 임의로 callback URL 을 호출해도 state 가 다르면 거부 → <b>피해자의 계정에 공격자 소셜계정 연결되는 공격</b>을 막습니다.</p>
+
+<h2>12. 외부 API 호출 — RestClient</h2>
+<p>Spring 6.1+ 에서 도입된 동기 HTTP 클라이언트. <code>RestTemplate</code> 의 후속이며 <code>WebClient</code> 와 비슷한 fluent API.</p>
+<pre>RestClient client = RestClient.builder()
+    .baseUrl("https://dapi.kakao.com")
+    .defaultHeader(HttpHeaders.AUTHORIZATION, "KakaoAK " + apiKey)
+    .build();
+
+PlaceSearchResponse res = client.get()
+    .uri(uri -> uri.path("/v2/local/search/keyword.json")
+                   .queryParam("query", query)
+                   .queryParam("page", page)
+                   .build())
+    .retrieve()
+    .body(PlaceSearchResponse.class);</pre>
+
+<table>
+  <tr><th></th><th>RestTemplate</th><th>RestClient</th><th>WebClient</th></tr>
+  <tr><td>스타일</td><td>구식 메서드</td><td>fluent · 권장</td><td>fluent · reactive</td></tr>
+  <tr><td>I/O</td><td>동기</td><td>동기</td><td>비동기(Mono/Flux)</td></tr>
+  <tr><td>유지보수</td><td>maintenance</td><td>활발</td><td>활발</td></tr>
+</table>
+
+<div class="tip">
+<b>외부 API 호출 시 반드시 고려할 것</b>
+<ul>
+  <li><b>타임아웃</b> — connectTimeout / readTimeout 명시 (기본 무제한이라 위험).</li>
+  <li><b>실패 처리</b> — 4xx/5xx · 쿼터 초과 · 네트워크 단절 각각 다른 정책. 이 프로젝트의 주변 맛집은 쿼터 초과 시 <b>키워드 검색으로 폴백</b>(커밋 <code>0212ab1</code>).</li>
+  <li><b>키 보안</b> — 절대 프론트엔드에 두지 말고 서버 프록시로 감싸기.</li>
+  <li><b>재시도</b> — idempotent 한 요청만, 지수 백오프.</li>
+</ul>
+</div>
+
+<h2>13. 카카오페이 단건 결제 일반론</h2>
+
+<h3>13-1. 2단계 결제 패턴</h3>
+<table>
+  <tr><th>단계</th><th>주체</th><th>역할</th></tr>
+  <tr><td>① ready</td><td>가맹점 서버 → 카카오</td><td>주문 정보 등록 → <code>tid</code> + 결제창 URL 수신</td></tr>
+  <tr><td>② (사용자)</td><td>사용자 브라우저 → 카카오</td><td>결제창에서 결제 수단 선택·인증</td></tr>
+  <tr><td>③ approve</td><td>카카오 → 가맹점 콜백 → 가맹점 서버 → 카카오</td><td><code>pg_token</code> 으로 최종 승인 → <code>aid</code> 발급</td></tr>
+</table>
+<p>두 단계로 나뉘는 이유는 <b>승인 책임을 가맹점 서버가 명시적으로 지게 하기 위함</b>입니다. ready 만으로는 결제가 확정되지 않습니다.</p>
+
+<h3>13-2. 가맹점 서버가 관리해야 하는 식별자</h3>
+<ul>
+  <li><code>partnerOrderId</code> — 가맹점이 발급. 결제 1건당 유일해야 함. (이 프로젝트: UUID 앞 12자).</li>
+  <li><code>partnerUserId</code> — 가맹점의 사용자 식별자.</li>
+  <li><code>tid</code> — 카카오가 발급하는 거래 ID. ready 응답에서 받아 저장 → approve 때 그대로 전송.</li>
+  <li><code>aid</code> — 승인 ID. approve 응답에서 받아 영수증/환불 추적용으로 저장.</li>
+</ul>
+
+<h3>13-3. 결제 상태 머신</h3>
+<pre>READY  ──→ APPROVED   (정상 결제 완료)
+       ──→ CANCELED   (사용자가 결제창에서 취소)
+       ──→ FAILED     (인증 실패 등)</pre>
+<div class="warn">결제는 금전이 오가므로 모든 상태 전이를 DB 에 기록하고, 외부 호출 실패와 DB 저장 실패가 <b>한쪽만 일어나지 않도록</b> 트랜잭션 경계를 신중히 설계해야 합니다.</div>
+
+<h2 class="page-break">14. 이메일 — JavaMailSender · SMTP</h2>
+<pre>spring.mail.host=smtp.naver.com
+spring.mail.port=465
+spring.mail.username=${MAIL_USER}
+spring.mail.password=${MAIL_PASS}
+spring.mail.properties.mail.smtp.auth=true
+spring.mail.properties.mail.smtp.ssl.enable=true</pre>
+<pre>@Service
+@RequiredArgsConstructor
+public class EmailService {
+  private final JavaMailSender mailSender;
+
+  @Async  // 호출 스레드를 막지 않음 (가입/대량 발송에 중요)
+  public void sendWelcome(String to, String nickname) {
+    MimeMessage msg = mailSender.createMimeMessage();
+    MimeMessageHelper h = new MimeMessageHelper(msg, "UTF-8");
+    h.setTo(to); h.setSubject("환영합니다");
+    h.setText("&lt;h1&gt;" + nickname + "님, 환영해요&lt;/h1&gt;", true /* HTML */);
+    mailSender.send(msg);
+  }
+}</pre>
+<ul>
+  <li>SMTP 포트: 25(평문) · 465(SSL) · 587(STARTTLS).</li>
+  <li>Gmail/Naver 는 앱 비밀번호가 별도 필요한 경우가 많습니다.</li>
+  <li>대량 발송은 한 번에 보내지 말고 <b>큐 + 재시도 + 발송 결과 기록</b>이 안전합니다.</li>
+</ul>
+
+<h2>15. 비동기와 스케줄링</h2>
+
+<h3>15-1. @Async</h3>
+<pre>@SpringBootApplication
+@EnableAsync
+public class StudyApplication { }
+
+@Service
+public class EmailService {
+  @Async public void sendWelcome(...) { ... }   // 호출 즉시 반환, 별도 스레드에서 실행
+}</pre>
+<ul>
+  <li>같은 클래스 내부 호출은 프록시를 거치지 않아 동작하지 않음(@Transactional 과 동일한 함정).</li>
+  <li>스레드 풀을 직접 정의(<code>ThreadPoolTaskExecutor</code>)해 코어 수/큐 크기를 통제하는 것이 좋습니다.</li>
+</ul>
+
+<h3>15-2. @Scheduled · Cron</h3>
+<pre>@Component
+@RequiredArgsConstructor
+public class DailyMailScheduler {
+  // 매일 KST 20:00
+  @Scheduled(cron = "0 0 20 * * *", zone = "Asia/Seoul")
+  public void sendDaily() { ... }
+}</pre>
+<p>Cron 6필드(스프링) : <code>초 분 시 일 월 요일</code> — 표준 Unix cron 의 5필드와 다릅니다.</p>
+<table>
+  <tr><th>표현</th><th>의미</th></tr>
+  <tr><td><code>0 0 20 * * *</code></td><td>매일 20:00:00</td></tr>
+  <tr><td><code>0 */10 * * * *</code></td><td>10분마다</td></tr>
+  <tr><td><code>0 0 9 * * MON-FRI</code></td><td>평일 09:00</td></tr>
+</table>
+<p>중복 실행 방지가 필요하면 이 프로젝트처럼 <b>마지막 발송 날짜를 파일/DB 에 기록</b>하거나, 멀티 인스턴스라면 ShedLock 같은 분산 락을 씁니다.</p>
+
+<h2>16. 예외 처리 — 전역 핸들러</h2>
+<pre>@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+  @ExceptionHandler(IllegalArgumentException.class)
+  public ResponseEntity&lt;MessageResponse&gt; notFound(IllegalArgumentException e) {
+    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+        .body(new MessageResponse(e.getMessage()));
+  }
+
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  public ResponseEntity&lt;MessageResponse&gt; badRequest(MethodArgumentNotValidException e) {
+    String msg = e.getBindingResult().getFieldErrors().stream()
+        .map(fe -&gt; fe.getField() + ": " + fe.getDefaultMessage())
+        .collect(Collectors.joining("\n"));
+    return ResponseEntity.badRequest().body(new MessageResponse(msg));
+  }
+
+  @ExceptionHandler(Exception.class)
+  public ResponseEntity&lt;MessageResponse&gt; fallback(Exception e) {
+    return ResponseEntity.status(500)
+        .body(new MessageResponse(e.getClass().getSimpleName() + ": " + e.getMessage()));
+  }
+}</pre>
+<ul>
+  <li><b>도메인 에러를 표준 예외에 의도적으로 매핑</b>하면(예: 자원 없음 → IllegalArgumentException) 컨트롤러 코드가 단순해집니다.</li>
+  <li>HTTP 상태 코드 매핑은 한 곳에서 일관되게: 400(검증) · 401(인증) · 403(권한) · 404(없음) · 409(충돌) · 500(서버).</li>
+</ul>
+
+<h2>17. OpenAPI / Swagger UI</h2>
+<p>springdoc-openapi 를 의존성에 넣으면 자동으로 컨트롤러를 스캔해 OpenAPI 문서를 생성합니다.</p>
+<ul>
+  <li><code>/v3/api-docs</code> — JSON 명세.</li>
+  <li><code>/swagger-ui/index.html</code> — 대화형 문서/시도.</li>
+  <li><code>@Operation</code>, <code>@Schema</code>, <code>@Parameter</code> 로 상세 설명을 보강.</li>
+</ul>
+
+<h2>18. 환경 설정</h2>
+<pre># application.properties
+spring.datasource.url=jdbc:mariadb://localhost:3306/notice
+spring.datasource.username=root
+spring.datasource.password=${DB_PASSWORD}     # 환경변수 주입
+spring.jpa.hibernate.ddl-auto=update
+
+kakao.api.key=${KAKAO_REST_KEY}
+kakaopay.cid=TC0ONETIME
+kakaopay.secret-key=${KAKAOPAY_SECRET_KEY}
+
+app.admin.username=test11
+app.admin.token=${ADMIN_TOKEN}</pre>
+<ul>
+  <li><code>@Value("${kakao.api.key}")</code> 또는 <code>@ConfigurationProperties</code> 로 주입.</li>
+  <li>프로파일(<code>application-dev.properties</code>, <code>application-prod.properties</code>) 로 환경별 분리. 활성화: <code>--spring.profiles.active=prod</code>.</li>
+  <li>비밀 값은 <b>코드/Git 에 절대 넣지 말고</b> 환경변수 · Vault · AWS SSM 같은 외부 저장소로.</li>
+</ul>
+
+<h2 class="page-break">19. 학습 체크리스트</h2>
+
+<h3>코드 흐름 한 번에 설명할 수 있는가?</h3>
+<ul>
+  <li>로컬 회원가입에서 이메일 인증 → BCrypt 해시 → 세션 부여까지의 5단계.</li>
+  <li>카카오 OAuth 콜백이 도착했을 때 서버가 하는 4가지(code 재사용 차단, token 교환, 프로필 조회, upsert+세션).</li>
+  <li>카카오페이 ready / approve 가 분리된 이유와 각 단계에서 저장해야 하는 식별자.</li>
+  <li>외부 API 가 실패했을 때 사용자 경험을 깨지 않는 폴백 전략.</li>
+  <li>매일 20시 메일이 중복 발송되지 않게 하는 방법(파일 기록 vs 분산 락).</li>
+</ul>
+
+<h3>면접·코드 리뷰에서 자주 나오는 질문</h3>
+<ul>
+  <li>@Transactional 이 안 걸리는 대표 케이스 2가지? (자기 호출, private 메서드)</li>
+  <li>JPA N+1 문제는 무엇이고, 이 코드에서는 어떻게 피했는가?</li>
+  <li>BCrypt 가 같은 비밀번호에 다른 해시를 만드는 이유는?</li>
+  <li>OAuth 의 state 파라미터가 왜 필요한가?</li>
+  <li>CORS 와 CSRF 는 어떻게 다른가? 세션 인증에서 둘 다 신경 써야 하는 이유?</li>
+  <li>JWT 대신 세션을 쓰면 멀티 인스턴스 운영 시 무엇이 문제가 되는가?</li>
+  <li>DTO 와 엔티티를 분리하는 이유 3가지?</li>
+</ul>
+
+<h3>다음 단계로 공부하면 좋은 주제</h3>
+<ul>
+  <li>Spring Security 정식 도입 — 필터 체인, <code>SecurityFilterChain</code>, 인증/인가 분리.</li>
+  <li>Refresh Token / JWT — 토큰 회전, 블랙리스트.</li>
+  <li>Redis 세션 저장 — 다중 인스턴스.</li>
+  <li>Flyway / Liquibase — DDL 마이그레이션 (ddl-auto=update 대체).</li>
+  <li>Testcontainers — 실제 MariaDB 기반 통합 테스트.</li>
+  <li>OpenTelemetry / Micrometer — 분산 추적, 메트릭.</li>
+  <li>Resilience4j — 서킷 브레이커, 재시도, 타임아웃 (외부 API 안정성).</li>
+</ul>
+
+<hr style="margin-top:20px; border:none; border-top:1px solid #cbd5e1" />
+<div class="small">
+끝. 본 문서는 <code>backend-data-flow.pdf</code> 를 이해하기 위한 학습 자료입니다.
+실제 코드와 차이가 발견되면 코드를 우선으로 하고 본 문서를 갱신하세요.
+</div>
+
+</body>
+</html>

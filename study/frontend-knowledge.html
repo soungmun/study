@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>Study 프로젝트 - 필수 프런트 지식 정리</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  html, body { font-family: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; color:#1e293b; }
+  body { font-size: 11.5px; line-height: 1.6; }
+  h1 { font-size: 22px; margin: 0 0 4px; color:#0e7490; }
+  h2 { font-size: 16px; margin: 22px 0 8px; padding-bottom:4px; border-bottom: 2px solid #06b6d4; color:#155e75; page-break-after: avoid; }
+  h3 { font-size: 13.5px; margin: 16px 0 6px; color:#0f172a; page-break-after: avoid; }
+  h4 { font-size: 12px; margin: 10px 0 4px; color:#334155; }
+  p { margin: 4px 0 8px; }
+  code, pre { font-family: "Consolas", "D2Coding", monospace; }
+  code { background:#ecfeff; color:#155e75; padding:1px 4px; border-radius:3px; font-size: 10.5px; }
+  pre { background:#0f172a; color:#e2e8f0; padding:10px 12px; border-radius:6px; font-size:10px; overflow:auto; white-space:pre-wrap; word-break: break-all; }
+  ul, ol { margin: 4px 0 8px; padding-left: 20px; }
+  li { margin: 1px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 6px 0 10px; font-size: 10.5px; }
+  th, td { border: 1px solid #cbd5e1; padding: 5px 7px; vertical-align: top; }
+  th { background:#ecfeff; color:#155e75; text-align:left; }
+  tr:nth-child(even) td { background:#f8fafc; }
+  .meta { color:#64748b; font-size: 10.5px; margin-bottom: 12px; }
+  .note {
+    background:#f0fdfa; border-left: 4px solid #14b8a6; padding: 8px 10px;
+    border-radius: 4px; margin: 6px 0 12px; font-size: 10.8px;
+  }
+  .note b { color:#0f766e; }
+  .tip {
+    background:#eef2ff; border-left: 4px solid #6366f1; padding: 8px 10px;
+    border-radius: 4px; margin: 6px 0 12px; font-size: 10.8px;
+  }
+  .warn {
+    background:#fef9c3; border-left: 4px solid #ca8a04; padding: 8px 10px;
+    border-radius: 4px; margin: 6px 0 12px; font-size: 10.8px;
+  }
+  .toc { background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:10px 14px; margin:10px 0 20px; }
+  .toc ol { margin: 0; padding-left: 20px; }
+  .toc li { margin: 2px 0; }
+  .page-break { page-break-before: always; }
+  .small { font-size: 10px; color:#64748b; }
+  .arrow { color:#14b8a6; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<h1>Study 프로젝트 — 필수 프런트엔드 지식 정리</h1>
+<div class="meta">
+  본 문서는 앞선 <code>frontend-flow.pdf</code> 의 화면 흐름을 이해하기 위해
+  <b>실제로 알아야 하는 프런트엔드 핵심 개념</b>만 모은 학습용 자료입니다.<br />
+  대상: React 18 · React Router v6 · Vite · Fetch API + Session Cookie · Kakao Maps JS SDK.
+</div>
+
+<div class="toc">
+  <b>목차</b>
+  <ol>
+    <li>SPA 기본 — React · Vite · 진입점</li>
+    <li>JSX · 컴포넌트 · props · 단방향 데이터 흐름</li>
+    <li>React 상태 (state) 와 리렌더링 규칙</li>
+    <li>핵심 Hooks — useState · useEffect · useRef · useMemo · useCallback</li>
+    <li>제어 컴포넌트와 폼 처리</li>
+    <li>React Router v6 — Routes · useNavigate · useParams · useLocation</li>
+    <li>라우트 가드 (RequireAuth) 패턴</li>
+    <li>데이터 패칭 — Fetch API · credentials: 'include'</li>
+    <li>세션 쿠키 · CORS · 자격 증명 동봉</li>
+    <li>컴포넌트 간 통신 — 커스텀 이벤트(<code>auth-changed</code>) · Context</li>
+    <li>StrictMode 더블 마운트 · useRef 가드</li>
+    <li>상태 보존 — sessionStorage / localStorage / URL 쿼리</li>
+    <li>외부 SDK 통합 — Kakao Maps</li>
+    <li>환경변수 · Vite (<code>import.meta.env.VITE_*</code>)</li>
+    <li>빌드 / 배포 · dev 프록시</li>
+    <li>XSS / CSRF 등 프런트 보안 기초</li>
+    <li>UX 패턴 — 로딩 · 에러 · 빈 상태 · 토스트</li>
+    <li>학습 체크리스트 / 다음 단계</li>
+  </ol>
+</div>
+
+<h2>1. SPA 기본 — React · Vite</h2>
+
+<h3>1-1. SPA(Single Page Application)</h3>
+<p>최초 HTML 한 장만 받고, 이후 화면 전환은 JS 가 DOM 을 갈아치우는 방식. 서버 왕복이 사라져 빠르지만, <b>새로고침 시 라우터가 클라이언트 라우트를 못 찾는 문제</b>가 있어 서버에 SPA fallback 설정(<code>/index.html</code> 로 리라이트)이 필요합니다.</p>
+
+<h3>1-2. React 진입점</h3>
+<pre>// main.jsx
+import { createRoot } from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
+import App from './App.jsx';
+
+createRoot(document.getElementById('root')).render(
+  &lt;React.StrictMode&gt;
+    &lt;BrowserRouter&gt;
+      &lt;App /&gt;
+    &lt;/BrowserRouter&gt;
+  &lt;/React.StrictMode&gt;
+);</pre>
+<ul>
+  <li><code>createRoot</code> 는 React 18 의 동시성 모드를 활성화합니다.</li>
+  <li><code>StrictMode</code> 는 개발 환경에서만 동작하며, 의도적으로 컴포넌트를 두 번 마운트해 부수효과를 드러냅니다.</li>
+</ul>
+
+<h3>1-3. Vite</h3>
+<ul>
+  <li>네이티브 ESM 기반 dev 서버 — webpack 보다 훨씬 빠른 cold start.</li>
+  <li>빌드는 Rollup 으로 번들링 → <code>dist/</code> 산출.</li>
+  <li><code>vite.config.js</code> 에서 dev 프록시·플러그인·alias 등을 설정.</li>
+</ul>
+
+<h2>2. JSX · 컴포넌트 · props</h2>
+
+<h3>2-1. JSX 는 그냥 함수 호출</h3>
+<pre>&lt;Button color="primary"&gt;저장&lt;/Button&gt;
+// ↓ Babel/SWC 변환 결과
+React.createElement(Button, { color: "primary" }, "저장")</pre>
+<p>즉, 컴포넌트는 <b>props 라는 객체를 받아 React 엘리먼트를 반환하는 함수</b>입니다.</p>
+
+<h3>2-2. props 와 단방향 데이터 흐름</h3>
+<ul>
+  <li>부모 → 자식으로만 데이터를 내려보냅니다.</li>
+  <li>자식이 부모에게 알리려면 <b>콜백(props 함수)</b> 을 전달받아 호출합니다.</li>
+  <li>이 단방향성 때문에 데이터 흐름 추적이 쉬워집니다.</li>
+</ul>
+<pre>function NoticeList({ onSelect }) {
+  return items.map(n =&gt;
+    &lt;Row key={n.id} notice={n} onClick={() =&gt; onSelect(n.id)} /&gt;);
+}</pre>
+
+<h3>2-3. key 의 의미</h3>
+<p>리스트 렌더 시 <code>key</code> 는 React 가 항목의 동일성을 추적해 <b>DOM 을 최소 변경</b>하기 위한 식별자입니다.</p>
+<div class="warn"><b>안티패턴</b>: <code>key={index}</code>. 순서가 바뀌면 잘못된 DOM 이 매핑되어 입력값/포커스가 엉킵니다. 안정적인 ID를 쓰세요.</div>
+
+<h2>3. 상태(state) 와 리렌더링</h2>
+
+<h3>3-1. 언제 리렌더링되는가</h3>
+<ol>
+  <li><code>setState</code> 가 호출됐을 때</li>
+  <li>부모가 리렌더돼서 props 가 새로 내려올 때</li>
+  <li><code>Context</code> 값이 바뀌어 구독 중인 컴포넌트일 때</li>
+</ol>
+
+<h3>3-2. 불변성</h3>
+<p>객체/배열 상태는 <b>새 객체</b>로 교체해야 합니다. 같은 참조를 그냥 변경하면 React 는 변화를 감지하지 못합니다.</p>
+<pre>// ❌ 안 됨
+state.items.push(newItem);
+setState(state);
+
+// ✅ 새 배열로 교체
+setItems(prev =&gt; [...prev, newItem]);</pre>
+
+<h3>3-3. 상태 끌어올리기 (lifting state up)</h3>
+<p>두 형제 컴포넌트가 같은 데이터를 봐야 하면 <b>공통 부모</b>로 상태를 올립니다. 그 이상 떨어진 컴포넌트끼리는 Context 또는 이 프로젝트처럼 <b>커스텀 이벤트</b>를 사용합니다.</p>
+
+<h2 class="page-break">4. 핵심 Hooks</h2>
+
+<h3>4-1. useState</h3>
+<pre>const [user, setUser] = useState(null);
+// 함수형 업데이트 — 직전 값에 의존할 때 안전
+setUser(prev =&gt; ({ ...prev, nickname: '새 닉네임' }));</pre>
+
+<h3>4-2. useEffect — 부수효과(데이터 패칭, 구독, 타이머 등)</h3>
+<pre>useEffect(() =&gt; {
+  let cancelled = false;
+  fetch(`${API}/api/notices/${id}`, { credentials: 'include' })
+    .then(r =&gt; r.json())
+    .then(data =&gt; { if (!cancelled) setNotice(data); });
+  return () =&gt; { cancelled = true; };       // 클린업: 언마운트/재실행 시
+}, [id]);                                    // 의존성 배열</pre>
+<ul>
+  <li>의존성 배열을 <b>생략하면 매 렌더마다</b>, <b>빈 배열</b>이면 마운트/언마운트 시 한 번, 값을 넣으면 그 값이 바뀔 때만 실행.</li>
+  <li>비동기 결과를 setState 하기 전에 <b>언마운트/재실행 여부</b>를 검사해야 메모리 누수 경고를 피합니다.</li>
+</ul>
+
+<h3>4-3. useRef</h3>
+<ul>
+  <li>DOM 직접 접근: <code>const inputRef = useRef(); &lt;input ref={inputRef} /&gt;</code>.</li>
+  <li><b>리렌더 없이 유지되는 값</b>: 이 프로젝트의 <code>NoticeDetail</code> 에서 <code>viewedRef</code> 로 조회수 POST 1회 보장.</li>
+</ul>
+<pre>const viewedRef = useRef(false);
+useEffect(() =&gt; {
+  if (viewedRef.current) return;
+  viewedRef.current = true;
+  fetch(`${API}/api/notices/${id}/views`, { method: 'POST', credentials: 'include' });
+}, [id]);</pre>
+
+<h3>4-4. useMemo · useCallback</h3>
+<p>비용이 큰 계산이나 자식 컴포넌트의 props 안정성이 필요할 때만 사용. <b>기본은 쓰지 않는 것</b>이 정답입니다 — 잘못 쓰면 오히려 느려집니다.</p>
+<pre>const filtered = useMemo(
+  () =&gt; items.filter(it =&gt; it.name.includes(query)),
+  [items, query]
+);
+
+const onSelect = useCallback((id) =&gt; navigate(`/notices/${id}`), [navigate]);</pre>
+
+<h3>4-5. 커스텀 훅</h3>
+<p>이름이 <code>use</code> 로 시작하고 내부에서 다른 훅을 사용하는 함수. 반복되는 로직(예: <code>useAuth</code>, <code>useDebounce</code>)을 캡슐화.</p>
+
+<h2>5. 제어 컴포넌트와 폼 처리</h2>
+<pre>function LoginForm({ onLogin }) {
+  const [form, setForm] = useState({ username: '', password: '' });
+  const change = (e) =&gt; setForm({ ...form, [e.target.name]: e.target.value });
+
+  const submit = async (e) =&gt; {
+    e.preventDefault();                              // 기본 폼 제출 차단
+    try { await onLogin(form); }
+    catch (err) { setError(err.message); }
+  };
+
+  return (
+    &lt;form onSubmit={submit}&gt;
+      &lt;input name="username" value={form.username} onChange={change} required /&gt;
+      &lt;input name="password" type="password" value={form.password} onChange={change} required /&gt;
+      &lt;button type="submit"&gt;로그인&lt;/button&gt;
+    &lt;/form&gt;
+  );
+}</pre>
+<ul>
+  <li><b>제어 컴포넌트</b>: value 와 onChange 로 React state 가 폼 값을 완전히 통제 — 검증/조건부 제출/리셋이 쉬움.</li>
+  <li><code>e.preventDefault()</code> 를 안 부르면 페이지 전체가 새로 고침되며 SPA 상태가 사라집니다.</li>
+</ul>
+
+<h2>6. React Router v6</h2>
+
+<h3>6-1. 라우트 정의</h3>
+<pre>&lt;Routes&gt;
+  &lt;Route path="/" element={&lt;RequireAuth&gt;&lt;NoticeList /&gt;&lt;/RequireAuth&gt;} /&gt;
+  &lt;Route path="/notices/:id" element={&lt;RequireAuth&gt;&lt;NoticeDetail /&gt;&lt;/RequireAuth&gt;} /&gt;
+  &lt;Route path="/forgot" element={&lt;PasswordForgot /&gt;} /&gt;
+  &lt;Route path="*" element={&lt;NotFound /&gt;} /&gt;     // 404 fallback
+&lt;/Routes&gt;</pre>
+
+<h3>6-2. 네비게이션 훅</h3>
+<table>
+  <tr><th>훅 / 컴포넌트</th><th>용도</th></tr>
+  <tr><td><code>useNavigate()</code></td><td>코드에서 페이지 이동. <code>navigate('/notices/1')</code>, <code>navigate(-1)</code>.</td></tr>
+  <tr><td><code>useParams()</code></td><td>URL 경로 변수 읽기. <code>const { id } = useParams()</code>.</td></tr>
+  <tr><td><code>useSearchParams()</code></td><td>쿼리스트링 읽기/수정. <code>?token=...</code>.</td></tr>
+  <tr><td><code>useLocation()</code></td><td>현재 pathname/search/state.</td></tr>
+  <tr><td><code>&lt;Link to="..."&gt;</code></td><td>a 태그 대신. 전체 새로고침 없이 라우트 전환.</td></tr>
+  <tr><td><code>&lt;Navigate to="/login" replace /&gt;</code></td><td>선언적 리다이렉트.</td></tr>
+</table>
+
+<h3>6-3. Link 와 a 의 차이</h3>
+<p><code>&lt;a href&gt;</code> 는 브라우저가 새 페이지를 받아오면서 <b>SPA 상태와 메모리가 초기화</b>됩니다. 내부 라우트는 반드시 <code>&lt;Link&gt;</code> 또는 <code>navigate()</code> 를 쓰세요.</p>
+
+<h2 class="page-break">7. 라우트 가드 (RequireAuth) 패턴</h2>
+<p>이 프로젝트의 <code>RequireAuth</code> 는 단순한 컴포넌트로 만든 게이트입니다.</p>
+<pre>function RequireAuth({ children }) {
+  const [state, setState] = useState('loading');   // 'loading' | 'authed' | 'guest'
+
+  const check = useCallback(() =&gt; {
+    fetch(`${API}/api/auth/me`, { credentials: 'include' })
+      .then(r =&gt; setState(r.ok ? 'authed' : 'guest'))
+      .catch(() =&gt; setState('guest'));
+  }, []);
+
+  useEffect(() =&gt; {
+    check();
+    const onAuthChanged = () =&gt; check();
+    window.addEventListener('auth-changed', onAuthChanged);
+    return () =&gt; window.removeEventListener('auth-changed', onAuthChanged);
+  }, [check]);
+
+  if (state === 'loading') return &lt;Spinner /&gt;;
+  if (state === 'guest')   return &lt;LoginRequiredCard /&gt;;
+  return children;
+}</pre>
+<div class="tip">
+포인트:
+<ul>
+  <li>3-state 머신 (loading / authed / guest) 으로 깜빡임 없이 표시.</li>
+  <li>전역 이벤트 <code>auth-changed</code> 를 구독해 로그인/로그아웃 직후 자동 재검증.</li>
+  <li>리스너 등록 시 <b>반드시 클린업</b>으로 해제 (메모리 누수 방지).</li>
+</ul>
+</div>
+
+<h2>8. 데이터 패칭 — Fetch API</h2>
+
+<h3>8-1. 기본 패턴</h3>
+<pre>const res = await fetch(`${API}/api/notices`, {
+  method: 'POST',
+  credentials: 'include',                 // 세션 쿠키 동봉
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ title, content }),
+});
+
+if (!res.ok) {
+  const text = await res.text();
+  let msg = text;
+  try { msg = JSON.parse(text).message || text; } catch {}
+  throw new Error(msg || `HTTP ${res.status}`);
+}
+return await res.json();</pre>
+
+<h3>8-2. 자주 빠지는 함정</h3>
+<ul>
+  <li><b><code>fetch</code> 는 4xx/5xx 를 reject 하지 않습니다.</b> 직접 <code>res.ok</code> 를 검사해야 합니다.</li>
+  <li><b><code>Content-Type</code></b> 을 빠뜨리면 백엔드가 본문을 파싱하지 못해 400 이 납니다.</li>
+  <li><b>큰 응답을 <code>text()</code> + <code>json()</code> 둘 다 부르면 stream 이 이미 소비됐다는 에러</b>가 납니다 — 둘 중 하나만.</li>
+  <li>요청 취소가 필요하면 <code>AbortController</code> + <code>signal</code>.</li>
+</ul>
+
+<h2>9. 세션 쿠키 · CORS</h2>
+
+<h3>9-1. credentials 옵션</h3>
+<table>
+  <tr><th>값</th><th>의미</th></tr>
+  <tr><td><code>omit</code> (기본)</td><td>쿠키 보내지 않음.</td></tr>
+  <tr><td><code>same-origin</code></td><td>같은 출처일 때만 보냄.</td></tr>
+  <tr><td><code>include</code></td><td><b>다른 출처여도 보냄</b>. 이 프로젝트가 사용. 서버의 <code>Access-Control-Allow-Credentials: true</code> 와 짝.</td></tr>
+</table>
+
+<h3>9-2. CORS 와 자격 증명</h3>
+<ul>
+  <li>프런트(<code>localhost:5173</code>)와 백엔드(<code>localhost:8080</code>)는 다른 출처입니다.</li>
+  <li>그래서 백엔드는 CORS 응답 헤더로 출처와 자격 증명 허용을 명시해야 합니다(<code>backend-knowledge</code> §10 참고).</li>
+  <li><b>credentials=include 인 요청에서는 <code>Access-Control-Allow-Origin: *</code> 가 거부됨</b> — 백엔드가 정확한 출처를 응답해야 함.</li>
+</ul>
+
+<h3>9-3. preflight (OPTIONS) 요청</h3>
+<p>커스텀 헤더(<code>Content-Type: application/json</code> 포함)나 GET/POST 외 메서드는 브라우저가 먼저 <code>OPTIONS</code> 로 허용 여부를 확인합니다. 백엔드 로그에 OPTIONS 가 보이는 이유.</p>
+
+<h2>10. 컴포넌트 간 통신 — 커스텀 이벤트 · Context</h2>
+
+<h3>10-1. 이 프로젝트의 선택: window 커스텀 이벤트</h3>
+<pre>// 로그인 성공 후
+setUser(data);
+window.dispatchEvent(new Event('auth-changed'));
+
+// 다른 컴포넌트 (RequireAuth)
+useEffect(() =&gt; {
+  const onChange = () =&gt; recheck();
+  window.addEventListener('auth-changed', onChange);
+  return () =&gt; window.removeEventListener('auth-changed', onChange);
+}, []);</pre>
+<p>장점: 트리에서 멀리 떨어진 컴포넌트도 의존성 없이 통신.<br />
+   단점: 타입 안전성 부족, 디버깅 어려움.</p>
+
+<h3>10-2. 일반적인 대안 — Context API</h3>
+<pre>const AuthContext = createContext(null);
+
+function AuthProvider({ children }) {
+  const [user, setUser] = useState(null);
+  const value = useMemo(() =&gt; ({ user, setUser }), [user]);
+  return &lt;AuthContext.Provider value={value}&gt;{children}&lt;/AuthContext.Provider&gt;;
+}
+
+function useAuth() { return useContext(AuthContext); }</pre>
+<p>규모가 커지면 Context + 커스텀 훅으로 정리하는 게 유지보수에 유리합니다. 더 커지면 React Query/SWR(서버 상태) + Zustand/Redux(클라이언트 상태) 분리.</p>
+
+<h2 class="page-break">11. StrictMode 더블 마운트와 useRef 가드</h2>
+<p>React 18 + StrictMode 는 개발 환경에서 컴포넌트를 <b>마운트 → 언마운트 → 다시 마운트</b> 시킵니다. 그래서 마운트 시 <code>POST /views</code> 같은 부수효과는 두 번 호출될 수 있습니다.</p>
+<div class="note">
+<b>가드 패턴 1 — useRef</b>
+<pre>const did = useRef(false);
+useEffect(() =&gt; {
+  if (did.current) return;
+  did.current = true;
+  doOnce();
+}, []);</pre>
+<b>가드 패턴 2 — 서버에서 멱등성 보장</b><br />
+조회수 같은 <i>증가</i> 연산은 클라이언트로 막기보다 서버에서 IP/세션/시간 윈도우 기준으로 처리하는 것이 정석.
+</div>
+
+<h2>12. 상태 보존</h2>
+<table>
+  <tr><th>저장소</th><th>수명</th><th>용도 예</th></tr>
+  <tr><td><code>useState</code></td><td>컴포넌트 마운트 동안</td><td>입력값, UI 토글</td></tr>
+  <tr><td><code>sessionStorage</code></td><td>탭이 살아있는 동안</td><td>NoticeList 검색조건 복원 (이 프로젝트)</td></tr>
+  <tr><td><code>localStorage</code></td><td>도메인이 같으면 영구</td><td>다크모드, 최근 검색어</td></tr>
+  <tr><td>URL 쿼리</td><td>URL 이 살아있는 동안</td><td>공유 가능한 검색/페이지 상태</td></tr>
+  <tr><td>쿠키 (HttpOnly)</td><td>서버 설정</td><td>세션 ID (JS 에서 접근 불가)</td></tr>
+</table>
+<div class="tip"><b>가능하면 URL 쿼리</b>를 1순위로 쓰세요. 공유·뒤로가기·새로고침에 모두 잘 동작합니다. 새로고침까지 유지가 필요 없으면 메모리(state) 만으로 충분.</div>
+
+<h2>13. 외부 SDK 통합 — Kakao Maps</h2>
+<p>외부 JS SDK 는 <b>전역 객체(window.kakao)</b> 로 노출되는 경우가 많습니다. React 와 어울리려면 다음을 지킵니다.</p>
+<pre>useEffect(() =&gt; {
+  if (!window.kakao || !window.kakao.maps) return;
+  window.kakao.maps.load(() =&gt; {
+    const map = new window.kakao.maps.Map(containerRef.current, {
+      center: new window.kakao.maps.LatLng(37.4892775, 126.7246513),
+      level: 4,
+    });
+    mapRef.current = map;                  // ref 로 React 상태 밖에 보관
+  });
+  return () =&gt; { /* 필요 시 리스너 해제 */ };
+}, []);</pre>
+<ul>
+  <li>SDK 가 만든 마커/InfoWindow 는 <b>React 가상 DOM 밖</b>에 존재 → 직접 <code>setMap(null)</code> 으로 정리해야 누수 없음.</li>
+  <li>로딩 타이밍 — <code>index.html</code> 의 <code>&lt;script&gt;</code> 태그 또는 동적 삽입. 준비 전 호출 방지를 위해 <code>kakao.maps.load()</code> 로 감쌉니다.</li>
+  <li>API 키는 도메인 제한이 있는 JS 키만 프런트에 둡니다. REST API 키는 절대 프런트 노출 금지(이 프로젝트는 백엔드 프록시로 처리).</li>
+</ul>
+
+<h2>14. 환경변수 — Vite</h2>
+<pre># frontend/.env.local
+VITE_API_BASE=http://localhost:8080
+VITE_KAKAO_JS_KEY=abcdef...</pre>
+<pre>// 코드에서
+const API = import.meta.env.VITE_API_BASE;</pre>
+<ul>
+  <li>접두사 <b><code>VITE_</code></b> 가 붙은 것만 클라이언트 번들에 포함됩니다 (실수로 비밀 키가 노출되는 것을 방지).</li>
+  <li>그래도 <b>번들된 값은 클라이언트가 볼 수 있다</b>는 사실은 잊지 마세요. 진짜 비밀 키는 백엔드로 옮기는 것이 정답.</li>
+</ul>
+
+<h2>15. 빌드 / 배포 · dev 프록시</h2>
+
+<h3>15-1. 명령어</h3>
+<table>
+  <tr><th>명령</th><th>역할</th></tr>
+  <tr><td><code>npm run dev</code></td><td>Vite dev 서버. HMR(핫 리로드) 지원.</td></tr>
+  <tr><td><code>npm run build</code></td><td><code>dist/</code> 에 정적 산출물 생성.</td></tr>
+  <tr><td><code>npm run preview</code></td><td>빌드 결과를 로컬에서 정적 서빙해 확인.</td></tr>
+</table>
+
+<h3>15-2. dev 프록시 (선택)</h3>
+<p>CORS 설정을 매번 손대기 싫다면 Vite 가 <code>/api</code> 요청을 백엔드로 프록시하게 만들 수 있습니다.</p>
+<pre>// vite.config.js
+export default defineConfig({
+  server: {
+    proxy: {
+      '/api': { target: 'http://localhost:8080', changeOrigin: true }
+    }
+  }
+});</pre>
+
+<h3>15-3. 배포 시 SPA fallback</h3>
+<p>Nginx 예:</p>
+<pre>location / {
+  try_files $uri /index.html;
+}</pre>
+<p>이게 없으면 사용자가 <code>/notices/123</code> 에서 새로고침할 때 404 가 납니다.</p>
+
+<h2 class="page-break">16. 프런트 보안 기초</h2>
+
+<h3>16-1. XSS — 가장 흔한 위협</h3>
+<ul>
+  <li>React 는 기본적으로 텍스트 출력을 escape 하므로 <b>JSX 만으로는 거의 안전</b>합니다.</li>
+  <li>위험한 지점은 <b><code>dangerouslySetInnerHTML</code></b>. 사용자 입력을 그대로 넣으면 안 되고, 서버에서 sanitize 한 안전한 HTML 만 넣어야 합니다.</li>
+  <li>URL 출력 시 <code>javascript:</code> 스킴 차단 — <code>href={userUrl}</code> 도 검증 후 렌더.</li>
+</ul>
+
+<h3>16-2. CSRF — 세션 쿠키 기반에서 신경 써야 함</h3>
+<ul>
+  <li>공격자가 만든 페이지에서 우리 사이트로 요청을 보내면 브라우저가 <b>쿠키를 자동으로 동봉</b>합니다.</li>
+  <li>방어: <b>SameSite=Lax/Strict</b> 쿠키, CSRF 토큰, <b>출처 검증</b>(Origin/Referer 헤더), JSON Content-Type 요구.</li>
+  <li>이 프로젝트는 SameSite=Lax + CORS 출처 화이트리스트 + JSON 요구로 실용적인 방어선을 만들고 있음.</li>
+</ul>
+
+<h3>16-3. 비밀번호 등 민감 정보</h3>
+<ul>
+  <li>입력 후 메모리에 오래 두지 말 것. 제출 후 state 초기화.</li>
+  <li>비밀번호를 URL/쿼리/local storage 에 절대 저장 금지.</li>
+  <li><code>autocomplete="new-password"</code>, <code>type="password"</code> 사용.</li>
+</ul>
+
+<h2>17. UX 패턴 — 로딩 · 에러 · 빈 상태 · 토스트</h2>
+<div class="note">
+화면 컴포넌트는 거의 항상 <b>4가지 상태</b>를 가집니다.
+<ol>
+  <li><b>idle / loading</b> — 스피너 또는 스켈레톤.</li>
+  <li><b>success</b> — 데이터 렌더.</li>
+  <li><b>empty</b> — "결과가 없습니다" 안내 (배경/일러스트로 차분하게).</li>
+  <li><b>error</b> — 빨간 배너 또는 토스트 + 재시도 버튼.</li>
+</ol>
+이 네 가지 모두를 처음부터 설계하면 사용자가 한 번도 막막하지 않습니다.
+</div>
+<pre>if (loading) return &lt;Spinner /&gt;;
+if (error)   return &lt;ErrorBanner message={error} onRetry={refetch} /&gt;;
+if (!items.length) return &lt;EmptyState title="결과가 없습니다" /&gt;;
+return &lt;List items={items} /&gt;;</pre>
+
+<h3>17-1. 무한 로딩 방지</h3>
+<ul>
+  <li><code>fetch</code> 후 <code>finally</code> 에서 <code>setLoading(false)</code>.</li>
+  <li>요청 자체에 타임아웃을 거는 것이 안전 — <code>AbortController</code> + <code>setTimeout</code>.</li>
+</ul>
+
+<h3>17-2. 더블 클릭 / 중복 제출 방지</h3>
+<p>제출 버튼은 처리 중 <code>disabled</code> 로 잠그고, 결제처럼 위험한 액션은 멱등키를 같이 보내는 패턴을 검토합니다.</p>
+
+<h2>18. 학습 체크리스트</h2>
+
+<h3>코드를 따라 읽으며 답해 보세요</h3>
+<ul>
+  <li>RequireAuth 가 <code>auth-changed</code> 이벤트에 의존하는 이유는? Context 로 대체하면 무엇이 달라질까?</li>
+  <li>NoticeDetail 의 <code>viewedRef</code> 가 없으면 어떤 문제가 생기는가?</li>
+  <li>fetch 에서 <code>credentials: 'include'</code> 를 빼면 어떤 동작이 깨지는가?</li>
+  <li>NoticeList 의 검색조건을 <code>sessionStorage</code> 가 아니라 URL 쿼리에 두면 무엇이 좋아지나?</li>
+  <li>Kakao Maps 마커를 React state 에 보관하지 않고 <code>ref</code> 에 두는 이유는?</li>
+</ul>
+
+<h3>면접·코드 리뷰에서 자주 나오는 질문</h3>
+<ul>
+  <li>React 의 단방향 데이터 흐름이란? 왜 중요한가?</li>
+  <li><code>useEffect</code> 의 클린업 함수가 필요한 시나리오 3가지?</li>
+  <li><code>useMemo</code>/<code>useCallback</code> 을 남용하면 왜 더 느려질 수 있는가?</li>
+  <li>SPA 에서 새로고침 시 404 가 나는 원리와 해결책?</li>
+  <li>XSS 와 CSRF 의 차이와 각각의 방어 기법?</li>
+  <li>fetch 가 4xx 에서 reject 하지 않는 이유와 그로 인한 실수?</li>
+  <li>제어 컴포넌트 vs 비제어 컴포넌트의 트레이드오프?</li>
+</ul>
+
+<h3>다음 단계</h3>
+<ul>
+  <li><b>TanStack Query (React Query) / SWR</b> — 서버 상태 캐싱·재검증·낙관적 업데이트. fetch 보일러플레이트가 크게 줄어듭니다.</li>
+  <li><b>TypeScript</b> — DTO 타입 안전성, 자동완성, 리팩토링 안정성.</li>
+  <li><b>Suspense + Error Boundary</b> — 로딩/에러를 컴포넌트 트리 단위로 선언적으로 처리.</li>
+  <li><b>React Hook Form / Zod</b> — 폼 검증을 선언적·타입 안전하게.</li>
+  <li><b>Testing Library + Vitest</b> — 사용자 행동 기반의 컴포넌트 테스트.</li>
+  <li><b>접근성(a11y)</b> — semantic HTML, ARIA, 키보드 내비게이션.</li>
+  <li><b>성능</b> — 코드 스플리팅(<code>React.lazy</code>), 이미지 lazy load, Lighthouse 검사.</li>
+</ul>
+
+<hr style="margin-top:20px; border:none; border-top:1px solid #cbd5e1" />
+<div class="small">
+끝. 본 문서는 <code>frontend-flow.pdf</code> 의 화면 흐름을 이해하기 위한 학습 자료입니다.
+실제 구현과 차이가 있으면 코드를 우선으로 하고 본 문서를 갱신하세요.
+</div>
+
+</body>
+</html>
