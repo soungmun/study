@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>Study 프로젝트 - 프론트엔드 화면 흐름</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  html, body { font-family: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; color:#1e293b; }
+  body { font-size: 11.5px; line-height: 1.55; }
+  h1 { font-size: 22px; margin: 0 0 4px; color:#0e7490; }
+  h2 { font-size: 16px; margin: 22px 0 8px; padding-bottom:4px; border-bottom: 2px solid #06b6d4; color:#155e75; page-break-after: avoid; }
+  h3 { font-size: 13.5px; margin: 16px 0 6px; color:#0f172a; page-break-after: avoid; }
+  h4 { font-size: 12px; margin: 10px 0 4px; color:#334155; }
+  p { margin: 4px 0 8px; }
+  code, pre { font-family: "Consolas", "D2Coding", monospace; }
+  code { background:#ecfeff; color:#155e75; padding:1px 4px; border-radius:3px; font-size: 10.5px; }
+  pre { background:#0f172a; color:#e2e8f0; padding:10px 12px; border-radius:6px; font-size:10px; overflow:auto; white-space:pre-wrap; word-break: break-all; }
+  ul, ol { margin: 4px 0 8px; padding-left: 20px; }
+  li { margin: 1px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 6px 0 10px; font-size: 10.5px; }
+  th, td { border: 1px solid #cbd5e1; padding: 5px 7px; vertical-align: top; }
+  th { background:#ecfeff; color:#155e75; text-align:left; }
+  tr:nth-child(even) td { background:#f8fafc; }
+  .meta { color:#64748b; font-size: 10.5px; margin-bottom: 12px; }
+  .flow {
+    background:#f0fdfa; border-left: 4px solid #14b8a6; padding: 8px 10px;
+    border-radius: 4px; margin: 6px 0 12px; font-size: 10.5px;
+  }
+  .flow b { color:#0f766e; }
+  .arrow { color:#14b8a6; font-weight: bold; }
+  .badge { display:inline-block; padding: 1px 6px; border-radius: 10px; font-size: 9.5px; margin-right:4px; }
+  .b-get   { background:#dcfce7; color:#166534; }
+  .b-post  { background:#dbeafe; color:#1e3a8a; }
+  .b-put   { background:#fef3c7; color:#854d0e; }
+  .b-del   { background:#fee2e2; color:#991b1b; }
+  .tag-auth { background:#fef9c3; color:#854d0e; }
+  .tag-route { background:#e0e7ff; color:#3730a3; }
+  .tag-comp { background:#fdf2f8; color:#9d174d; }
+  .toc { background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:10px 14px; margin:10px 0 20px; }
+  .toc ol { margin: 0; padding-left: 20px; }
+  .page-break { page-break-before: always; }
+  .small { font-size: 10px; color:#64748b; }
+  .legend span { margin-right: 8px; }
+
+  .screen-mock {
+    border: 1px dashed #94a3b8; border-radius: 6px;
+    padding: 8px 10px; margin: 6px 0 10px; background:#f8fafc; font-size: 10.2px;
+  }
+  .screen-mock b { color:#0f172a; }
+</style>
+</head>
+<body>
+
+<h1>Study 프로젝트 — 프론트엔드 화면 흐름 정리</h1>
+<div class="meta">
+  React 18 · React Router v6 · Vite · Fetch API + Session Cookie (<code>credentials: 'include'</code>) · Kakao Maps SDK<br />
+  본 문서는 <code>frontend/src</code> 폴더의 컴포넌트 기준 화면 전환 / 상태 / API 호출 정리입니다.
+</div>
+
+<div class="toc">
+  <b>목차</b>
+  <ol>
+    <li>전체 구성 & 라우팅</li>
+    <li>공통 동작 모델 (인증, 데이터 패칭, 이벤트)</li>
+    <li>화면별 사용자 흐름
+      <ul>
+        <li>① 헤더 / 인증 — <code>AuthBar</code></li>
+        <li>② 공지사항 목록 / 상세 / 작성 / 수정</li>
+        <li>③ 댓글 — <code>CommentSection</code></li>
+        <li>④ 책 검색 — <code>BookSearch</code></li>
+        <li>⑤ 지도 / 주변 맛집 — <code>MapSearch</code></li>
+        <li>⑥ 주식 — <code>StockTopList</code></li>
+        <li>⑦ 카카오페이 결제 / 결과 / 내역</li>
+        <li>⑧ 비밀번호 찾기 · 재설정</li>
+        <li>⑨ 회원정보 수정 — <code>ProfileEdit</code></li>
+        <li>⑩ 회원 목록 — <code>UserList</code></li>
+        <li>⑪ 관리자 공지 메일 — <code>AdminBroadcast</code></li>
+      </ul>
+    </li>
+    <li>화면 전환 다이어그램 (텍스트)</li>
+  </ol>
+</div>
+
+<h2>1. 전체 구성 & 라우팅</h2>
+
+<p>진입점 <code>main.jsx</code> → <code>BrowserRouter</code> → <code>App.jsx</code>. <code>App.jsx</code> 는 상단 헤더(네비 + AuthBar) + <code>Routes</code> 로만 구성됩니다.</p>
+
+<table>
+<tr><th style="width:24%">경로</th><th>컴포넌트</th><th style="width:14%">보호</th></tr>
+<tr><td><code>/</code></td><td>NoticeList</td><td><span class="badge tag-auth">RequireAuth</span></td></tr>
+<tr><td><code>/notices/new</code></td><td>NoticeCreate</td><td><span class="badge tag-auth">RequireAuth</span></td></tr>
+<tr><td><code>/notices/:id</code></td><td>NoticeDetail</td><td><span class="badge tag-auth">RequireAuth</span></td></tr>
+<tr><td><code>/notices/:id/edit</code></td><td>NoticeEdit</td><td><span class="badge tag-auth">RequireAuth</span></td></tr>
+<tr><td><code>/books</code></td><td>BookSearch</td><td><span class="badge tag-auth">RequireAuth</span></td></tr>
+<tr><td><code>/map</code></td><td>MapSearch</td><td><span class="badge tag-auth">RequireAuth</span></td></tr>
+<tr><td><code>/stocks</code></td><td>StockTopList</td><td><span class="badge tag-auth">RequireAuth</span></td></tr>
+<tr><td><code>/users</code></td><td>UserList</td><td>—</td></tr>
+<tr><td><code>/me/edit</code></td><td>ProfileEdit</td><td><span class="badge tag-auth">RequireAuth</span></td></tr>
+<tr><td><code>/forgot</code></td><td>PasswordForgot</td><td>—</td></tr>
+<tr><td><code>/reset</code></td><td>PasswordReset</td><td>—</td></tr>
+<tr><td><code>/admin/broadcast</code></td><td>AdminBroadcast</td><td><span class="badge tag-auth">RequireAuth</span></td></tr>
+<tr><td><code>/pay</code></td><td>KakaoPay</td><td><span class="badge tag-auth">RequireAuth</span></td></tr>
+<tr><td><code>/pay/history</code></td><td>KakaoPayHistory</td><td><span class="badge tag-auth">RequireAuth</span></td></tr>
+<tr><td><code>/pay/success</code></td><td>KakaoPaySuccess</td><td><span class="badge tag-auth">RequireAuth</span></td></tr>
+<tr><td><code>/pay/fail</code></td><td>KakaoPayFail</td><td><span class="badge tag-auth">RequireAuth</span></td></tr>
+</table>
+
+<h2>2. 공통 동작 모델</h2>
+
+<h3>2-1. 인증 게이트 — <code>RequireAuth</code></h3>
+<div class="flow">
+화면 진입 시 <code>fetch('/api/auth/me', credentials: 'include')</code> 호출<br />
+&nbsp;&nbsp;→ 200 OK → <code>state='authed'</code> → children 렌더<br />
+&nbsp;&nbsp;→ 401 → <code>state='guest'</code> → "🔒 로그인이 필요해요" 카드 표시<br />
+또한 <code>window</code> 의 <code>'auth-changed'</code> 커스텀 이벤트를 구독해서 로그인/로그아웃 직후 자동 재검증.
+</div>
+
+<h3>2-2. 인증 이벤트 흐름</h3>
+<ul>
+  <li><code>AuthBar</code> 가 로그인/회원가입/소셜 콜백 후 사용자 정보를 다시 받아오고 <code>window.dispatchEvent(new Event('auth-changed'))</code> 발행.</li>
+  <li>같은 페이지의 다른 컴포넌트(<code>RequireAuth</code>, <code>AuthBar</code>)가 이 이벤트로 자동 재패치.</li>
+  <li><b>토큰을 직접 들고 다니지 않는다.</b> 모든 요청에 <code>credentials: 'include'</code> 로 세션 쿠키만 동봉.</li>
+</ul>
+
+<h3>2-3. API 호출 패턴</h3>
+<pre>fetch(`${API}/path`, {
+  method: 'POST',
+  credentials: 'include',                  // ← 세션 쿠키 전달
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(payload),
+})
+.then(async (r) =&gt; {
+  if (!r.ok) {
+    const text = await r.text();
+    try { throw new Error(JSON.parse(text).message || text); }
+    catch { throw new Error(text || `HTTP ${r.status}`); }
+  }
+  return r.json();
+});
+</pre>
+
+<h3>2-4. 라우팅 / 화면 상태 보존</h3>
+<ul>
+  <li><code>useNavigate</code> + <code>useParams</code> 로 SPA 전환.</li>
+  <li><code>NoticeList</code> 는 검색조건(타입/키워드/페이지)을 <code>sessionStorage</code> 에 저장 → 상세에서 뒤로 와도 동일 상태 복원.</li>
+  <li><code>NoticeDetail</code> 은 <code>useRef</code> 로 마운트당 1회만 <code>/views</code> POST 호출(StrictMode 중복 방지).</li>
+</ul>
+
+<h2 class="page-break">3. 화면별 사용자 흐름</h2>
+
+<h3>① 헤더 / 인증 — <code>AuthBar</code> <span class="badge tag-comp">컴포넌트</span></h3>
+
+<div class="screen-mock">
+[로그인 전]<br />
+&nbsp;&nbsp;[로그인] [회원가입] [카카오] [네이버] [구글]<br />
+[로그인 후]<br />
+&nbsp;&nbsp;👤 닉네임 / 이메일 &nbsp; [수정] [로그아웃]
+</div>
+
+<h4>(a) 로컬 회원가입 — 이메일 인증 선행</h4>
+<div class="flow">
+  사용자가 [회원가입] 클릭 → 팝오버 폼 표시<br />
+  → 이메일 입력 후 <b>[인증번호 받기]</b> 클릭<br />
+  &nbsp;&nbsp;<span class="arrow">↳</span> <span class="badge b-post">POST</span> <code>/api/auth/email/send-code</code> → 60초 쿨다운 + "발송했어요" 안내<br />
+  → 메일에서 6자리 코드 확인 후 입력 → <b>[확인]</b><br />
+  &nbsp;&nbsp;<span class="arrow">↳</span> <span class="badge b-post">POST</span> <code>/api/auth/email/verify-code</code> → ✅ 인증 완료<br />
+  → 아이디·비밀번호·(닉네임)·(공지수신동의) 입력 후 <b>[가입하고 시작하기]</b><br />
+  &nbsp;&nbsp;<span class="arrow">↳</span> <span class="badge b-post">POST</span> <code>/api/auth/signup</code> →
+    성공 시 user 상태 갱신 → 폼 닫기 → <code>auth-changed</code> 이벤트 발행.<br />
+  → <code>RequireAuth</code> 가 자동 재검증 → 본문이 인증 화면으로 전환.
+</div>
+
+<h4>(b) 로컬 로그인</h4>
+<div class="flow">
+  [로그인] 클릭 → 아이디/비밀번호 입력 → <span class="badge b-post">POST</span> <code>/api/auth/login</code><br />
+  → 실패 시 폼 안에 빨간 에러 메시지 표시.<br />
+  → 성공 시 <code>setUser(data)</code> + <code>auth-changed</code> 이벤트.
+</div>
+
+<h4>(c) 소셜 로그인 — 카카오 / 네이버 / 구글</h4>
+<div class="flow">
+  버튼 클릭 시 <code>window.location.href = '/api/auth/{provider}/login?returnTo=...'</code> 로 전체 페이지 이동.<br />
+  → 백엔드가 공급자 인증 페이지로 redirect → 사용자 동의 → 공급자가 백엔드 <code>/callback</code> 호출 → 백엔드가 세션 부여 후
+  <code>returnTo</code> (= <code>{origin}/</code>)로 redirect.<br />
+  → 돌아왔을 때 <code>AuthBar</code> 가 자동으로 <code>/api/auth/me</code> 를 다시 호출해 로그인 상태로 표시.<br />
+  실패 시 쿼리스트링 <code>?auth_error=...&amp;auth_error_description=...</code> 가 붙어 옴 → 상단에 빨간 알약(pill) UI.
+</div>
+
+<h4>(d) 로그아웃</h4>
+<div class="flow">
+  [로그아웃] 클릭 → <span class="badge b-post">POST</span> <code>/api/auth/logout</code> →
+  <code>setUser(null)</code> + <code>auth-changed</code> → 모든 보호된 화면이 게스트로 전환.
+</div>
+
+<h3>② 공지사항 목록 / 상세 / 작성 / 수정</h3>
+
+<h4><code>NoticeList</code> (/)</h4>
+<div class="flow">
+  마운트 시 / 검색·페이지 변경 시
+  <span class="badge b-get">GET</span> <code>/api/notices?page&amp;size=10&amp;type&amp;keyword</code><br />
+  → <code>Page&lt;NoticeListItem&gt;</code> 수신 → 표 + 페이지네이션 렌더.<br />
+  헤더에 [+ 글쓰기] → <code>/notices/new</code>. 행 클릭 → <code>/notices/{id}</code>.<br />
+  검색조건은 <code>sessionStorage</code> 에 보존 → 상세에서 뒤로 와도 그대로.
+</div>
+
+<h4><code>NoticeDetail</code> (/notices/:id)</h4>
+<div class="flow">
+  마운트 시 <span class="badge b-post">POST</span> <code>/api/notices/{id}/views</code>
+  (조회수 +1 + 상세 반환, 1회만)<br />
+  → 제목/작성자/조회수/내용/❤️ 좋아요/💬 댓글 수 표시.<br /><br />
+
+  [❤️ 좋아요] → <span class="badge b-post">POST</span> <code>/api/notices/{id}/like</code><br />
+  &nbsp;&nbsp;→ <code>{liked, count}</code> 수신 → 즉시 UI 갱신.<br />
+  &nbsp;&nbsp;→ 401 이면 "로그인이 필요합니다" alert.<br /><br />
+
+  [좋아요한 사람 보기] 토글 → <span class="badge b-get">GET</span> <code>/api/notices/{id}/likes</code>
+  → 목록 모달/리스트로 펼침.<br /><br />
+
+  [수정] → <code>/notices/{id}/edit</code> &nbsp;|&nbsp; [삭제] → confirm 후
+  <span class="badge b-del">DELETE</span> <code>/api/notices/{id}</code> → 성공 시 목록으로 navigate.
+</div>
+
+<h4><code>NoticeCreate</code> (/notices/new) &amp; <code>NoticeEdit</code> (/notices/:id/edit)</h4>
+<div class="flow">
+  - Create: 제목/내용 입력 → <span class="badge b-post">POST</span> <code>/api/notices</code> → 성공 시 목록으로 이동.<br />
+  - Edit: 마운트 시 기존 글을 GET → 폼 채움 → 저장 시
+    <span class="badge b-put">PUT</span> <code>/api/notices/{id}</code> → 상세로 이동.<br />
+  - 검증 오류는 백엔드의 <code>GlobalExceptionHandler</code> 가 줄바꿈 합쳐 400 메시지로 반환 → 폼 하단에 표시.
+</div>
+
+<h3>③ 댓글 — <code>CommentSection</code></h3>
+<div class="flow">
+  상세 페이지 하단에 임베드.<br />
+  마운트 시 <span class="badge b-get">GET</span> <code>/api/notices/{id}/comments</code> → 리스트 렌더.<br />
+  새 댓글: <span class="badge b-post">POST</span> <code>/api/notices/{id}/comments</code> (비로그인 401 → 안내).<br />
+  수정: <span class="badge b-put">PUT</span> <code>/api/comments/{commentId}</code> · 본인 아니면 403.<br />
+  삭제: <span class="badge b-del">DELETE</span> <code>/api/comments/{commentId}</code> · 본인 아니면 403.<br />
+  댓글 좋아요: <span class="badge b-post">POST</span> <code>/api/comments/{commentId}/like</code>.
+</div>
+
+<h3>④ 책 검색 — <code>BookSearch</code> (/books)</h3>
+<div class="flow">
+  검색어 입력 후 submit →
+  <span class="badge b-get">GET</span> <code>/api/books/search?query&amp;sort&amp;target&amp;page&amp;size</code><br />
+  → 백엔드가 카카오 도서 API 프록시 → 결과 카드 그리드 렌더.
+</div>
+
+<h3 class="page-break">⑤ 지도 / 주변 맛집 — <code>MapSearch</code> (/map)</h3>
+
+<p><b>Kakao Maps JS SDK 를 직접 사용</b>합니다. SDK 키워드 검색 결과 + 백엔드 카테고리 API 결과를 함께 사용합니다.</p>
+
+<div class="flow">
+<b>초기화</b><br />
+&nbsp;&nbsp;→ <code>window.kakao.maps.load()</code> 로 SDK 준비<br />
+&nbsp;&nbsp;→ 기본 중심: 부평역 (37.4892775, 126.7246513)<br />
+&nbsp;&nbsp;→ <span class="badge b-get">GET</span> <code>/api/weather?lat&amp;lng</code>, <span class="badge b-get">GET</span> <code>/api/air?lat&amp;lng</code> 로 좌측 패널에 날씨/미세먼지 표시<br /><br />
+
+<b>키워드 검색</b><br />
+&nbsp;&nbsp;→ <span class="badge b-get">GET</span> <code>/api/places/search?query&amp;page&amp;size=15</code> (백엔드가 카카오 키워드 검색 프록시)<br />
+&nbsp;&nbsp;→ 결과 리스트 + 지도 마커 + 페이지네이션<br />
+&nbsp;&nbsp;→ 항목 클릭 시 InfoWindow 열기, 지도 중심 이동.<br /><br />
+
+<b>주변 맛집 (가까운 음식점)</b><br />
+&nbsp;&nbsp;→ <span class="badge b-get">GET</span> <code>/api/places/nearby?lat&amp;lng&amp;category=FD6&amp;radius=800&amp;size=15</code><br />
+&nbsp;&nbsp;→ 백엔드: 카테고리 API 시도 → 쿼터 초과/실패 시 키워드 검색으로 폴백<br />
+&nbsp;&nbsp;→ 빨간 🍽️ 마커로 별도 표시. 응답이 비어도 빈 결과로 처리(에러 토스트 X).<br /><br />
+
+<b>지도 이동/클릭</b><br />
+&nbsp;&nbsp;→ 빈 곳 클릭 시 좌표에서 <code>Places.coord2RegionCode</code> 등으로 가장 가까운 POI 추정 → 커스텀 핀 + 주소 fallback 표시.
+</div>
+
+<h3>⑥ 주식 — <code>StockTopList</code> (/stocks)</h3>
+<div class="flow">
+  탭 전환에 따라
+  <span class="badge b-get">GET</span> <code>/api/stocks/top-gainers?limit=10</code>
+  또는 <span class="badge b-get">GET</span> <code>/api/stocks/top-losers?limit=10</code><br />
+  → <code>Quote</code> 리스트 렌더 (코드/이름/등락률/현재가 등).
+</div>
+
+<h3>⑦ 카카오페이 결제</h3>
+
+<h4><code>KakaoPay</code> (/pay)</h4>
+<div class="flow">
+  프리셋(☕ 4500원, 🍱 9000원, 🎁 100원) 또는 직접 입력.<br />
+  [카카오페이로 결제하기] → <span class="badge b-post">POST</span> <code>/api/payments/kakao/ready</code>
+  → 백엔드가 카카오페이 ready 호출 후 <code>nextRedirectPcUrl</code> 등 반환<br />
+  → 프론트가 <code>window.location.href</code> 로 카카오페이 결제창 이동.<br />
+  카카오페이 결제 완료 시 카카오가 백엔드 <code>/api/payments/kakao/approve</code> 콜백을 호출하고,
+  백엔드가 다시 프론트의 <code>/pay/success</code> 또는 <code>/pay/fail</code> 로 302 redirect.
+</div>
+
+<h4><code>KakaoPaySuccess</code> (/pay/success) · <code>KakaoPayFail</code> (/pay/fail)</h4>
+<div class="flow">
+  URL 쿼리(<code>orderId, amount, itemName</code> 또는 <code>reason</code>)를 읽어 결제 결과 화면 렌더.<br />
+  [결제 내역 보기] 링크로 <code>/pay/history</code> 로 이동.
+</div>
+
+<h4><code>KakaoPayHistory</code> (/pay/history)</h4>
+<div class="flow">
+  마운트 시 <span class="badge b-get">GET</span> <code>/api/payments/kakao/my</code>
+  → 본인의 Payment 리스트(READY/APPROVED/CANCELED/FAILED)를 카드/표로 렌더.
+</div>
+
+<h3>⑧ 비밀번호 찾기 · 재설정</h3>
+<div class="flow">
+  <b>/forgot — <code>PasswordForgot</code></b><br />
+  이메일 입력 → <span class="badge b-post">POST</span> <code>/api/auth/password/forgot</code><br />
+  → 가입 여부와 무관하게 동일 메시지("등록되어 있다면 발송했습니다") 표시(이메일 enum 방지).<br /><br />
+
+  <b>/reset?token=... — <code>PasswordReset</code></b><br />
+  쿼리에서 토큰 추출 + 새 비밀번호 입력 → <span class="badge b-post">POST</span> <code>/api/auth/password/reset</code><br />
+  → 성공 시 "비밀번호가 변경되었습니다" 안내 → 로그인 화면 유도.
+</div>
+
+<h3>⑨ 회원정보 수정 — <code>ProfileEdit</code> (/me/edit)</h3>
+<div class="flow">
+  마운트 시 <code>/api/auth/me</code> 로 현재 정보 로딩.<br />
+  닉네임/이메일/비밀번호/알림수신 변경 후 → <span class="badge b-put">PUT</span> <code>/api/auth/me</code><br />
+  → 결과 코드에 따라 표시: 소셜 전용은 이메일/비밀번호 변경 차단,
+  현재 비밀번호 불일치 시 "현재 비밀번호가 일치하지 않습니다" 등.<br />
+  비밀번호 변경 성공 시 백엔드가 <code>EmailService.sendPasswordChanged</code> 발송.
+</div>
+
+<h3>⑩ 회원 목록 — <code>UserList</code> (/users)</h3>
+<div class="flow">
+  <span class="badge b-get">GET</span> <code>/api/users</code> (로그인 필요)<br />
+  → <code>UserListItem</code> 배열 → 닉네임/아이디/이메일/가입일 표시.<br />
+  비로그인 시 백엔드가 401 → "로그인이 필요합니다" 메시지 표시.
+</div>
+
+<h3>⑪ 관리자 공지 메일 — <code>AdminBroadcast</code> (/admin/broadcast)</h3>
+<div class="flow">
+  마운트 시 <span class="badge b-get">GET</span> <code>/api/admin/me</code> → <code>{admin, subscribers}</code> 수신.<br />
+  비관리자면 안내만 표시. 관리자(<code>app.admin.username=test11</code>)면:<br />
+  - 제목/본문(HTML) 입력 후 [발송] → <span class="badge b-post">POST</span> <code>/api/admin/broadcast</code><br />
+  - [지금 일일 메일 보내기(force)] → <span class="badge b-post">POST</span> <code>/api/admin/broadcast/daily-now?force=true</code><br />
+  → 결과(발송수/수신자수) 표시.
+</div>
+
+<h2 class="page-break">4. 화면 전환 다이어그램 (텍스트)</h2>
+
+<pre>
+                    ┌────────────────────────┐
+                    │   any URL (e.g. /)     │
+                    └──────────┬─────────────┘
+                               │
+            (RequireAuth 가 보호된 페이지면 게이트 동작)
+                               │
+                ┌──────────────┴──────────────┐
+                │                             │
+       [GET /api/auth/me 200]        [GET /api/auth/me 401]
+                │                             │
+                ▼                             ▼
+        실제 컴포넌트 렌더            "🔒 로그인이 필요해요"
+                                              │
+                                              ▼
+                       헤더 우측 AuthBar 에서 로그인/회원가입/소셜 시작
+
+
+  ── 회원가입 (이메일 인증) ─────────────────────────────────────────
+  [입력: 이메일] ─► POST /api/auth/email/send-code (60s 쿨다운)
+        │
+        ▼
+  [6자리 코드 입력] ─► POST /api/auth/email/verify-code  ✅
+        │
+        ▼
+  [아이디/비번/닉네임/수신동의] ─► POST /api/auth/signup
+        │
+        ▼
+  user 세팅 + auth-changed → RequireAuth 재검증 → 본문 인증화면 진입
+
+
+  ── 소셜 로그인 (예: 카카오) ────────────────────────────────────
+  [카카오 버튼] ─► location.href = /api/auth/kakao/login?returnTo=...
+        │
+        ▼  (카카오 동의 페이지)
+  카카오 ─► /api/auth/kakao/callback?code=...
+                │
+                ▼ (백엔드)
+        토큰 교환 → 사용자 조회 → users upsert → 세션 부여
+                │
+                ▼
+        302 redirect → returnTo(`{origin}/`)
+                │
+                ▼
+        AuthBar /me 재호출 → 로그인 상태로 표시
+
+
+  ── 게시판 메인 흐름 ──────────────────────────────────────────
+  /  (NoticeList)
+   ├─ [+ 글쓰기] ─► /notices/new (NoticeCreate)
+   │       └─ POST /api/notices ─► /
+   │
+   └─ [행 클릭] ─► /notices/:id (NoticeDetail)
+           │ (마운트 시 POST /views: 조회수 +1)
+           ├─ [❤️ 좋아요] POST /like (401 → 안내)
+           ├─ [좋아요 누른 사람] GET /likes
+           ├─ [수정] ─► /notices/:id/edit (NoticeEdit) ─► PUT
+           ├─ [삭제] ─► DELETE → /
+           └─ <CommentSection>
+                 ├─ GET    /api/notices/:id/comments
+                 ├─ POST   /api/notices/:id/comments
+                 ├─ PUT    /api/comments/:cid       (403=본인아님)
+                 ├─ DELETE /api/comments/:cid       (403=본인아님)
+                 └─ POST   /api/comments/:cid/like
+
+
+  ── 카카오페이 흐름 ───────────────────────────────────────────
+  /pay (KakaoPay)
+   └─ POST /api/payments/kakao/ready
+        └─ next_redirect_pc_url 받기
+              └─ location.href = (카카오페이 결제창)
+                    │ 사용자 결제 완료
+                    ▼
+                카카오 ─► GET /api/payments/kakao/approve?orderId&amp;pg_token
+                              ▼ (백엔드 approve 호출 → DB APPROVED)
+                              302 → /pay/success?orderId&amp;amount&amp;itemName
+                                          ▼
+                                   (KakaoPaySuccess)
+                                          │
+                                          └─ [결제 내역 보기] → /pay/history
+                                                 └─ GET /api/payments/kakao/my
+
+
+  ── 지도 (MapSearch) ─────────────────────────────────────────
+  마운트
+   ├─ Kakao SDK load → 지도 생성 (기본: 부평역)
+   ├─ GET /api/weather?lat&amp;lng         ─► 좌측 카드
+   ├─ GET /api/air?lat&amp;lng             ─► 좌측 카드
+   └─ GET /api/places/nearby?cat=FD6   ─► 🍽️ 마커들
+  사용자 동작
+   ├─ [검색] → GET /api/places/search    ─► 페이지네이션 + 마커
+   ├─ 지도 빈 곳 클릭 → 가장 가까운 POI 추정 + 주소 fallback
+   └─ 결과 항목 클릭 → 지도 중심 이동 + InfoWindow
+
+</pre>
+
+<hr style="margin-top:20px; border:none; border-top:1px solid #cbd5e1" />
+<div class="small">
+끝. 본 문서는 자동 생성된 정적 스냅샷입니다. 라우트/컴포넌트 추가 시 함께 갱신하세요.
+</div>
+
+</body>
+</html>
