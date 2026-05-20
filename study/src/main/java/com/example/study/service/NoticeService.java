@@ -31,10 +31,6 @@ public class NoticeService {
         this.noticeLikeService = noticeLikeService;
     }
 
-    public Page<NoticeListItem> findAll(Pageable pageable) {
-        return enrich(noticeRepository.findAll(pageable));
-    }
-
     public Page<NoticeListItem> search(String type, String keyword, Pageable pageable) {
         Page<Notice> page;
         if (keyword == null || keyword.isBlank()) {
