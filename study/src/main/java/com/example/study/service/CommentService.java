@@ -98,10 +98,6 @@ public class CommentService {
         commentRepository.delete(c);
     }
 
-    public long count(Long noticeId) {
-        return commentRepository.countByNoticeId(noticeId);
-    }
-
     private String displayName(User u) {
         if (u == null) return "(탈퇴 회원)";
         if (u.getNickname() != null && !u.getNickname().isBlank()) return u.getNickname();
