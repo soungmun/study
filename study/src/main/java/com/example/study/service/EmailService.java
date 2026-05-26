@@ -152,11 +152,6 @@ public class EmailService {
     }
 
     @Async
-    public void sendBroadcast(java.util.List<String> recipients, String subject, String html) {
-        sendBroadcastSync(recipients, subject, html);
-    }
-
-    @Async
     public void sendMaintenanceNotice(java.util.List<String> recipients) {
         if (recipients == null || recipients.isEmpty()) return;
         String subject = "[Study Notice] 🛠️ 서버 점검 안내";

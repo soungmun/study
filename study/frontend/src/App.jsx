@@ -104,7 +104,7 @@ export default function App() {
         <Route path="/me/edit" element={<RequireAuth title="👤 회원정보 수정"><ProfileEdit /></RequireAuth>} />
         <Route path="/forgot" element={<PasswordForgot />} />
         <Route path="/reset" element={<PasswordReset />} />
-        <Route path="/admin/broadcast" element={<RequireAuth title="📣 공지 메일 발송"><AdminBroadcast /></RequireAuth>} />
+        <Route path="/admin/broadcast" element={<RequireAuth title="🛠️ 서버 점검 모드"><AdminBroadcast /></RequireAuth>} />
         <Route path="/pay" element={<RequireAuth title="💳 카카오페이 결제"><KakaoPay /></RequireAuth>} />
         <Route path="/pay/history" element={<RequireAuth title="🧾 결제 내역"><KakaoPayHistory /></RequireAuth>} />
         <Route path="/pay/success" element={<RequireAuth title="💳 결제 결과"><KakaoPaySuccess /></RequireAuth>} />
