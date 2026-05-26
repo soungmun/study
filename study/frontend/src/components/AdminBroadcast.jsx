@@ -40,7 +40,7 @@ export default function AdminBroadcast() {
     const turningOn = !maintenance.enabled;
     const confirmMsg = turningOn
       ? '점검 모드를 켜시겠어요?\n- 관리자 외 모든 사용자가 API를 사용할 수 없게 됩니다.\n- 전체 가입 회원에게 점검 안내 메일이 1회 발송됩니다.'
-      : '점검 모드를 해제하시겠어요?\n사용자가 다시 서비스를 이용할 수 있게 됩니다.';
+      : '점검 모드를 해제하시겠어요?\n- 사용자가 다시 서비스를 이용할 수 있게 됩니다.\n- 전체 가입 회원에게 점검 완료 안내 메일이 1회 발송됩니다.';
     if (!window.confirm(confirmMsg)) return;
     setMaintToggling(true);
     try {
@@ -55,7 +55,9 @@ export default function AdminBroadcast() {
           ? '이미 점검 모드가 켜져 있습니다.'
           : `점검 모드를 켰어요. ${data.recipientsQueued || 0}명에게 안내 메일을 발송했습니다.`);
       } else {
-        setMaintMsg('점검 모드를 해제했어요.');
+        setMaintMsg(data.alreadyOff
+          ? '이미 점검 모드가 꺼져 있습니다.'
+          : `점검 모드를 해제했어요. ${data.recipientsQueued || 0}명에게 완료 안내 메일을 발송했습니다.`);
       }
       loadMaintenance();
     } catch (err) {

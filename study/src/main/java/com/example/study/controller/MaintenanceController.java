@@ -83,8 +83,25 @@ public class MaintenanceController {
             return ResponseEntity.status(403)
                     .body(MessageResponse.of("관리자만 사용할 수 있는 기능입니다."));
         }
-        maintenance.disable();
-        return ResponseEntity.ok(Map.of("enabled", false));
+        boolean changed = maintenance.disable();
+        if (!changed) {
+            return ResponseEntity.ok(Map.of(
+                    "enabled", false,
+                    "alreadyOff", true,
+                    "recipientsQueued", 0
+            ));
+        }
+        List<String> recipients = userRepository.findAll().stream()
+                .map(User::getEmail)
+                .filter(e -> e != null && !e.isBlank())
+                .distinct()
+                .toList();
+        emailService.sendMaintenanceEndNotice(recipients);
+        return ResponseEntity.ok(Map.of(
+                "enabled", false,
+                "alreadyOff", false,
+                "recipientsQueued", recipients.size()
+        ));
     }
 
     private User requireAdmin(HttpSession session) {

@@ -172,6 +172,21 @@ public class EmailService {
         sendBroadcastSync(recipients, subject, html);
     }
 
+    @Async
+    public void sendMaintenanceEndNotice(java.util.List<String> recipients) {
+        if (recipients == null || recipients.isEmpty()) return;
+        String subject = "[Study Notice] ✅ 서버 점검 완료 안내";
+        String html = """
+                <div style="font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;color:#1e293b;line-height:1.7;">
+                  <h2 style="color:#16a34a;">✅ 서버 점검이 완료되었습니다</h2>
+                  <p>안녕하세요. 서비스 점검이 완료되어 정상 이용이 가능합니다.</p>
+                  <p>이용에 불편을 드려 죄송합니다. 양해해 주셔서 감사합니다.</p>
+                  <p style="color:#94a3b8;font-size:12px;margin-top:24px;">본 메일은 서비스 운영 안내 메일로, 수신 동의 여부와 무관하게 가입 회원에게 발송됩니다.</p>
+                </div>
+                """;
+        sendBroadcastSync(recipients, subject, html);
+    }
+
     /** 동기 단체 메일 — 호출자에게 발송 성공/실패 결과를 즉시 알려야 할 때 사용. */
     public boolean sendBroadcastSync(java.util.List<String> recipients, String subject, String html) {
         if (recipients == null || recipients.isEmpty()) return false;
