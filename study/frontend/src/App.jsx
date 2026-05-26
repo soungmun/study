@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { NavLink, Route, Routes } from 'react-router-dom';
 import NoticeList from './components/NoticeList';
 import NoticeDetail from './components/NoticeDetail';
@@ -18,9 +19,49 @@ import KakaoPayHistory from './components/KakaoPayHistory';
 import { KakaoPaySuccess, KakaoPayFail } from './components/KakaoPayResult';
 import './App.css';
 
+function MaintenanceBanner() {
+  const [enabled, setEnabled] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchStatus = () => {
+      fetch('http://localhost:8080/api/admin/maintenance/status', { credentials: 'include' })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => { if (!cancelled && data) setEnabled(!!data.enabled); })
+        .catch(() => {});
+    };
+    fetchStatus();
+    const id = setInterval(fetchStatus, 30000);
+    const onAuth = () => fetchStatus();
+    window.addEventListener('auth-changed', onAuth);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+      window.removeEventListener('auth-changed', onAuth);
+    };
+  }, []);
+
+  if (!enabled) return null;
+  return (
+    <div style={{
+      padding: '12px 16px',
+      background: 'linear-gradient(135deg,#f59e0b,#ef4444)',
+      color: '#fff',
+      fontWeight: 700,
+      textAlign: 'center',
+      borderRadius: 10,
+      margin: '0 0 12px 0',
+      boxShadow: '0 4px 12px rgba(239,68,68,0.25)',
+    }}>
+      🛠️ 현재 서버 점검 중입니다. 관리자 외에는 서비스 이용이 제한됩니다.
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <div className="container">
+      <MaintenanceBanner />
       <header className="page-header">
         <div>
           <h1>게시판</h1>
