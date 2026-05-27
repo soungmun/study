@@ -27,14 +27,17 @@ public class EmailVerificationService {
     private final EmailVerificationRepository repository;
     private final UserRepository userRepository;
     private final EmailService emailService;
+    private final MailboxVerifier mailboxVerifier;
     private final SecureRandom random = new SecureRandom();
 
     public EmailVerificationService(EmailVerificationRepository repository,
                                     UserRepository userRepository,
-                                    EmailService emailService) {
+                                    EmailService emailService,
+                                    MailboxVerifier mailboxVerifier) {
         this.repository = repository;
         this.userRepository = userRepository;
         this.emailService = emailService;
+        this.mailboxVerifier = mailboxVerifier;
     }
 
     /** 인증번호 발송. 결과: { sent: true, expiresInSeconds } */
@@ -46,6 +49,11 @@ public class EmailVerificationService {
         // 이미 가입된 이메일인지 — 보통 별도 안내가 좋지만 학습용으로 허용 (비번 찾기 흐름과 별개)
         if (userRepository.findByEmail(email).isPresent()) {
             throw new IllegalArgumentException("이미 가입된 이메일입니다. 로그인 또는 비밀번호 찾기를 이용해 주세요.");
+        }
+
+        // 발송 전 메일함 존재 확인 — 없는 주소면 발송 자체를 막고 안내. (판단 불가 시엔 그대로 발송 진행)
+        if (mailboxVerifier.verify(email) == MailboxVerifier.Result.UNDELIVERABLE) {
+            throw new IllegalStateException("없는 메일 주소입니다. 이메일을 다시 확인해 주세요.");
         }
 
         LocalDateTime now = LocalDateTime.now();
