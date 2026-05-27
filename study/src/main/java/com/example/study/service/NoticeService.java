@@ -74,6 +74,9 @@ public class NoticeService {
 
     @Transactional
     public Notice create(Notice request, Long currentUserId) {
+        if (!isAdmin(currentUserId)) {
+            throw new ForbiddenException("관리자만 공지를 등록할 수 있습니다.");
+        }
         Notice notice = new Notice(request.getAuthor(), request.getTitle(), request.getContent());
         notice.setAuthorId(currentUserId);
         return noticeRepository.save(notice);
@@ -106,6 +109,12 @@ public class NoticeService {
     private boolean canModify(Notice notice, Long currentUserId) {
         if (currentUserId == null) return false;
         if (currentUserId.equals(notice.getAuthorId())) return true;
+        return isAdmin(currentUserId);
+    }
+
+    /** 관리자(app.admin.username)인지 — 등록 권한 판별. */
+    private boolean isAdmin(Long currentUserId) {
+        if (currentUserId == null) return false;
         if (adminUsername == null || adminUsername.isBlank()) return false;
         return userRepository.findById(currentUserId)
                 .map(u -> adminUsername.equals(u.getUsername()))

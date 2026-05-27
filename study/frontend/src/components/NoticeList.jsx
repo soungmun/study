@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const BASE_URL = 'http://localhost:8080/api/notices';
-const ME_URL = 'http://localhost:8080/api/auth/me';
+const ADMIN_ME_URL = 'http://localhost:8080/api/admin/me';
 const PAGE_SIZE = 10;
 
 function badgeClass(n) {
@@ -21,14 +21,15 @@ export default function NoticeList() {
   const [keyword, setKeyword] = useState(() => sessionStorage.getItem(KEYWORD_KEY) ?? '');
   const [searchTerm, setSearchTerm] = useState(() => sessionStorage.getItem(KEYWORD_KEY) ?? '');
   const [error, setError] = useState(null);
-  const [loggedIn, setLoggedIn] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  // 로그인 상태 확인 (글쓰기 버튼 노출용) — 로그인/로그아웃 시 auth-changed 로 갱신
+  // 관리자 여부 확인 (글쓰기 버튼 노출용) — 로그인/로그아웃 시 auth-changed 로 갱신
   useEffect(() => {
     const check = () => {
-      fetch(ME_URL, { credentials: 'include' })
-        .then((r) => setLoggedIn(r.ok))
-        .catch(() => setLoggedIn(false));
+      fetch(ADMIN_ME_URL, { credentials: 'include' })
+        .then((r) => (r.ok ? r.json() : { admin: false }))
+        .then((d) => setIsAdmin(!!d.admin))
+        .catch(() => setIsAdmin(false));
     };
     check();
     window.addEventListener('auth-changed', check);
@@ -76,7 +77,7 @@ export default function NoticeList() {
     <div className="card">
       <div className="toolbar">
         <h2>공지사항</h2>
-        {loggedIn && (
+        {isAdmin && (
           <button className="primary" onClick={() => navigate('/notices/new')}>+ 글쓰기</button>
         )}
       </div>
