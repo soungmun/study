@@ -73,11 +73,12 @@ public class EmailVerificationService {
         } catch (MessagingException | UnsupportedEncodingException e) {
             // 발송 실패 시 row 도 지워서 사용자 재시도 가능하게
             repository.deleteByEmail(email);
-            throw new IllegalStateException("이메일 발송에 실패했습니다. 주소를 다시 확인해 주세요. (" + e.getMessage() + ")");
+            log.warn("[EmailVer] 발송 실패 email={}: {}", email, e.getMessage());
+            throw new IllegalStateException("없는 메일 주소입니다. 이메일을 다시 확인해 주세요.");
         } catch (Exception e) {
             repository.deleteByEmail(email);
             log.warn("[EmailVer] 발송 실패 email={}: {}", email, e.getMessage());
-            throw new IllegalStateException("이메일 발송에 실패했습니다. 주소를 다시 확인해 주세요.");
+            throw new IllegalStateException("없는 메일 주소입니다. 이메일을 다시 확인해 주세요.");
         }
 
         return new SendResult(true, CODE_VALID_MINUTES * 60L);
