@@ -21,6 +21,7 @@ export default function AuthBar() {
     sending: false,         // 발송 중
     verifying: false,       // 검증 중
     cooldownSec: 0,         // 재발송 쿨다운
+    expiresInSec: 0,        // 발송된 코드의 남은 유효시간
     msg: null,              // "인증번호를 발송했어요" 같은 안내
     err: null,              // 인증 관련 에러
   });
@@ -31,6 +32,13 @@ export default function AuthBar() {
     const t = setTimeout(() => setEmailVer((p) => ({ ...p, cooldownSec: p.cooldownSec - 1 })), 1000);
     return () => clearTimeout(t);
   }, [emailVer.cooldownSec]);
+
+  // 코드 유효시간 카운트다운
+  useEffect(() => {
+    if (emailVer.expiresInSec <= 0) return;
+    const t = setTimeout(() => setEmailVer((p) => ({ ...p, expiresInSec: p.expiresInSec - 1 })), 1000);
+    return () => clearTimeout(t);
+  }, [emailVer.expiresInSec]);
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -101,8 +109,9 @@ export default function AuthBar() {
         ...p,
         sending: false,
         sent: true,
-        msg: `인증번호를 발송했어요. 메일함을 확인해 주세요. (${Math.round((data.expiresInSeconds ?? 300) / 60)}분 안에 입력)`,
+        msg: '인증번호를 발송했어요. 메일함을 확인해 주세요.',
         cooldownSec: 60,
+        expiresInSec: data.expiresInSeconds ?? 300,
         verifiedEmail: null,
       }));
     } catch (err) {
@@ -133,8 +142,10 @@ export default function AuthBar() {
   };
 
   const resetEmailVer = () => setEmailVer({
-    sent: false, verifiedEmail: null, code: '', sending: false, verifying: false, cooldownSec: 0, msg: null, err: null,
+    sent: false, verifiedEmail: null, code: '', sending: false, verifying: false, cooldownSec: 0, expiresInSec: 0, msg: null, err: null,
   });
+
+  const fmtSec = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
   const onLogout = async () => {
     await fetch(`${API}/logout`, { method: 'POST', credentials: 'include' });
@@ -330,29 +341,51 @@ export default function AuthBar() {
               </div>
 
               {emailVer.sent && emailVer.verifiedEmail !== form.email?.trim() && (
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <input
-                    type="text"
-                    placeholder="6자리 인증번호"
-                    value={emailVer.code}
-                    onChange={(e) => setEmailVer((p) => ({ ...p, code: e.target.value.replace(/\D/g, '').slice(0, 6) }))}
-                    maxLength={6}
-                    inputMode="numeric"
-                    style={{ flex: 1, letterSpacing: 4, fontFamily: 'monospace', textAlign: 'center' }}
-                  />
-                  <button
-                    type="button"
-                    onClick={verifyEmailCode}
-                    disabled={emailVer.verifying || emailVer.code.length !== 6}
-                    style={{
-                      padding: '0 14px', fontSize: 12, fontWeight: 600,
-                      borderRadius: 8, border: '1px solid #6366f1',
-                      background: '#6366f1', color: '#fff', cursor: 'pointer', whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {emailVer.verifying ? '확인…' : '확인'}
-                  </button>
-                </div>
+                <>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <input
+                      type="text"
+                      placeholder="6자리 인증번호"
+                      value={emailVer.code}
+                      onChange={(e) => setEmailVer((p) => ({ ...p, code: e.target.value.replace(/\D/g, '').slice(0, 6) }))}
+                      maxLength={6}
+                      inputMode="numeric"
+                      style={{ flex: 1, letterSpacing: 4, fontFamily: 'monospace', textAlign: 'center' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={verifyEmailCode}
+                      disabled={emailVer.verifying || emailVer.code.length !== 6}
+                      style={{
+                        padding: '0 14px', fontSize: 12, fontWeight: 600,
+                        borderRadius: 8, border: '1px solid #6366f1',
+                        background: '#6366f1', color: '#fff', cursor: 'pointer', whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {emailVer.verifying ? '확인…' : '확인'}
+                    </button>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
+                    <span style={{ color: emailVer.expiresInSec > 0 ? '#64748b' : '#ef4444' }}>
+                      {emailVer.expiresInSec > 0
+                        ? `남은 시간 ${fmtSec(emailVer.expiresInSec)}`
+                        : '인증번호가 만료되었어요. 재발송해 주세요.'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={requestEmailCode}
+                      disabled={emailVer.sending || emailVer.cooldownSec > 0}
+                      style={{
+                        background: 'none', border: 'none', padding: 0, fontSize: 12, fontWeight: 600,
+                        color: emailVer.sending || emailVer.cooldownSec > 0 ? '#94a3b8' : '#6366f1',
+                        cursor: emailVer.sending || emailVer.cooldownSec > 0 ? 'default' : 'pointer',
+                        textDecoration: 'underline',
+                      }}
+                    >
+                      {emailVer.sending ? '발송 중…' : emailVer.cooldownSec > 0 ? `재발송 (${emailVer.cooldownSec}s)` : '재발송'}
+                    </button>
+                  </div>
+                </>
               )}
 
               {emailVer.msg && <div style={{ fontSize: 12, color: emailVer.verifiedEmail ? '#16a34a' : '#475569' }}>{emailVer.msg}</div>}
