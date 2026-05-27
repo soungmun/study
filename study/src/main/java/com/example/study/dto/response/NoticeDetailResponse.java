@@ -15,9 +15,10 @@ public record NoticeDetailResponse(
         String viewCountText,
         long commentCount,
         long likeCount,
-        boolean iLiked
+        boolean iLiked,
+        boolean canEdit
 ) {
-    public static NoticeDetailResponse of(Notice n, long commentCount, long likeCount, boolean iLiked) {
+    public static NoticeDetailResponse of(Notice n, long commentCount, long likeCount, boolean iLiked, boolean canEdit) {
         return new NoticeDetailResponse(
                 n.getId(),
                 n.getAuthor(),
@@ -28,7 +29,8 @@ public record NoticeDetailResponse(
                 n.getViewCountText(),
                 commentCount,
                 likeCount,
-                iLiked
+                iLiked,
+                canEdit
         );
     }
 }

@@ -27,6 +27,7 @@ export default function NoticeEdit() {
     setSubmitting(true);
     const r = await fetch(`${BASE_URL}/${id}`, {
       method: 'PUT',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form),
     });

@@ -3,8 +3,11 @@ package com.example.study.service;
 import com.example.study.dto.response.NoticeDetailResponse;
 import com.example.study.dto.response.NoticeListItem;
 import com.example.study.entity.Notice;
+import com.example.study.exception.ForbiddenException;
 import com.example.study.repository.CommentRepository;
 import com.example.study.repository.NoticeRepository;
+import com.example.study.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -22,13 +25,19 @@ public class NoticeService {
     private final NoticeRepository noticeRepository;
     private final CommentRepository commentRepository;
     private final NoticeLikeService noticeLikeService;
+    private final UserRepository userRepository;
+    private final String adminUsername;
 
     public NoticeService(NoticeRepository noticeRepository,
                          CommentRepository commentRepository,
-                         NoticeLikeService noticeLikeService) {
+                         NoticeLikeService noticeLikeService,
+                         UserRepository userRepository,
+                         @Value("${app.admin.username:}") String adminUsername) {
         this.noticeRepository = noticeRepository;
         this.commentRepository = commentRepository;
         this.noticeLikeService = noticeLikeService;
+        this.userRepository = userRepository;
+        this.adminUsername = adminUsername;
     }
 
     public Page<NoticeListItem> search(String type, String keyword, Pageable pageable) {
@@ -49,7 +58,7 @@ public class NoticeService {
         long c = commentRepository.countByNoticeId(id);
         long l = noticeLikeService.count(id);
         boolean iLiked = noticeLikeService.liked(id, currentUserId);
-        return NoticeDetailResponse.of(n, c, l, iLiked);
+        return NoticeDetailResponse.of(n, c, l, iLiked, canModify(n, currentUserId));
     }
 
     @Transactional
@@ -60,7 +69,7 @@ public class NoticeService {
         long c = commentRepository.countByNoticeId(id);
         long l = noticeLikeService.count(id);
         boolean iLiked = noticeLikeService.liked(id, currentUserId);
-        return NoticeDetailResponse.of(n, c, l, iLiked);
+        return NoticeDetailResponse.of(n, c, l, iLiked, canModify(n, currentUserId));
     }
 
     @Transactional
@@ -71,9 +80,12 @@ public class NoticeService {
     }
 
     @Transactional
-    public Notice update(Long id, Notice request) {
+    public Notice update(Long id, Notice request, Long currentUserId) {
         Notice notice = noticeRepository.findById(id)
-                .orElse(new Notice());
+                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다. id=" + id));
+        if (!canModify(notice, currentUserId)) {
+            throw new ForbiddenException("본인 또는 관리자만 수정할 수 있습니다.");
+        }
         notice.setAuthor(request.getAuthor());
         notice.setTitle(request.getTitle());
         notice.setContent(request.getContent());
@@ -81,11 +93,23 @@ public class NoticeService {
     }
 
     @Transactional
-    public void delete(Long id) {
-        if (!noticeRepository.existsById(id)) {
-            throw new IllegalArgumentException("게시글을 찾을 수 없습니다. id=" + id);
+    public void delete(Long id, Long currentUserId) {
+        Notice notice = noticeRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다. id=" + id));
+        if (!canModify(notice, currentUserId)) {
+            throw new ForbiddenException("본인 또는 관리자만 삭제할 수 있습니다.");
         }
-        noticeRepository.deleteById(id);
+        noticeRepository.delete(notice);
+    }
+
+    /** 본인(작성자) 또는 관리자인지 — 수정/삭제 권한 판별. */
+    private boolean canModify(Notice notice, Long currentUserId) {
+        if (currentUserId == null) return false;
+        if (currentUserId.equals(notice.getAuthorId())) return true;
+        if (adminUsername == null || adminUsername.isBlank()) return false;
+        return userRepository.findById(currentUserId)
+                .map(u -> adminUsername.equals(u.getUsername()))
+                .orElse(false);
     }
 
     /** Page<Notice> → Page<NoticeListItem> 변환 + 댓글/좋아요 카운트 일괄 join */

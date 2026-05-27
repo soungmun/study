@@ -68,18 +68,31 @@ public class NoticeController {
     }
 
     @PostMapping
-    public Notice create(@Valid @RequestBody Notice request, HttpSession session) {
-        return noticeService.create(request, currentUserId(session));
+    public ResponseEntity<?> create(@Valid @RequestBody Notice request, HttpSession session) {
+        Long me = currentUserId(session);
+        if (me == null) {
+            return ResponseEntity.status(401).body(MessageResponse.of("로그인이 필요합니다."));
+        }
+        return ResponseEntity.ok(noticeService.create(request, me));
     }
 
     @PutMapping("/{id}")
-    public Notice update(@PathVariable Long id, @Valid @RequestBody Notice request) {
-        return noticeService.update(id, request);
+    public ResponseEntity<?> update(@PathVariable Long id, @Valid @RequestBody Notice request, HttpSession session) {
+        Long me = currentUserId(session);
+        if (me == null) {
+            return ResponseEntity.status(401).body(MessageResponse.of("로그인이 필요합니다."));
+        }
+        return ResponseEntity.ok(noticeService.update(id, request, me));
     }
 
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable Long id) {
-        noticeService.delete(id);
+    public ResponseEntity<?> delete(@PathVariable Long id, HttpSession session) {
+        Long me = currentUserId(session);
+        if (me == null) {
+            return ResponseEntity.status(401).body(MessageResponse.of("로그인이 필요합니다."));
+        }
+        noticeService.delete(id, me);
+        return ResponseEntity.noContent().build();
     }
 
     private Long currentUserId(HttpSession session) {

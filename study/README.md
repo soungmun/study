@@ -247,11 +247,12 @@ npm run dev
 | GET    | `/api/notices?type=&keyword=&page=&size=&sort=` | 목록 (검색 + 페이징) |
 | GET    | `/api/notices/{id}` | 상세 (조회수 증가 없음) |
 | POST   | `/api/notices/{id}/views` | 조회수 +1 (반환은 갱신된 Notice) |
-| POST   | `/api/notices` | 등록 |
-| PUT    | `/api/notices/{id}` | 수정 |
-| DELETE | `/api/notices/{id}` | 삭제 |
+| POST   | `/api/notices` | 등록 (로그인 필수, 미로그인 시 401) |
+| PUT    | `/api/notices/{id}` | 수정 (작성자 본인 또는 관리자만, 그 외 403) |
+| DELETE | `/api/notices/{id}` | 삭제 (작성자 본인 또는 관리자만, 그 외 403) |
 
 > 상세 조회와 조회수 증가는 분리되어 있어, 프론트에서 조회수만 따로 호출합니다.
+> 등록/수정/삭제는 **작성자 본인만** 가능하며 **관리자(`app.admin.username`)는 예외**로 모든 글을 수정/삭제할 수 있습니다. 상세 응답의 `canEdit` 플래그로 프론트가 수정·삭제 버튼 노출을 제어합니다.
 
 #### 목록 응답 예시
 ```json

@@ -20,6 +20,7 @@ export default function NoticeCreate() {
     setSubmitting(true);
     const r = await fetch(BASE_URL, {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form),
     });

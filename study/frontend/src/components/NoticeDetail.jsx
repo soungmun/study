@@ -74,7 +74,7 @@ export default function NoticeDetail() {
 
   const remove = async () => {
     if (!confirm('정말 삭제하시겠습니까?')) return;
-    const r = await fetch(`${BASE_URL}/${id}`, { method: 'DELETE' });
+    const r = await fetch(`${BASE_URL}/${id}`, { method: 'DELETE', credentials: 'include' });
     if (!r.ok) {
       alert(`삭제 실패: ${await readError(r)}`);
       return;
@@ -165,8 +165,12 @@ export default function NoticeDetail() {
 
       <div className="actions">
         <button type="button" className="ghost" onClick={() => navigate('/')}>목록</button>
-        <button type="button" className="success" onClick={() => navigate(`/notices/${id}/edit`)}>수정</button>
-        <button type="button" className="danger" onClick={remove}>삭제</button>
+        {notice.canEdit && (
+          <>
+            <button type="button" className="success" onClick={() => navigate(`/notices/${id}/edit`)}>수정</button>
+            <button type="button" className="danger" onClick={remove}>삭제</button>
+          </>
+        )}
       </div>
 
       <CommentSection noticeId={id} />
