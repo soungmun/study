@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const BASE_URL = 'http://localhost:8080/api/notices';
+const ME_URL = 'http://localhost:8080/api/auth/me';
 const PAGE_SIZE = 10;
 
 function badgeClass(n) {
@@ -20,6 +21,19 @@ export default function NoticeList() {
   const [keyword, setKeyword] = useState(() => sessionStorage.getItem(KEYWORD_KEY) ?? '');
   const [searchTerm, setSearchTerm] = useState(() => sessionStorage.getItem(KEYWORD_KEY) ?? '');
   const [error, setError] = useState(null);
+  const [loggedIn, setLoggedIn] = useState(false);
+
+  // 로그인 상태 확인 (글쓰기 버튼 노출용) — 로그인/로그아웃 시 auth-changed 로 갱신
+  useEffect(() => {
+    const check = () => {
+      fetch(ME_URL, { credentials: 'include' })
+        .then((r) => setLoggedIn(r.ok))
+        .catch(() => setLoggedIn(false));
+    };
+    check();
+    window.addEventListener('auth-changed', check);
+    return () => window.removeEventListener('auth-changed', check);
+  }, []);
 
   useEffect(() => {
     sessionStorage.setItem(PAGE_KEY, String(pageNo));
@@ -62,7 +76,9 @@ export default function NoticeList() {
     <div className="card">
       <div className="toolbar">
         <h2>공지사항</h2>
-        <button className="primary" onClick={() => navigate('/notices/new')}>+ 글쓰기</button>
+        {loggedIn && (
+          <button className="primary" onClick={() => navigate('/notices/new')}>+ 글쓰기</button>
+        )}
       </div>
       <form className="search-bar" onSubmit={onSearch}>
         <select value={type} onChange={(e) => setType(e.target.value)} className="search-select">
