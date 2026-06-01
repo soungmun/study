@@ -60,7 +60,7 @@
     <li>웹 계층 — @RestController, ResponseEntity, DTO, 검증</li>
     <li>Jackson JSON 매핑 (@JsonProperty)</li>
     <li>서비스 계층과 트랜잭션 (@Transactional)</li>
-    <li>영속성 — JPA · JpaRepository · @Query · MyBatis</li>
+    <li>영속성 — JPA · JpaRepository · @Query</li>
     <li>엔티티 매핑과 라이프사이클 콜백</li>
     <li>데이터베이스 — MariaDB · 인덱스 · ddl-auto</li>
     <li>세션 기반 인증 · HttpSession · 쿠키</li>
@@ -236,9 +236,6 @@ public Page&lt;NoticeListItem&gt; list(
   <li><b>fetch join</b>: <code>@Query("select n from Notice n join fetch n.comments")</code>.</li>
   <li><code>@EntityGraph</code>.</li>
 </ul>
-
-<h3>5-5. MyBatis</h3>
-<p>JPA 와 함께 쓰는 SQL 매핑 프레임워크. XML 또는 어노테이션으로 SQL 을 직접 작성. 복잡한 통계/리포트성 쿼리에 유리. 이 프로젝트는 스타터만 포함되어 있고 활성 매퍼는 없습니다.</p>
 
 <h2>6. 엔티티 매핑과 라이프사이클</h2>
 <pre>@Entity

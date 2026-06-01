@@ -47,7 +47,7 @@
 
 <h1>Study 프로젝트 — 백엔드 데이터 흐름 정리</h1>
 <div class="meta">
-  Spring Boot 4.0.6 · Java 17 · Spring Data JPA + MyBatis · MariaDB ·
+  Spring Boot 4.0.6 · Java 17 · Spring Data JPA · MariaDB ·
   Spring Security Crypto · springdoc-openapi · Spring Mail<br />
   본 문서는 <code>src/main/java/com/example/study</code> 패키지의 코드 기준으로 정리된 백엔드 데이터 흐름 안내입니다.
 </div>
@@ -88,7 +88,7 @@
   <li><b>진입점</b>: <code>StudyApplication</code> — <code>@SpringBootApplication</code> + <code>@EnableAsync</code> + <code>@EnableScheduling</code>.</li>
   <li><b>CORS</b>: <code>WebConfig</code> — <code>/api/**</code> 에 대해 <code>localhost:3000/5173/5174/5175</code> 허용, <code>allowCredentials=true</code> (세션 쿠키 전달).</li>
   <li><b>세션 인증</b>: 모든 보호된 컨트롤러는 <code>HttpSession</code> 의 <code>AuthController.SESSION_USER_KEY = "LOGIN_USER_ID"</code> 값을 검사. 토큰 기반이 아닌 <b>쿠키 + JSESSIONID</b> 세션 방식.</li>
-  <li><b>영속성</b>: 게시판/유저/결제 등 주요 도메인은 JPA(<code>spring.jpa.hibernate.ddl-auto=update</code>). MyBatis 도 스타터로 포함되어 있어 <code>classpath:mapper/*.xml</code> 사용 가능(현재 활성 매퍼 없음).</li>
+  <li><b>영속성</b>: 게시판/유저/결제 등 주요 도메인은 JPA(<code>spring.jpa.hibernate.ddl-auto=update</code>).</li>
   <li><b>외부 호출</b>: 도서/장소/카카오페이/카카오톡/날씨/대기/주식/메일 모두 <code>RestClient</code> 또는 <code>JavaMailSender</code> 사용.</li>
 </ul>
 
