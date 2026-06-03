@@ -17,7 +17,6 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
@@ -70,11 +69,16 @@ public class DailyMailScheduler {
 
     @EventListener(ApplicationReadyEvent.class)
     public void catchUpOnStartup() {
-        ZonedDateTime now = ZonedDateTime.now(KST);
-        if (now.toLocalTime().isBefore(DAILY_TIME)) {
-            log.info("[DailyMail] 시작 시점 {} (KST) — 오늘 20:00 이전, 정시 발송 대기", now.toLocalTime());
+        // 오늘 미발송이면 부팅 시각 무관 즉시 catch-up.
+        // 어제 19:55 작업 스케줄러를 놓쳐 새벽에 만회 부팅된 경우에도 발송되도록 시각 제약 제거.
+        // 오늘 이미 발송된 경우 trySendForToday 내부의 상태파일 체크로 스킵된다.
+        LocalDate today = LocalDate.now(KST);
+        LocalDate lastSent = readLastSent();
+        if (today.equals(lastSent)) {
+            log.info("[DailyMail] 기동 시 — 오늘({})은 이미 발송됨, 스킵", today);
             return;
         }
+        log.info("[DailyMail] 기동 시 — 오늘({}) 미발송 감지 → catch-up 발송 시도", today);
         trySendForToday("기동시점-catchup", false);
     }
 
