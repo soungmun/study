@@ -47,7 +47,6 @@ public class Notice {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
-
     @Column(name = "view_count", nullable = false)
     private long viewCount;
 

@@ -1,12 +1,12 @@
 package com.example.study.config;
 
-import com.example.study.controller.AuthController;
 import com.example.study.repository.UserRepository;
 import com.example.study.service.MaintenanceService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
@@ -26,26 +26,19 @@ public class MaintenanceInterceptor implements HandlerInterceptor {
     );
 
     private final MaintenanceService maintenance;
-    private final UserRepository userRepository;
-    private final String adminUsername;
 
-    public MaintenanceInterceptor(
-            MaintenanceService maintenance,
-            UserRepository userRepository,
-            @Value("${app.admin.username:}") String adminUsername
-    ) {
+    public MaintenanceInterceptor(MaintenanceService maintenance,
+                                  @Value("${app.admin.username:}") String adminUsername,
+                                  UserRepository userRepository) {
         this.maintenance = maintenance;
-        this.userRepository = userRepository;
-        this.adminUsername = adminUsername;
     }
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         if (!maintenance.isEnabled()) return true;
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) return true;
-        String path = request.getRequestURI();
-        if (isWhitelisted(path)) return true;
-        if (isAdmin(request)) return true;
+        if (isWhitelisted(request.getRequestURI())) return true;
+        if (isAdmin()) return true;
 
         response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
         response.setContentType("application/json;charset=UTF-8");
@@ -63,14 +56,10 @@ public class MaintenanceInterceptor implements HandlerInterceptor {
         return false;
     }
 
-    private boolean isAdmin(HttpServletRequest request) {
-        if (adminUsername == null || adminUsername.isBlank()) return false;
-        HttpSession session = request.getSession(false);
-        if (session == null) return false;
-        Object id = session.getAttribute(AuthController.SESSION_USER_KEY);
-        if (!(id instanceof Long userId)) return false;
-        return userRepository.findById(userId)
-                .map(u -> adminUsername.equals(u.getUsername()))
-                .orElse(false);
+    private boolean isAdmin() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) return false;
+        return auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
     }
 }

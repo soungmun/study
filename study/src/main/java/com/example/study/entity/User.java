@@ -70,6 +70,9 @@ public class User {
     @Column(name = "kakao_talk_opt_in", nullable = false)
     private boolean kakaoTalkOptIn = true;
 
+    @Column(nullable = false, length = 20)
+    private String role = "USER";
+
     @PrePersist
     void onCreate() {
         LocalDateTime now = LocalDateTime.now();
@@ -115,4 +118,6 @@ public class User {
     public void setKakaoTokenExpiresAt(LocalDateTime kakaoTokenExpiresAt) { this.kakaoTokenExpiresAt = kakaoTokenExpiresAt; }
     public boolean isKakaoTalkOptIn() { return kakaoTalkOptIn; }
     public void setKakaoTalkOptIn(boolean kakaoTalkOptIn) { this.kakaoTalkOptIn = kakaoTalkOptIn; }
+    public String getRole() { return role; }
+    public void setRole(String role) { this.role = role; }
 }

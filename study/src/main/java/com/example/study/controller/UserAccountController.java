@@ -1,5 +1,6 @@
 package com.example.study.controller;
 
+import com.example.study.config.SecurityUser;
 import com.example.study.dto.request.PasswordForgotRequest;
 import com.example.study.dto.request.PasswordResetRequest;
 import com.example.study.dto.request.SignupRequest;
@@ -7,14 +8,16 @@ import com.example.study.dto.request.UserUpdateRequest;
 import com.example.study.dto.response.MessageResponse;
 import com.example.study.dto.response.UserResponse;
 import com.example.study.service.AuthService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -30,19 +33,22 @@ public class UserAccountController {
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<?> signup(@Valid @RequestBody SignupRequest req, HttpSession session) {
+    public ResponseEntity<?> signup(@Valid @RequestBody SignupRequest req, HttpServletRequest request) {
         AuthService.Result result = authService.signup(req);
         return switch (result.code) {
             case OK -> {
-                session.setAttribute(AuthController.SESSION_USER_KEY, result.user.getId());
+                SecurityUser principal = new SecurityUser(result.user);
+                var auth = new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
+                SecurityContext ctx = SecurityContextHolder.createEmptyContext();
+                ctx.setAuthentication(auth);
+                SecurityContextHolder.setContext(ctx);
+                HttpSession session = request.getSession(true);
+                session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, ctx);
                 yield ResponseEntity.ok(UserResponse.from(result.user));
             }
-            case USERNAME_TAKEN -> ResponseEntity.status(409)
-                    .body(MessageResponse.of("이미 사용 중인 아이디입니다."));
-            case EMAIL_NOT_VERIFIED -> ResponseEntity.status(400)
-                    .body(MessageResponse.of("이메일 인증을 완료해 주세요."));
-            default -> ResponseEntity.status(400)
-                    .body(MessageResponse.of("회원가입 처리에 실패했습니다."));
+            case USERNAME_TAKEN -> ResponseEntity.status(409).body(MessageResponse.of("이미 사용 중인 아이디입니다."));
+            case EMAIL_NOT_VERIFIED -> ResponseEntity.status(400).body(MessageResponse.of("이메일 인증을 완료해 주세요."));
+            default -> ResponseEntity.status(400).body(MessageResponse.of("회원가입 처리에 실패했습니다."));
         };
     }
 
@@ -57,31 +63,21 @@ public class UserAccountController {
         AuthService.Result result = authService.resetPassword(req);
         return switch (result.code) {
             case OK -> ResponseEntity.ok(MessageResponse.of("비밀번호가 변경되었습니다."));
-            default -> ResponseEntity.status(400)
-                    .body(MessageResponse.of("유효하지 않거나 만료된 재설정 링크입니다."));
+            default -> ResponseEntity.status(400).body(MessageResponse.of("유효하지 않거나 만료된 재설정 링크입니다."));
         };
     }
 
     @PutMapping("/me")
-    public ResponseEntity<?> updateMe(
-            @Valid @RequestBody UserUpdateRequest req,
-            HttpSession session
-    ) {
-        Object id = session.getAttribute(AuthController.SESSION_USER_KEY);
-        if (!(id instanceof Long userId)) {
-            return ResponseEntity.status(401).body(MessageResponse.of("로그인이 필요합니다."));
-        }
-        AuthService.Result result = authService.updateProfile(userId, req);
+    public ResponseEntity<?> updateMe(@Valid @RequestBody UserUpdateRequest req,
+                                      @AuthenticationPrincipal SecurityUser principal) {
+        if (principal == null) return ResponseEntity.status(401).body(MessageResponse.of("로그인이 필요합니다."));
+        AuthService.Result result = authService.updateProfile(principal.getUserId(), req);
         return switch (result.code) {
             case OK -> ResponseEntity.ok(UserResponse.from(result.user));
-            case KAKAO_ONLY -> ResponseEntity.status(400)
-                    .body(MessageResponse.of("간편 로그인 계정은 비밀번호를 변경할 수 없습니다."));
-            case SOCIAL_LOCKED -> ResponseEntity.status(400)
-                    .body(MessageResponse.of("간편 로그인 계정은 이메일과 비밀번호를 변경할 수 없습니다."));
-            case CURRENT_PASSWORD_MISMATCH -> ResponseEntity.status(400)
-                    .body(MessageResponse.of("현재 비밀번호가 일치하지 않습니다."));
-            default -> ResponseEntity.status(401)
-                    .body(MessageResponse.of("사용자를 찾을 수 없습니다."));
+            case KAKAO_ONLY -> ResponseEntity.status(400).body(MessageResponse.of("간편 로그인 계정은 비밀번호를 변경할 수 없습니다."));
+            case SOCIAL_LOCKED -> ResponseEntity.status(400).body(MessageResponse.of("간편 로그인 계정은 이메일과 비밀번호를 변경할 수 없습니다."));
+            case CURRENT_PASSWORD_MISMATCH -> ResponseEntity.status(400).body(MessageResponse.of("현재 비밀번호가 일치하지 않습니다."));
+            default -> ResponseEntity.status(401).body(MessageResponse.of("사용자를 찾을 수 없습니다."));
         };
     }
 }

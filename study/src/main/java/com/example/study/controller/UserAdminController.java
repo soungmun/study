@@ -1,11 +1,10 @@
 package com.example.study.controller;
 
-import com.example.study.dto.response.MessageResponse;
 import com.example.study.dto.response.UserListItem;
 import com.example.study.repository.UserRepository;
-import jakarta.servlet.http.HttpSession;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -23,12 +22,10 @@ public class UserAdminController {
     }
 
     @GetMapping
-    public ResponseEntity<?> list(HttpSession session) {
-        Object id = session.getAttribute(AuthController.SESSION_USER_KEY);
-        if (!(id instanceof Long)) {
-            return ResponseEntity.status(401).body(MessageResponse.of("로그인이 필요합니다."));
-        }
-        List<UserListItem> items = userRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"))
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<UserListItem>> list() {
+        List<UserListItem> items = userRepository
+                .findAll(Sort.by(Sort.Direction.DESC, "createdAt"))
                 .stream()
                 .map(UserListItem::from)
                 .toList();

@@ -7,7 +7,6 @@ import com.example.study.exception.ForbiddenException;
 import com.example.study.repository.CommentRepository;
 import com.example.study.repository.NoticeRepository;
 import com.example.study.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -26,18 +25,15 @@ public class NoticeService {
     private final CommentRepository commentRepository;
     private final NoticeLikeService noticeLikeService;
     private final UserRepository userRepository;
-    private final String adminUsername;
 
     public NoticeService(NoticeRepository noticeRepository,
                          CommentRepository commentRepository,
                          NoticeLikeService noticeLikeService,
-                         UserRepository userRepository,
-                         @Value("${app.admin.username:}") String adminUsername) {
+                         UserRepository userRepository) {
         this.noticeRepository = noticeRepository;
         this.commentRepository = commentRepository;
         this.noticeLikeService = noticeLikeService;
         this.userRepository = userRepository;
-        this.adminUsername = adminUsername;
     }
 
     public Page<NoticeListItem> search(String type, String keyword, Pageable pageable) {
@@ -112,12 +108,11 @@ public class NoticeService {
         return isAdmin(currentUserId);
     }
 
-    /** 관리자(app.admin.username)인지 — 등록 권한 판별. */
+    /** role == ADMIN 인지 — 등록 권한 판별. */
     private boolean isAdmin(Long currentUserId) {
         if (currentUserId == null) return false;
-        if (adminUsername == null || adminUsername.isBlank()) return false;
         return userRepository.findById(currentUserId)
-                .map(u -> adminUsername.equals(u.getUsername()))
+                .map(u -> "ADMIN".equals(u.getRole()))
                 .orElse(false);
     }
 

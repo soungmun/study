@@ -1,17 +1,15 @@
 package com.example.study.controller;
 
+import com.example.study.config.SecurityUser;
 import com.example.study.dto.response.MessageResponse;
 import com.example.study.entity.User;
 import com.example.study.repository.UserRepository;
 import com.example.study.service.EmailService;
 import com.example.study.service.MaintenanceService;
-import jakarta.servlet.http.HttpSession;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.List;
@@ -24,18 +22,13 @@ public class MaintenanceController {
     private final MaintenanceService maintenance;
     private final UserRepository userRepository;
     private final EmailService emailService;
-    private final String adminUsername;
 
-    public MaintenanceController(
-            MaintenanceService maintenance,
-            UserRepository userRepository,
-            EmailService emailService,
-            @Value("${app.admin.username:}") String adminUsername
-    ) {
+    public MaintenanceController(MaintenanceService maintenance,
+                                 UserRepository userRepository,
+                                 EmailService emailService) {
         this.maintenance = maintenance;
         this.userRepository = userRepository;
         this.emailService = emailService;
-        this.adminUsername = adminUsername;
     }
 
     @GetMapping("/status")
@@ -49,67 +42,28 @@ public class MaintenanceController {
     }
 
     @PostMapping("/enable")
-    public ResponseEntity<?> enable(HttpSession session) {
-        User admin = requireAdmin(session);
-        if (admin == null) {
-            return ResponseEntity.status(403)
-                    .body(MessageResponse.of("관리자만 사용할 수 있는 기능입니다."));
-        }
-        boolean changed = maintenance.enable(admin.getUsername());
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> enable(@AuthenticationPrincipal SecurityUser principal) {
+        boolean changed = maintenance.enable(principal.getUser().getUsername());
         if (!changed) {
-            return ResponseEntity.ok(Map.of(
-                    "enabled", true,
-                    "alreadyOn", true,
-                    "recipientsQueued", 0
-            ));
+            return ResponseEntity.ok(Map.of("enabled", true, "alreadyOn", true, "recipientsQueued", 0));
         }
         List<String> recipients = userRepository.findAll().stream()
-                .map(User::getEmail)
-                .filter(e -> e != null && !e.isBlank())
-                .distinct()
-                .toList();
+                .map(User::getEmail).filter(e -> e != null && !e.isBlank()).distinct().toList();
         emailService.sendMaintenanceNotice(recipients);
-        return ResponseEntity.ok(Map.of(
-                "enabled", true,
-                "alreadyOn", false,
-                "recipientsQueued", recipients.size()
-        ));
+        return ResponseEntity.ok(Map.of("enabled", true, "alreadyOn", false, "recipientsQueued", recipients.size()));
     }
 
     @PostMapping("/disable")
-    public ResponseEntity<?> disable(HttpSession session) {
-        User admin = requireAdmin(session);
-        if (admin == null) {
-            return ResponseEntity.status(403)
-                    .body(MessageResponse.of("관리자만 사용할 수 있는 기능입니다."));
-        }
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> disable() {
         boolean changed = maintenance.disable();
         if (!changed) {
-            return ResponseEntity.ok(Map.of(
-                    "enabled", false,
-                    "alreadyOff", true,
-                    "recipientsQueued", 0
-            ));
+            return ResponseEntity.ok(Map.of("enabled", false, "alreadyOff", true, "recipientsQueued", 0));
         }
         List<String> recipients = userRepository.findAll().stream()
-                .map(User::getEmail)
-                .filter(e -> e != null && !e.isBlank())
-                .distinct()
-                .toList();
+                .map(User::getEmail).filter(e -> e != null && !e.isBlank()).distinct().toList();
         emailService.sendMaintenanceEndNotice(recipients);
-        return ResponseEntity.ok(Map.of(
-                "enabled", false,
-                "alreadyOff", false,
-                "recipientsQueued", recipients.size()
-        ));
-    }
-
-    private User requireAdmin(HttpSession session) {
-        if (adminUsername == null || adminUsername.isBlank()) return null;
-        Object id = session.getAttribute(AuthController.SESSION_USER_KEY);
-        if (!(id instanceof Long userId)) return null;
-        return userRepository.findById(userId)
-                .filter(u -> adminUsername.equals(u.getUsername()))
-                .orElse(null);
+        return ResponseEntity.ok(Map.of("enabled", false, "alreadyOff", false, "recipientsQueued", recipients.size()));
     }
 }
