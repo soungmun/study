@@ -32,13 +32,14 @@ export default function NoticeEdit() {
 
   const onChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
-  // 새 파일 선택 시 서버에 업로드
+  // 새 파일 선택 시 기존 이미지를 모두 교체
   const handleFileChange = async (e) => {
     const files = Array.from(e.target.files);
     if (!files.length) return;
     e.target.value = '';
 
     setUploading(true);
+    const newImages = [];
     for (const file of files) {
       const fd = new FormData();
       fd.append('file', file);
@@ -53,10 +54,14 @@ export default function NoticeEdit() {
           continue;
         }
         const data = await r.json();
-        setImages((prev) => [...prev, data]);
+        newImages.push(data);
       } catch (err) {
         alert(`업로드 실패 (${file.name}): ${err.message}`);
       }
+    }
+    // 기존 이미지를 모두 지우고 새 이미지로 교체
+    if (newImages.length > 0) {
+      setImages(newImages);
     }
     setUploading(false);
   };

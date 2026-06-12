@@ -77,7 +77,7 @@ public class NoticeImageService {
 
     /**
      * 게시글 수정 시 이미지 동기화.
-     * - keepImageIds 에 없는 기존 이미지는 연결 해제(noticeId=null)
+     * - keepImageIds 에 없는 기존 이미지는 파일 + DB에서 완전 삭제
      * - keepImageIds 에 있지만 아직 연결 안 된 이미지는 연결
      * keepImageIds = 프론트에서 최종적으로 남길 imageId 전체 목록
      */
@@ -87,15 +87,18 @@ public class NoticeImageService {
         List<NoticeImage> current = imageRepository.findByNoticeIdOrderByIdAsc(noticeId);
 
         if (keepImageIds == null || keepImageIds.isEmpty()) {
-            // 모두 연결 해제
-            current.forEach(img -> img.attachToNotice(null));
+            // 모두 파일 + DB 삭제
+            current.forEach(img -> deleteFile(img.getStoredName()));
+            imageRepository.deleteAll(current);
             return;
         }
 
-        // 제거 대상: 현재 연결됐지만 keepImageIds에 없는 것
-        current.stream()
+        // 제거 대상: 현재 연결됐지만 keepImageIds에 없는 것 → 파일 + DB 삭제
+        List<NoticeImage> toDelete = current.stream()
                 .filter(img -> !keepImageIds.contains(img.getId()))
-                .forEach(img -> img.attachToNotice(null));
+                .toList();
+        toDelete.forEach(img -> deleteFile(img.getStoredName()));
+        imageRepository.deleteAll(toDelete);
 
         // 추가 대상: keepImageIds에 있지만 아직 연결 안 된 것 (새로 업로드한 이미지)
         List<Long> currentIds = current.stream().map(NoticeImage::getId).toList();
