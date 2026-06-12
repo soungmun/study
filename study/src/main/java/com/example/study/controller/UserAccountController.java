@@ -7,6 +7,7 @@ import com.example.study.dto.request.SignupRequest;
 import com.example.study.dto.request.UserUpdateRequest;
 import com.example.study.dto.response.MessageResponse;
 import com.example.study.dto.response.UserResponse;
+import com.example.study.repository.UserRepository;
 import com.example.study.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -27,9 +28,11 @@ public class UserAccountController {
             "해당 이메일이 등록되어 있다면 재설정 링크를 발송했습니다.";
 
     private final AuthService authService;
+    private final UserRepository userRepository;
 
-    public UserAccountController(AuthService authService) {
+    public UserAccountController(AuthService authService, UserRepository userRepository) {
         this.authService = authService;
+        this.userRepository = userRepository;
     }
 
     @PostMapping("/signup")
@@ -65,6 +68,25 @@ public class UserAccountController {
             case OK -> ResponseEntity.ok(MessageResponse.of("비밀번호가 변경되었습니다."));
             default -> ResponseEntity.status(400).body(MessageResponse.of("유효하지 않거나 만료된 재설정 링크입니다."));
         };
+    }
+
+    @GetMapping("/check-nickname")
+    public ResponseEntity<?> checkNickname(@RequestParam String nickname,
+                                           @AuthenticationPrincipal SecurityUser principal) {
+        String trimmed = nickname == null ? "" : nickname.trim();
+        if (trimmed.isEmpty() || trimmed.length() > 50) {
+            return ResponseEntity.badRequest().body(MessageResponse.of("닉네임은 1~50자여야 합니다."));
+        }
+        boolean taken;
+        if (principal != null) {
+            taken = userRepository.existsByNicknameAndIdNot(trimmed, principal.getUserId());
+        } else {
+            taken = userRepository.existsByNickname(trimmed);
+        }
+        if (taken) {
+            return ResponseEntity.status(409).body(MessageResponse.of("이미 사용 중인 닉네임입니다."));
+        }
+        return ResponseEntity.ok(MessageResponse.of("사용 가능한 닉네임입니다."));
     }
 
     @PutMapping("/me")

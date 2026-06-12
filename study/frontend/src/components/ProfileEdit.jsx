@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const API = 'http://localhost:8080/api/auth';
@@ -19,6 +19,11 @@ export default function ProfileEdit() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
+  // 닉네임 중복 체크 상태
+  const [nicknameCheck, setNicknameCheck] = useState({ status: 'idle', message: null });
+  // 'idle' | 'checking' | 'available' | 'taken' | 'error'
+  const nicknameTimerRef = useRef(null);
+
   useEffect(() => {
     fetch(`${API}/me`, { credentials: 'include' })
       .then((r) => (r.ok ? r.json() : null))
@@ -37,6 +42,48 @@ export default function ProfileEdit() {
       })
       .finally(() => setLoading(false));
   }, [navigate]);
+
+  // 닉네임 변경 시 debounce 중복 체크 (500ms)
+  const handleNicknameChange = (e) => {
+    const value = e.target.value;
+    setForm((f) => ({ ...f, nickname: value }));
+
+    clearTimeout(nicknameTimerRef.current);
+
+    const trimmed = value.trim();
+    // 현재 저장된 닉네임과 같으면 체크 불필요
+    if (trimmed === (user?.nickname || '').trim()) {
+      setNicknameCheck({ status: 'idle', message: null });
+      return;
+    }
+    if (!trimmed) {
+      setNicknameCheck({ status: 'idle', message: null });
+      return;
+    }
+    if (trimmed.length > 50) {
+      setNicknameCheck({ status: 'error', message: '닉네임은 50자 이하여야 합니다.' });
+      return;
+    }
+
+    setNicknameCheck({ status: 'checking', message: null });
+    nicknameTimerRef.current = setTimeout(async () => {
+      try {
+        const r = await fetch(
+          `${API}/check-nickname?nickname=${encodeURIComponent(trimmed)}`,
+          { credentials: 'include' }
+        );
+        if (r.status === 409) {
+          setNicknameCheck({ status: 'taken', message: '이미 사용 중인 닉네임입니다.' });
+        } else if (r.ok) {
+          setNicknameCheck({ status: 'available', message: '사용 가능한 닉네임입니다.' });
+        } else {
+          setNicknameCheck({ status: 'error', message: '확인 중 오류가 발생했습니다.' });
+        }
+      } catch {
+        setNicknameCheck({ status: 'error', message: '서버 연결을 확인해 주세요.' });
+      }
+    }, 500);
+  };
 
   const socialProvider = user?.kakaoId
     ? '카카오'
@@ -140,13 +187,27 @@ export default function ProfileEdit() {
 
         <div className="profile-edit-row">
           <label>닉네임</label>
-          <input
-            type="text"
-            value={form.nickname}
-            onChange={(e) => setForm({ ...form, nickname: e.target.value })}
-            placeholder="닉네임 (50자 이하)"
-            maxLength={50}
-          />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1 }}>
+            <input
+              type="text"
+              value={form.nickname}
+              onChange={handleNicknameChange}
+              placeholder="닉네임 (50자 이하)"
+              maxLength={50}
+            />
+            {nicknameCheck.status === 'checking' && (
+              <span style={{ fontSize: 12, color: '#94a3b8' }}>확인 중…</span>
+            )}
+            {nicknameCheck.status === 'available' && (
+              <span style={{ fontSize: 12, color: '#16a34a' }}>✅ {nicknameCheck.message}</span>
+            )}
+            {nicknameCheck.status === 'taken' && (
+              <span style={{ fontSize: 12, color: '#dc2626' }}>⚠️ {nicknameCheck.message}</span>
+            )}
+            {nicknameCheck.status === 'error' && (
+              <span style={{ fontSize: 12, color: '#dc2626' }}>{nicknameCheck.message}</span>
+            )}
+          </div>
         </div>
 
         <div className="profile-edit-row">

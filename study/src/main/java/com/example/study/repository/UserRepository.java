@@ -14,5 +14,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
     Optional<User> findByResetToken(String resetToken);
     boolean existsByUsername(String username);
+    boolean existsByNicknameAndIdNot(String nickname, Long id);
+    boolean existsByNickname(String nickname);
     List<User> findByNotificationOptInTrue();
 }
