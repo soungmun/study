@@ -21,7 +21,7 @@ public class StockApiController {
     /** 코스피·코스닥 큐레이션 종목 중 당일 상승률 TOP N */
     @GetMapping("/top-gainers")
     public List<StockService.Quote> topGainers(
-            @RequestParam(required = false, defaultValue = "10") int limit
+            @RequestParam(value = "limit", required = false, defaultValue = "10") int limit
     ) {
         return stockService.fetchTopGainers(limit);
     }
@@ -29,7 +29,7 @@ public class StockApiController {
     /** 코스피·코스닥 큐레이션 종목 중 당일 하락률 TOP N */
     @GetMapping("/top-losers")
     public List<StockService.Quote> topLosers(
-            @RequestParam(required = false, defaultValue = "10") int limit
+            @RequestParam(value = "limit", required = false, defaultValue = "10") int limit
     ) {
         return stockService.fetchTopLosers(limit);
     }
