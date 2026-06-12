@@ -25,15 +25,18 @@ public class NoticeService {
     private final CommentRepository commentRepository;
     private final NoticeLikeService noticeLikeService;
     private final UserRepository userRepository;
+    private final NoticeImageService noticeImageService;
 
     public NoticeService(NoticeRepository noticeRepository,
                          CommentRepository commentRepository,
                          NoticeLikeService noticeLikeService,
-                         UserRepository userRepository) {
+                         UserRepository userRepository,
+                         NoticeImageService noticeImageService) {
         this.noticeRepository = noticeRepository;
         this.commentRepository = commentRepository;
         this.noticeLikeService = noticeLikeService;
         this.userRepository = userRepository;
+        this.noticeImageService = noticeImageService;
     }
 
     public Page<NoticeListItem> search(String type, String keyword, Pageable pageable) {
@@ -54,7 +57,8 @@ public class NoticeService {
         long c = commentRepository.countByNoticeId(id);
         long l = noticeLikeService.count(id);
         boolean iLiked = noticeLikeService.liked(id, currentUserId);
-        return NoticeDetailResponse.of(n, c, l, iLiked, canModify(n, currentUserId));
+        List<String> imageUrls = noticeImageService.getImageUrls(id);
+        return NoticeDetailResponse.of(n, c, l, iLiked, canModify(n, currentUserId), imageUrls);
     }
 
     @Transactional
@@ -65,21 +69,24 @@ public class NoticeService {
         long c = commentRepository.countByNoticeId(id);
         long l = noticeLikeService.count(id);
         boolean iLiked = noticeLikeService.liked(id, currentUserId);
-        return NoticeDetailResponse.of(n, c, l, iLiked, canModify(n, currentUserId));
+        List<String> imageUrls = noticeImageService.getImageUrls(id);
+        return NoticeDetailResponse.of(n, c, l, iLiked, canModify(n, currentUserId), imageUrls);
     }
 
     @Transactional
-    public Notice create(Notice request, Long currentUserId) {
+    public Notice create(Notice request, Long currentUserId, List<Long> imageIds) {
         if (!isAdmin(currentUserId)) {
             throw new ForbiddenException("관리자만 공지를 등록할 수 있습니다.");
         }
         Notice notice = new Notice(request.getAuthor(), request.getTitle(), request.getContent());
         notice.setAuthorId(currentUserId);
-        return noticeRepository.save(notice);
+        Notice saved = noticeRepository.save(notice);
+        noticeImageService.attachImages(saved.getId(), imageIds, currentUserId);
+        return saved;
     }
 
     @Transactional
-    public Notice update(Long id, Notice request, Long currentUserId) {
+    public Notice update(Long id, Notice request, Long currentUserId, List<Long> imageIds) {
         Notice notice = noticeRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다. id=" + id));
         if (!canModify(notice, currentUserId)) {
@@ -88,7 +95,9 @@ public class NoticeService {
         notice.setAuthor(request.getAuthor());
         notice.setTitle(request.getTitle());
         notice.setContent(request.getContent());
-        return noticeRepository.save(notice);
+        Notice saved = noticeRepository.save(notice);
+        noticeImageService.attachImages(saved.getId(), imageIds, currentUserId);
+        return saved;
     }
 
     @Transactional
@@ -98,6 +107,7 @@ public class NoticeService {
         if (!canModify(notice, currentUserId)) {
             throw new ForbiddenException("본인 또는 관리자만 삭제할 수 있습니다.");
         }
+        noticeImageService.deleteByNoticeId(id);
         noticeRepository.delete(notice);
     }
 

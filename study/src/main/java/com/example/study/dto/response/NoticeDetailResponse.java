@@ -4,6 +4,7 @@ import com.example.study.entity.Notice;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record NoticeDetailResponse(
         Long id,
@@ -16,9 +17,11 @@ public record NoticeDetailResponse(
         long commentCount,
         long likeCount,
         boolean iLiked,
-        boolean canEdit
+        boolean canEdit,
+        List<String> imageUrls
 ) {
-    public static NoticeDetailResponse of(Notice n, long commentCount, long likeCount, boolean iLiked, boolean canEdit) {
+    public static NoticeDetailResponse of(Notice n, long commentCount, long likeCount,
+                                          boolean iLiked, boolean canEdit, List<String> imageUrls) {
         return new NoticeDetailResponse(
                 n.getId(),
                 n.getAuthor(),
@@ -30,7 +33,8 @@ public record NoticeDetailResponse(
                 commentCount,
                 likeCount,
                 iLiked,
-                canEdit
+                canEdit,
+                imageUrls
         );
     }
 }

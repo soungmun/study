@@ -1,10 +1,10 @@
 package com.example.study.controller;
 
 import com.example.study.config.SecurityUser;
+import com.example.study.dto.request.NoticeRequest;
 import com.example.study.dto.response.MessageResponse;
 import com.example.study.dto.response.NoticeDetailResponse;
 import com.example.study.dto.response.NoticeListItem;
-import com.example.study.entity.Notice;
 import com.example.study.service.NoticeLikeService;
 import com.example.study.service.NoticeService;
 import jakarta.validation.Valid;
@@ -60,19 +60,30 @@ public class NoticeController {
         return noticeLikeService.listLikers(id);
     }
 
+    /**
+     * 게시글 등록
+     * Content-Type: application/json
+     * Body: { "author": "...", "title": "...", "content": "...", "imageIds": [1, 2] }
+     * imageIds 는 /api/notices/images 로 미리 업로드한 이미지의 id 목록 (없으면 빈 배열 or 생략)
+     */
     @PostMapping
-    public ResponseEntity<?> create(@Valid @RequestBody Notice request,
+    public ResponseEntity<?> create(@Valid @RequestBody NoticeRequest request,
                                     @AuthenticationPrincipal SecurityUser principal) {
         if (principal == null) return ResponseEntity.status(401).body(MessageResponse.of("로그인이 필요합니다."));
-        return ResponseEntity.ok(noticeService.create(request, principal.getUserId()));
+        return ResponseEntity.ok(noticeService.create(request.toNotice(), principal.getUserId(), request.imageIds()));
     }
 
+    /**
+     * 게시글 수정
+     * Body: { "author": "...", "title": "...", "content": "...", "imageIds": [3] }
+     * imageIds 에 포함된 이미지는 이 게시글에 연결됩니다 (기존 이미지는 유지).
+     */
     @PutMapping("/{id}")
     public ResponseEntity<?> update(@PathVariable Long id,
-                                    @Valid @RequestBody Notice request,
+                                    @Valid @RequestBody NoticeRequest request,
                                     @AuthenticationPrincipal SecurityUser principal) {
         if (principal == null) return ResponseEntity.status(401).body(MessageResponse.of("로그인이 필요합니다."));
-        return ResponseEntity.ok(noticeService.update(id, request, principal.getUserId()));
+        return ResponseEntity.ok(noticeService.update(id, request.toNotice(), principal.getUserId(), request.imageIds()));
     }
 
     @DeleteMapping("/{id}")
