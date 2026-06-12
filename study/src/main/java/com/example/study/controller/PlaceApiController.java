@@ -19,19 +19,19 @@ public class PlaceApiController {
 
     @GetMapping("/search")
     public PlaceSearchResponse search(
-            @RequestParam String query,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "15") int size) {
+            @RequestParam("query") String query,
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "size", defaultValue = "15") int size) {
         return placeService.search(query, page, size);
     }
 
     @GetMapping("/nearby")
     public PlaceSearchResponse nearby(
-            @RequestParam double lat,
-            @RequestParam double lng,
-            @RequestParam(defaultValue = "FD6") String category,
-            @RequestParam(defaultValue = "800") int radius,
-            @RequestParam(defaultValue = "15") int size) {
+            @RequestParam("lat") double lat,
+            @RequestParam("lng") double lng,
+            @RequestParam(value = "category", defaultValue = "FD6") String category,
+            @RequestParam(value = "radius", defaultValue = "800") int radius,
+            @RequestParam(value = "size", defaultValue = "15") int size) {
         return placeService.searchNearby(lat, lng, category, radius, size);
     }
 }

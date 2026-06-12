@@ -71,7 +71,7 @@ public class UserAccountController {
     }
 
     @GetMapping("/check-nickname")
-    public ResponseEntity<?> checkNickname(@RequestParam String nickname,
+    public ResponseEntity<?> checkNickname(@RequestParam("nickname") String nickname,
                                            @AuthenticationPrincipal SecurityUser principal) {
         String trimmed = nickname == null ? "" : nickname.trim();
         if (trimmed.isEmpty() || trimmed.length() > 50) {

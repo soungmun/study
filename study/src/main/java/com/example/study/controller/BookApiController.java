@@ -19,11 +19,11 @@ public class BookApiController {
 
     @GetMapping("/search")
     public BookSearchResponse search(
-            @RequestParam String query,
-            @RequestParam(required = false, defaultValue = "accuracy") String sort,
-            @RequestParam(required = false) String target,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam("query") String query,
+            @RequestParam(value = "sort", required = false, defaultValue = "accuracy") String sort,
+            @RequestParam(value = "target", required = false) String target,
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size) {
         return bookService.search(query, sort, target, page, size);
     }
 }

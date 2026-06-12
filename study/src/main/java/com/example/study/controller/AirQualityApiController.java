@@ -19,8 +19,8 @@ public class AirQualityApiController {
 
     @GetMapping
     public AirQualityResponse get(
-            @RequestParam double lat,
-            @RequestParam double lng) {
+            @RequestParam("lat") double lat,
+            @RequestParam("lng") double lng) {
         return service.get(lat, lng);
     }
 }

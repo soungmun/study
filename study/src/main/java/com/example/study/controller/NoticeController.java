@@ -30,8 +30,8 @@ public class NoticeController {
 
     @GetMapping
     public Page<NoticeListItem> list(
-            @RequestParam(required = false, defaultValue = "title") String type,
-            @RequestParam(required = false) String keyword,
+            @RequestParam(value = "type", required = false, defaultValue = "title") String type,
+            @RequestParam(value = "keyword", required = false) String keyword,
             @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable) {
         return noticeService.search(type, keyword, pageable);
     }

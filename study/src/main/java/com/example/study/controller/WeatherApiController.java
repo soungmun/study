@@ -19,8 +19,8 @@ public class WeatherApiController {
 
     @GetMapping
     public WeatherResponse get(
-            @RequestParam double lat,
-            @RequestParam double lng) {
+            @RequestParam("lat") double lat,
+            @RequestParam("lng") double lng) {
         return weatherService.getWeather(lat, lng);
     }
 }
