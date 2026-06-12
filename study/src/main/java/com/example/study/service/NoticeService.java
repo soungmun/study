@@ -58,7 +58,8 @@ public class NoticeService {
         long l = noticeLikeService.count(id);
         boolean iLiked = noticeLikeService.liked(id, currentUserId);
         List<String> imageUrls = noticeImageService.getImageUrls(id);
-        return NoticeDetailResponse.of(n, c, l, iLiked, canModify(n, currentUserId), imageUrls);
+        List<NoticeImageService.ImageInfo> images = noticeImageService.getImages(id);
+        return NoticeDetailResponse.of(n, c, l, iLiked, canModify(n, currentUserId), imageUrls, images);
     }
 
     @Transactional
@@ -70,7 +71,8 @@ public class NoticeService {
         long l = noticeLikeService.count(id);
         boolean iLiked = noticeLikeService.liked(id, currentUserId);
         List<String> imageUrls = noticeImageService.getImageUrls(id);
-        return NoticeDetailResponse.of(n, c, l, iLiked, canModify(n, currentUserId), imageUrls);
+        List<NoticeImageService.ImageInfo> images = noticeImageService.getImages(id);
+        return NoticeDetailResponse.of(n, c, l, iLiked, canModify(n, currentUserId), imageUrls, images);
     }
 
     @Transactional
@@ -96,7 +98,8 @@ public class NoticeService {
         notice.setTitle(request.getTitle());
         notice.setContent(request.getContent());
         Notice saved = noticeRepository.save(notice);
-        noticeImageService.attachImages(saved.getId(), imageIds, currentUserId);
+        // 수정 시 syncImages 사용: 프론트에서 최종 imageIds 전체를 전달받아 동기화
+        noticeImageService.syncImages(saved.getId(), imageIds);
         return saved;
     }
 

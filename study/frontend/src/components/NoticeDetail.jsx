@@ -98,6 +98,24 @@ export default function NoticeDetail() {
       </div>
       <pre className="content">{notice.content}</pre>
 
+      {/* 이미지 목록 */}
+      {notice.imageUrls && notice.imageUrls.length > 0 && (
+        <div style={{ margin: '16px 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#64748b' }}>첨부 이미지 ({notice.imageUrls.length})</span>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+            {notice.imageUrls.map((url, i) => (
+              <a key={i} href={url} target="_blank" rel="noreferrer" style={{ display: 'block', borderRadius: 8, overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+                <img
+                  src={url}
+                  alt={`첨부 이미지 ${i + 1}`}
+                  style={{ width: 180, height: 135, objectFit: 'cover', display: 'block' }}
+                />
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '16px 0', gap: 8 }}>
         <button
           type="button"

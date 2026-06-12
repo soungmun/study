@@ -1,6 +1,7 @@
 package com.example.study.dto.response;
 
 import com.example.study.entity.Notice;
+import com.example.study.service.NoticeImageService.ImageInfo;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.time.LocalDateTime;
@@ -18,10 +19,12 @@ public record NoticeDetailResponse(
         long likeCount,
         boolean iLiked,
         boolean canEdit,
-        List<String> imageUrls
+        List<String> imageUrls,
+        List<ImageInfo> images
 ) {
     public static NoticeDetailResponse of(Notice n, long commentCount, long likeCount,
-                                          boolean iLiked, boolean canEdit, List<String> imageUrls) {
+                                          boolean iLiked, boolean canEdit,
+                                          List<String> imageUrls, List<ImageInfo> images) {
         return new NoticeDetailResponse(
                 n.getId(),
                 n.getAuthor(),
@@ -34,7 +37,8 @@ public record NoticeDetailResponse(
                 likeCount,
                 iLiked,
                 canEdit,
-                imageUrls
+                imageUrls,
+                images
         );
     }
 }

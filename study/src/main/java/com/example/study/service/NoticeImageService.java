@@ -65,7 +65,7 @@ public class NoticeImageService {
     }
 
     /**
-     * 게시글 저장/수정 시 이미지들을 해당 noticeId에 연결.
+     * 게시글 최초 저장 시 이미지들을 해당 noticeId에 연결.
      * imageIds 중 해당 userId가 업로드한 것만 연결 (보안).
      */
     @Transactional
@@ -73,6 +73,37 @@ public class NoticeImageService {
         if (imageIds == null || imageIds.isEmpty()) return;
         List<NoticeImage> images = imageRepository.findByIdInAndUserId(imageIds, userId);
         images.forEach(img -> img.attachToNotice(noticeId));
+    }
+
+    /**
+     * 게시글 수정 시 이미지 동기화.
+     * - keepImageIds 에 없는 기존 이미지는 연결 해제(noticeId=null)
+     * - keepImageIds 에 있지만 아직 연결 안 된 이미지는 연결
+     * keepImageIds = 프론트에서 최종적으로 남길 imageId 전체 목록
+     */
+    @Transactional
+    public void syncImages(Long noticeId, List<Long> keepImageIds) {
+        // 현재 연결된 이미지
+        List<NoticeImage> current = imageRepository.findByNoticeIdOrderByIdAsc(noticeId);
+
+        if (keepImageIds == null || keepImageIds.isEmpty()) {
+            // 모두 연결 해제
+            current.forEach(img -> img.attachToNotice(null));
+            return;
+        }
+
+        // 제거 대상: 현재 연결됐지만 keepImageIds에 없는 것
+        current.stream()
+                .filter(img -> !keepImageIds.contains(img.getId()))
+                .forEach(img -> img.attachToNotice(null));
+
+        // 추가 대상: keepImageIds에 있지만 아직 연결 안 된 것 (새로 업로드한 이미지)
+        List<Long> currentIds = current.stream().map(NoticeImage::getId).toList();
+        List<Long> newIds = keepImageIds.stream().filter(id -> !currentIds.contains(id)).toList();
+        if (!newIds.isEmpty()) {
+            List<NoticeImage> newImages = imageRepository.findByIdIn(newIds);
+            newImages.forEach(img -> img.attachToNotice(noticeId));
+        }
     }
 
     /** 업로드 직후 단일 이미지 URL 반환 */
@@ -87,6 +118,21 @@ public class NoticeImageService {
                 .map(img -> serverUrl + "/uploads/notice-images/" + img.getStoredName())
                 .toList();
     }
+
+    /** 게시글에 연결된 이미지 ID + URL 쌍 목록 반환 (수정 화면용) */
+    public List<ImageInfo> getImages(Long noticeId) {
+        return imageRepository.findByNoticeIdOrderByIdAsc(noticeId)
+                .stream()
+                .map(img -> new ImageInfo(
+                        img.getId(),
+                        serverUrl + "/uploads/notice-images/" + img.getStoredName(),
+                        img.getOriginalName()
+                ))
+                .toList();
+    }
+
+    /** 이미지 ID + URL + 원본명을 담는 간단한 DTO */
+    public record ImageInfo(Long imageId, String url, String originalName) {}
 
     /** 게시글 삭제 시 연결된 이미지도 삭제 */
     @Transactional
