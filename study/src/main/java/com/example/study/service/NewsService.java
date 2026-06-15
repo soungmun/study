@@ -33,14 +33,38 @@ public class NewsService {
 
     public record Headline(String title, String link, String source) {}
 
+    /** 종목명으로 Google News RSS 검색 */
+    public List<Headline> fetchByStock(String stockName, int max) {
+        try {
+            String encoded = java.net.URLEncoder.encode(stockName + " 주식", StandardCharsets.UTF_8);
+            String url = "https://news.google.com/rss/search?q=" + encoded + "&hl=ko&gl=KR&ceid=KR:ko";
+            String xml = restClient.get()
+                    .uri(url)
+                    .retrieve()
+                    .body(String.class);
+            return parseHeadlines(xml, max);
+        } catch (Exception e) {
+            log.warn("[News] 종목 뉴스 가져오기 실패 ({}): {}", stockName, e.getMessage());
+            return List.of();
+        }
+    }
+
     public List<Headline> fetchTop(int max) {
         try {
             String xml = restClient.get()
                     .uri(FEED_URL)
                     .retrieve()
                     .body(String.class);
-            if (xml == null || xml.isBlank()) return List.of();
+            return parseHeadlines(xml, max);
+        } catch (Exception e) {
+            log.warn("[News] 뉴스 RSS 가져오기 실패: {}", e.getMessage());
+            return List.of();
+        }
+    }
 
+    private List<Headline> parseHeadlines(String xml, int max) {
+        if (xml == null || xml.isBlank()) return List.of();
+        try {
             DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
             dbf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
             dbf.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
@@ -66,7 +90,7 @@ public class NewsService {
             }
             return out;
         } catch (Exception e) {
-            log.warn("[News] 뉴스 RSS 가져오기 실패: {}", e.getMessage());
+            log.warn("[News] XML 파싱 실패: {}", e.getMessage());
             return List.of();
         }
     }
