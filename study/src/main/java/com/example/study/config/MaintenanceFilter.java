@@ -1,19 +1,22 @@
 package com.example.study.config;
 
-import com.example.study.repository.UserRepository;
 import com.example.study.service.MaintenanceService;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Component;
-import org.springframework.web.servlet.HandlerInterceptor;
+import org.springframework.web.filter.OncePerRequestFilter;
 
+import java.io.IOException;
 import java.util.List;
 
-@Component
-public class MaintenanceInterceptor implements HandlerInterceptor {
+/**
+ * 점검 모드 필터 — Security 필터 체인 안에서 동작하므로
+ * SecurityContext 가 이미 복원된 시점에 실행된다.
+ */
+public class MaintenanceFilter extends OncePerRequestFilter {
 
     private static final List<String> WHITELIST_PREFIXES = List.of(
             "/api/admin/",
@@ -25,27 +28,29 @@ public class MaintenanceInterceptor implements HandlerInterceptor {
             "/api/auth/google/"
     );
 
-    private final MaintenanceService maintenance;
+    private final MaintenanceService maintenanceService;
 
-    public MaintenanceInterceptor(MaintenanceService maintenance,
-                                  @Value("${app.admin.username:}") String adminUsername,
-                                  UserRepository userRepository) {
-        this.maintenance = maintenance;
+    public MaintenanceFilter(MaintenanceService maintenanceService) {
+        this.maintenanceService = maintenanceService;
     }
 
     @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        if (!maintenance.isEnabled()) return true;
-        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) return true;
-        if (isWhitelisted(request.getRequestURI())) return true;
-        if (isAdmin()) return true;
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain) throws ServletException, IOException {
+        if (!maintenanceService.isEnabled()
+                || "OPTIONS".equalsIgnoreCase(request.getMethod())
+                || isWhitelisted(request.getRequestURI())
+                || isAdmin()) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
         response.setContentType("application/json;charset=UTF-8");
         response.getWriter().write(
                 "{\"maintenance\":true,\"message\":\"서버 점검 중입니다. 잠시 후 다시 시도해 주세요.\"}"
         );
-        return false;
     }
 
     private boolean isWhitelisted(String path) {
@@ -60,6 +65,6 @@ public class MaintenanceInterceptor implements HandlerInterceptor {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated()) return false;
         return auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
     }
 }
