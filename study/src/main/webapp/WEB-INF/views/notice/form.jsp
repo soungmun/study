@@ -66,7 +66,13 @@
 </head>
 <body>
 <div class="container">
-    <a href="${mode == 'edit' ? '/notices/'.concat(notice.id) : '/notices'}" class="back-link">← 돌아가기</a>
+    <%-- 돌아가기/취소 URL: mode에 따라 다르게 --%>
+    <c:url var="backUrl" value="/notices">
+        <c:if test="${mode == 'edit'}">
+            <c:param name="id" value="${notice.id}"/>
+        </c:if>
+    </c:url>
+    <a href="${backUrl}" class="back-link">← ${mode == 'edit' ? '돌아가기' : '목록으로'}</a>
     <h1><c:choose><c:when test="${mode == 'edit'}">✏️ 공지사항 수정</c:when><c:otherwise>📝 공지사항 작성</c:otherwise></c:choose></h1>
 
     <div class="card">
@@ -106,7 +112,8 @@
         </div>
 
         <div class="btn-row">
-            <a href="${mode == 'edit' ? '/notices/'.concat(notice.id) : '/notices'}" class="btn btn-secondary">취소</a>
+            <%-- 취소 버튼 --%>
+            <a href="${backUrl}" class="btn btn-secondary">취소</a>
             <button class="btn btn-primary" id="submitBtn" onclick="submitForm()">
                 <c:choose><c:when test="${mode == 'edit'}">수정 완료</c:when><c:otherwise>등록</c:otherwise></c:choose>
             </button>
@@ -156,13 +163,6 @@
 
     /* 드래그 앤 드롭 */
     const uploadArea = document.querySelector('.upload-area');
-    uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.style.borderColor = '#4f46e5'; });
-    uploadArea.addEventListener('dragleave', () => { uploadArea.style.borderColor = '#d1d5db'; });
-    uploadArea.addEventListener('drop', async e => {
-        e.preventDefault();
-        uploadArea.style.borderColor = '#d1d5db';
-        for (const file of Array.from(e.dataTransfer.files)) {
-            if (file.type.startsWith('image/')) await uploadFile(file);
         }
     });
 
