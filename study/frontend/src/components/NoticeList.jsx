@@ -5,13 +5,131 @@ const BASE_URL = 'http://localhost:8080/api/notices';
 const ADMIN_ME_URL = 'http://localhost:8080/api/admin/me';
 const PAGE_SIZE = 10;
 
+const PAGE_KEY = 'noticeListPage';
+const TYPE_KEY = 'noticeListType';
+const KEYWORD_KEY = 'noticeListKeyword';
+
 function badgeClass(n) {
   return `id-badge c${(Number(n) || 0) % 6}`;
 }
 
-const PAGE_KEY = 'noticeListPage';
-const TYPE_KEY = 'noticeListType';
-const KEYWORD_KEY = 'noticeListKeyword';
+/* ───────────────────────── 서브 컴포넌트 ───────────────────────── */
+
+function Toolbar({ isAdmin, onWrite }) {
+  return (
+    <div className="toolbar">
+      <h2>공지사항</h2>
+      {isAdmin && (
+        <button className="primary" onClick={onWrite}>+ 글쓰기</button>
+      )}
+    </div>
+  );
+}
+
+function SearchBar({ type, keyword, searchTerm, onTypeChange, onKeywordChange, onSubmit, onReset }) {
+  return (
+    <form className="search-bar" onSubmit={onSubmit}>
+      <select value={type} onChange={onTypeChange} className="search-select">
+        <option value="title">제목</option>
+        <option value="content">내용</option>
+      </select>
+      <input
+        type="text"
+        className="search-input"
+        placeholder="검색어를 입력하세요"
+        value={keyword}
+        onChange={onKeywordChange}
+      />
+      <button type="submit" className="primary">검색</button>
+      {searchTerm && (
+        <button type="button" className="ghost" onClick={onReset}>초기화</button>
+      )}
+    </form>
+  );
+}
+
+function NoticeRow({ notice, seq, onClick }) {
+  return (
+    <tr onClick={onClick} className="row">
+      <td><span className={badgeClass(seq)}>{seq}</span></td>
+      <td className="title">
+        <span>{notice.title}</span>
+        {notice.commentCount > 0 && (
+          <span style={{ marginLeft: 8, fontSize: 12, color: '#6366f1', fontWeight: 600 }}>
+            💬 {notice.commentCount}
+          </span>
+        )}
+        {notice.likeCount > 0 && (
+          <span style={{ marginLeft: 6, fontSize: 12, color: '#ef4444', fontWeight: 600 }}>
+            ❤️ {notice.likeCount}
+          </span>
+        )}
+      </td>
+      <td className="author hide-sm">{notice.author}</td>
+      <td className="author hide-sm">{notice.content}</td>
+      <td className="date hide-sm">{notice.createdAt}</td>
+      <td className="views">{notice.viewCountText}</td>
+    </tr>
+  );
+}
+
+function NoticeTable({ notices, pageNo, searchTerm, onRowClick }) {
+  return (
+    <table className="notice-table">
+      <thead>
+        <tr>
+          <th style={{ width: 70 }}>번호</th>
+          <th>제목</th>
+          <th style={{ width: 120 }} className="hide-sm">작성자</th>
+          <th style={{ width: 120 }} className="hide-sm">내용</th>
+          <th style={{ width: 170 }} className="hide-sm">작성일</th>
+          <th style={{ width: 80 }}>조회</th>
+        </tr>
+      </thead>
+      <tbody>
+        {notices.length === 0 ? (
+          <tr>
+            <td colSpan="6" className="empty">
+              {searchTerm ? '검색 결과가 없습니다.' : '등록된 글이 없습니다.'}
+            </td>
+          </tr>
+        ) : (
+          notices.map((n, i) => (
+            <NoticeRow
+              key={n.id}
+              notice={n}
+              seq={pageNo * PAGE_SIZE + i + 1}
+              onClick={() => onRowClick(n.id)}
+            />
+          ))
+        )}
+      </tbody>
+    </table>
+  );
+}
+
+function Pagination({ pageNo, totalPages, isFirst, isLast, onPageChange }) {
+  if (totalPages <= 0) return null;
+  return (
+    <div className="pagination">
+      <button onClick={() => onPageChange(0)} disabled={isFirst}>«</button>
+      <button onClick={() => onPageChange(pageNo - 1)} disabled={isFirst}>‹</button>
+      {Array.from({ length: totalPages }, (_, i) => (
+        <button
+          key={i}
+          className={i === pageNo ? 'page-num active' : 'page-num'}
+          onClick={() => onPageChange(i)}
+        >
+          {i + 1}
+        </button>
+      ))}
+      <button onClick={() => onPageChange(pageNo + 1)} disabled={isLast}>›</button>
+      <button onClick={() => onPageChange(totalPages - 1)} disabled={isLast}>»</button>
+    </div>
+  );
+}
+
+/* ───────────────────────── 메인 컴포넌트 ───────────────────────── */
 
 export default function NoticeList() {
   const navigate = useNavigate();
@@ -23,7 +141,7 @@ export default function NoticeList() {
   const [error, setError] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // 관리자 여부 확인 (글쓰기 버튼 노출용) — 로그인/로그아웃 시 auth-changed 로 갱신
+  // 관리자 여부 확인 — 로그인/로그아웃 시 auth-changed 로 갱신
   useEffect(() => {
     const check = () => {
       fetch(ADMIN_ME_URL, { credentials: 'include' })
@@ -75,89 +193,30 @@ export default function NoticeList() {
 
   return (
     <div className="card">
-      <div className="toolbar">
-        <h2>공지사항</h2>
-        {isAdmin && (
-          <button className="primary" onClick={() => navigate('/notices/new')}>+ 글쓰기</button>
-        )}
-      </div>
-      <form className="search-bar" onSubmit={onSearch}>
-        <select value={type} onChange={(e) => setType(e.target.value)} className="search-select">
-          <option value="title">제목</option>
-          <option value="content">내용</option>
-        </select>
-        <input
-          type="text"
-          className="search-input"
-          placeholder="검색어를 입력하세요"
-          value={keyword}
-          onChange={(e) => setKeyword(e.target.value)}
-        />
-        <button type="submit" className="primary">검색</button>
-        {searchTerm && (
-          <button type="button" className="ghost" onClick={onReset}>초기화</button>
-        )}
-      </form>
+      <Toolbar isAdmin={isAdmin} onWrite={() => navigate('/notices/new')} />
+      <SearchBar
+        type={type}
+        keyword={keyword}
+        searchTerm={searchTerm}
+        onTypeChange={(e) => setType(e.target.value)}
+        onKeywordChange={(e) => setKeyword(e.target.value)}
+        onSubmit={onSearch}
+        onReset={onReset}
+      />
       {error && <div className="error">에러: {error}</div>}
-      <table className="notice-table">
-        <thead>
-          <tr>
-            <th style={{ width: 70 }}>번호</th>
-            <th>제목</th>
-            <th style={{ width: 120 }} className="hide-sm">작성자</th>
-            <th style={{ width: 120 }} className="hide-sm">내용</th>
-            <th style={{ width: 170 }} className="hide-sm">작성일</th>
-            <th style={{ width: 80 }}>조회</th>
-          </tr>
-        </thead>
-        <tbody>
-          {notices.length === 0 && (
-            <tr><td colSpan="5" className="empty">
-              {searchTerm ? '검색 결과가 없습니다.' : '등록된 글이 없습니다.'}
-            </td></tr>
-          )}
-          {notices.map((n, i) => {
-            const seq = pageNo * PAGE_SIZE + i + 1;
-            return (
-              <tr key={n.id} onClick={() => navigate(`/notices/${n.id}`)} className="row">
-                <td><span className={badgeClass(seq)}>{seq}</span></td>
-                <td className="title">
-                  <span>{n.title}</span>
-                  {n.commentCount > 0 && (
-                    <span style={{ marginLeft: 8, fontSize: 12, color: '#6366f1', fontWeight: 600 }}>
-                      💬 {n.commentCount}
-                    </span>
-                  )}
-                  {n.likeCount > 0 && (
-                    <span style={{ marginLeft: 6, fontSize: 12, color: '#ef4444', fontWeight: 600 }}>
-                      ❤️ {n.likeCount}
-                    </span>
-                  )}
-                </td>
-                <td className="author hide-sm">{n.author}</td>
-                <td className="author hide-sm">{n.content}</td>
-                <td className="date hide-sm">{n.createdAt}</td>
-                <td className="views">{n.viewCountText}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-      {totalPages > 0 && (
-        <div className="pagination">
-          <button onClick={() => setPageNo(0)} disabled={isFirst}>«</button>
-          <button onClick={() => setPageNo((p) => p - 1)} disabled={isFirst}>‹</button>
-          {Array.from({ length: totalPages }, (_, i) => (
-            <button
-              key={i}
-              className={i === pageNo ? 'page-num active' : 'page-num'}
-              onClick={() => setPageNo(i)}
-            >{i + 1}</button>
-          ))}
-          <button onClick={() => setPageNo((p) => p + 1)} disabled={isLast}>›</button>
-          <button onClick={() => setPageNo(totalPages - 1)} disabled={isLast}>»</button>
-        </div>
-      )}
+      <NoticeTable
+        notices={notices}
+        pageNo={pageNo}
+        searchTerm={searchTerm}
+        onRowClick={(id) => navigate(`/notices/${id}`)}
+      />
+      <Pagination
+        pageNo={pageNo}
+        totalPages={totalPages}
+        isFirst={isFirst}
+        isLast={isLast}
+        onPageChange={setPageNo}
+      />
     </div>
   );
 }

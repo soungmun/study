@@ -38,3 +38,24 @@ out/
 
 ### Local secrets (절대 커밋 금지) ###
 src/main/resources/application-local.properties
+.env
+
+### 백업 파일 ###
+*~
+
+### 로그 ###
+*.log
+
+### 업로드 파일 ###
+uploads/
+
+### Node ###
+node_modules/
+package-lock.json
+package.json
+
+### PDF/HTML 문서 ###
+*.pdf
+*.html
+make-pdf.js
+docs/

@@ -43,6 +43,12 @@ public class SecurityConfig {
                 .securityContextRepository(new HttpSessionSecurityContextRepository())
             )
             .authorizeHttpRequests(auth -> auth
+                // JSP 뷰 경로 — 전체 허용 (method 무관)
+                .requestMatchers("/notices", "/notices/**").permitAll()
+                // JSP 내부 forward 경로 및 에러 페이지 허용
+                .requestMatchers("/WEB-INF/**", "/error").permitAll()
+                // 정적 리소스
+                .requestMatchers("/favicon.ico", "/favicon.svg", "/static/**", "/css/**", "/js/**", "/images/**").permitAll()
                 // 공개 API
                 .requestMatchers(HttpMethod.GET,
                     "/api/notices", "/api/notices/**",
