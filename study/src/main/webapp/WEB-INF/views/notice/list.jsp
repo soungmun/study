@@ -7,55 +7,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>공지사항</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Segoe UI', sans-serif; background: #f5f5f5; color: #333; }
-        .container { max-width: 900px; margin: 40px auto; padding: 0 16px; }
-        h1 { font-size: 1.8rem; margin-bottom: 24px; color: #1a1a2e; }
-
-        /* 검색 바 */
-        .search-form { display: flex; gap: 8px; margin-bottom: 20px; }
-        .search-form select,
-        .search-form input[type=text] {
-            padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.95rem;
-        }
-        .search-form input[type=text] { flex: 1; }
-        .search-form button {
-            padding: 8px 20px; background: #4f46e5; color: #fff;
-            border: none; border-radius: 6px; cursor: pointer; font-size: 0.95rem;
-        }
-        .search-form button:hover { background: #4338ca; }
-
-        /* 테이블 */
-        .notice-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
-        .notice-table th { background: #4f46e5; color: #fff; padding: 12px 16px; text-align: left; font-size: 0.9rem; }
-        .notice-table td { padding: 12px 16px; border-bottom: 1px solid #eee; font-size: 0.9rem; }
-        .notice-table tr:last-child td { border-bottom: none; }
-        .notice-table tr:hover td { background: #f0f0ff; }
-        .notice-table td.title a { color: #1a1a2e; text-decoration: none; font-weight: 500; }
-        .notice-table td.title a:hover { color: #4f46e5; text-decoration: underline; }
-        .notice-table td.center { text-align: center; color: #666; }
-        .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.78rem; }
-        .badge-view { background: #e0e7ff; color: #4f46e5; }
-        .badge-comment { background: #dcfce7; color: #16a34a; }
-        .badge-like { background: #fce7f3; color: #db2777; }
-
-        /* 페이지네이션 */
-        .pagination { display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 24px; }
-        .pagination a, .pagination span {
-            display: inline-block; padding: 6px 12px; border-radius: 6px; font-size: 0.9rem;
-            text-decoration: none; border: 1px solid #ddd; color: #555; background: #fff;
-        }
-        .pagination a:hover { background: #e0e7ff; border-color: #4f46e5; color: #4f46e5; }
-        .pagination .active { background: #4f46e5; color: #fff; border-color: #4f46e5; }
-        .pagination .disabled { color: #bbb; cursor: default; }
-
-        /* 버튼 */
-        .btn-write { display: inline-block; margin-bottom: 16px; padding: 9px 20px;
-            background: #4f46e5; color: #fff; border-radius: 6px; text-decoration: none; font-size: 0.9rem; }
-        .btn-write:hover { background: #4338ca; }
-        .empty { text-align: center; padding: 40px; color: #999; }
-    </style>
+    <link rel="stylesheet" href="<c:url value="/resources/css/list.css"/>">
 </head>
 <body>
 <div class="container">
