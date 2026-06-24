@@ -6,63 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><c:choose><c:when test="${mode == 'edit'}">공지사항 수정</c:when><c:otherwise>공지사항 작성</c:otherwise></c:choose></title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Segoe UI', sans-serif; background: #f5f5f5; color: #333; }
-        .container { max-width: 820px; margin: 40px auto; padding: 0 16px; }
-        h1 { font-size: 1.6rem; margin-bottom: 28px; color: #1a1a2e; }
-
-        .back-link { display: inline-flex; align-items: center; gap: 6px; color: #4f46e5;
-            text-decoration: none; font-size: 0.9rem; margin-bottom: 20px; }
-        .back-link:hover { text-decoration: underline; }
-
-        .card { background: #fff; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,.08); padding: 36px 40px; }
-
-        .form-group { margin-bottom: 22px; }
-        .form-group label { display: block; font-size: 0.88rem; font-weight: 600; color: #374151; margin-bottom: 6px; }
-        .form-group input[type=text],
-        .form-group textarea {
-            width: 100%; padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 8px;
-            font-size: 0.95rem; font-family: inherit; transition: border-color .2s;
-            outline: none;
-        }
-        .form-group input[type=text]:focus,
-        .form-group textarea:focus { border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,.12); }
-        .form-group textarea { resize: vertical; min-height: 260px; }
-        .char-count { font-size: 0.78rem; color: #9ca3af; text-align: right; margin-top: 4px; }
-
-        /* 이미지 업로드 */
-        .upload-area { border: 2px dashed #d1d5db; border-radius: 10px; padding: 24px;
-            text-align: center; cursor: pointer; transition: border-color .2s; }
-        .upload-area:hover { border-color: #4f46e5; background: #f5f3ff; }
-        .upload-area input[type=file] { display: none; }
-        .upload-area p { color: #6b7280; font-size: 0.9rem; }
-        .upload-area p span { color: #4f46e5; font-weight: 600; }
-
-        .preview-list { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
-        .preview-item { position: relative; }
-        .preview-item img { width: 120px; height: 120px; object-fit: cover; border-radius: 8px;
-            border: 1px solid #e5e7eb; }
-        .preview-item .remove-btn {
-            position: absolute; top: -8px; right: -8px; width: 22px; height: 22px;
-            background: #ef4444; color: #fff; border: none; border-radius: 50%;
-            cursor: pointer; font-size: 0.75rem; display: flex; align-items: center; justify-content: center;
-            line-height: 1;
-        }
-        .preview-item .remove-btn:hover { background: #dc2626; }
-
-        /* 버튼 */
-        .btn-row { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
-        .btn { display: inline-block; padding: 10px 28px; border-radius: 8px;
-            font-size: 0.95rem; cursor: pointer; border: none; font-family: inherit; }
-        .btn-primary   { background: #4f46e5; color: #fff; }
-        .btn-primary:hover { background: #4338ca; }
-        .btn-secondary { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; text-decoration: none; }
-        .btn-secondary:hover { background: #e5e7eb; }
-        .btn:disabled { opacity: .6; cursor: not-allowed; }
-
-        .error-msg { color: #ef4444; font-size: 0.85rem; margin-top: 4px; display: none; }
-    </style>
+    <link rel="stylesheet" href="<c:url value="/resources/css/form.css"/>">
 </head>
 <body>
 <div class="container">
@@ -123,7 +67,7 @@
 
 <script>
     const MODE = '${mode}';
-    const NOTICE_ID = ${mode == 'edit' ? notice.id : 'null'};
+    const NOTICE_ID = <c:choose><c:when test="${mode == 'edit'}">${notice.id}</c:when><c:otherwise>null</c:otherwise></c:choose>;
 
     // 수정 모드일 때 기존 이미지 ID 목록
     const existingImages = [
@@ -163,8 +107,9 @@
 
     /* 드래그 앤 드롭 */
     const uploadArea = document.querySelector('.upload-area');
-        }
-    });
+    // The following lines were commented out due to syntax errors.
+    //     }
+    // });
 
     /* ── 이미지 서버 업로드 ── */
     async function uploadFile(file) {
