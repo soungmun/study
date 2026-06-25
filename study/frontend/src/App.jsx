@@ -23,10 +23,17 @@ import { api } from './utils/api';
 
 function MaintenanceBanner() {
   const [enabled, setEnabled] = useState(false);
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth(); // isAdmin 추가
 
   useEffect(() => {
     let cancelled = false;
+
+    // 관리자가 아니면 API 호출을 하지 않음
+    if (!isAdmin) {
+      setEnabled(false); // 관리자가 아니면 점검 모드 비활성화
+      return;
+    }
+
     const fetchStatus = async () => {
       try {
         const data = await api.get('/admin/maintenance/status');
@@ -34,7 +41,10 @@ function MaintenanceBanner() {
           setEnabled(!!data.enabled);
         }
       } catch {
-        // 무시
+        // 무시 (API 호출 실패 시에도 배너 비활성화)
+        if (!cancelled) {
+          setEnabled(false);
+        }
       }
     };
     fetchStatus();
@@ -43,7 +53,7 @@ function MaintenanceBanner() {
       cancelled = true;
       clearInterval(id);
     };
-  }, [user]);
+  }, [user, isAdmin]); // user와 isAdmin이 변경될 때마다 useEffect 재실행
 
   if (!enabled) return null;
   return (

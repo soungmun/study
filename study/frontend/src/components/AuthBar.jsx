@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../utils/api';
 
 const API = 'http://localhost:8080/api/auth';
+const REMEMBER_USERNAME_KEY = 'rememberedUsername'; // localStorage 키 정의
 
 export default function AuthBar() {
   const { user, loading, login, logout, setUser } = useAuth();
@@ -13,6 +14,9 @@ export default function AuthBar() {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState(null);
   const wrapRef = useRef(null);
+
+  // 아이디 저장 상태 추가
+  const [rememberUsername, setRememberUsername] = useState(false);
 
   // 이메일 인증 상태
   const [emailVer, setEmailVer] = useState({
@@ -40,6 +44,15 @@ export default function AuthBar() {
     const t = setTimeout(() => setEmailVer((p) => ({ ...p, expiresInSec: p.expiresInSec - 1 })), 1000);
     return () => clearTimeout(t);
   }, [emailVer.expiresInSec]);
+
+  // 컴포넌트 마운트 시 localStorage에서 아이디 불러오기
+  useEffect(() => {
+    const remembered = localStorage.getItem(REMEMBER_USERNAME_KEY);
+    if (remembered) {
+      setForm((prevForm) => ({ ...prevForm, username: remembered }));
+      setRememberUsername(true);
+    }
+  }, []);
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -153,6 +166,12 @@ export default function AuthBar() {
         setUser(userData);
       } else {
         await login(form.username, form.password);
+        // 로그인 성공 시 아이디 저장 로직
+        if (rememberUsername) {
+          localStorage.setItem(REMEMBER_USERNAME_KEY, form.username);
+        } else {
+          localStorage.removeItem(REMEMBER_USERNAME_KEY);
+        }
       }
       setMode(null);
       setForm({ username: '', password: '', nickname: '', email: '', notificationOptIn: false });
@@ -262,6 +281,16 @@ export default function AuthBar() {
             onChange={(e) => setForm({ ...form, password: e.target.value })}
             required
           />
+          {mode === 'login' && ( // 로그인 모드일 때만 아이디 저장 체크박스 표시
+            <label className="auth-popover-checkbox">
+              <input
+                type="checkbox"
+                checked={rememberUsername}
+                onChange={(e) => setRememberUsername(e.target.checked)}
+              />
+              <span>아이디 저장</span>
+            </label>
+          )}
           {mode === 'signup' && (
             <>
               <input
@@ -387,9 +416,9 @@ export default function AuthBar() {
             <span className="kakao-login-icon" aria-hidden="true">
               <svg viewBox="0 0 24 22" width="18" height="16" fill="currentColor">
                 <path d="M12 0C5.373 0 0 4.262 0 9.52c0 3.348 2.182 6.292 5.477 7.96l-1.142 4.18c-.103.376.32.677.652.466l4.91-3.244c.69.07 1.39.108 2.103.108 6.627 0 12-4.262 12-9.52C24 4.262 18.627 0 12 0z" />
-              </svg>
-            </span>
-            카카오로 {mode === 'signup' ? '가입' : '로그인'}
+            </svg>
+          </span>
+          카카오로 {mode === 'signup' ? '가입' : '로그인'}
           </button>
           <button
             type="button"
