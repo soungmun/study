@@ -80,14 +80,14 @@ const NoticeTable = memo(function NoticeTable({ notices, searchTerm, onRowClick,
           <th style={{ width: 70 }}>번호</th>
           <th>제목</th>
           <th style={{ width: 120 }} className="hide-sm">작성자</th>
-          <th style={{ width: 170 }} className="hide-sm">작성일</th>
+          <th style={{ width: 170 }} className="hide-sm">작성일</th> {/* No change needed here, it's consistent with NoticeRow */}
           <th style={{ width: 80 }}>조회</th>
         </tr>
       </thead>
       <tbody>
         {isLoading ? (
           <tr>
-            <td colSpan="5" className="empty" style={{ padding: '40px 0' }}>
+            <td colSpan="5" className="empty" style={{ padding: '40px 0' }}> {/* colSpan is correct for 5 columns */}
               <div className="spinner" style={{ margin: '0 auto 10px' }} />
               <p style={{ margin: 0, color: '#94a3b8' }}>로딩 중입니다...</p>
             </td>
@@ -95,7 +95,7 @@ const NoticeTable = memo(function NoticeTable({ notices, searchTerm, onRowClick,
         ) : notices.length === 0 ? (
           <tr>
             <td colSpan="5" className="empty">
-              {searchTerm ? '검색 결과가 없습니다.' : '등록된 글이 없습니다.'}
+              {searchTerm ? '검색 결과가 없습니다.' : '등록된 글이 없습니다.'} {/* colSpan is correct for 5 columns */}
             </td>
           </tr>
         ) : (
