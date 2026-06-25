@@ -1,13 +1,7 @@
 package com.example.study.entity;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -15,6 +9,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List; // List 추가
 
 @Entity
 @Table(name = "notice")
@@ -50,6 +46,11 @@ public class Notice {
     @Column(name = "view_count", nullable = false)
     private long viewCount;
 
+    // --- NoticeImage와의 연관 관계 추가 ---
+    @OneToMany(mappedBy = "notice", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<NoticeImage> images = new ArrayList<>();
+    // ------------------------------------
+
     public Notice(String author, String title, String content) {
         this.author = author;
         this.title = title;
@@ -79,4 +80,20 @@ public class Notice {
         }
         return String.valueOf(viewCount);
     }
+
+    // --- 편의 메서드 추가 (양방향 관계 설정 시 유용) ---
+    public void addImage(NoticeImage image) {
+        this.images.add(image);
+        if (image.getNotice() != this) { // 무한 루프 방지
+            image.setNotice(this);
+        }
+    }
+
+    public void removeImage(NoticeImage image) {
+        this.images.remove(image);
+        if (image.getNotice() == this) { // 무한 루프 방지
+            image.setNotice(null);
+        }
+    }
+    // -------------------------------------------------
 }

@@ -9,6 +9,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List; // List 추가
 
 @Entity
 @Table(
@@ -43,6 +45,11 @@ public class Comment {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    // --- CommentLike와의 연관 관계 추가 ---
+    @OneToMany(mappedBy = "comment", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<CommentLike> likes = new ArrayList<>();
+    // ------------------------------------
+
     public Comment(Long noticeId, Long userId, String content) {
         this.noticeId = noticeId;
         this.userId = userId;
@@ -60,4 +67,20 @@ public class Comment {
     void onUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
+
+    // --- 편의 메서드 추가 (양방향 관계 설정 시 유용) ---
+    public void addLike(CommentLike commentLike) {
+        this.likes.add(commentLike);
+        if (commentLike.getComment() != this) { // 무한 루프 방지
+            commentLike.setComment(this);
+        }
+    }
+
+    public void removeLike(CommentLike commentLike) {
+        this.likes.remove(commentLike);
+        if (commentLike.getComment() == this) { // 무한 루프 방지
+            commentLike.setComment(null);
+        }
+    }
+    // -------------------------------------------------
 }

@@ -52,14 +52,23 @@ public class CommentLikeService {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("댓글을 찾을 수 없습니다. id=" + commentId));
 
-        boolean wasLiked = likeRepository.existsByCommentIdAndUserId(commentId, userId);
+        // Comment 객체를 사용하여 existsByCommentAndUserId 호출
+        boolean wasLiked = likeRepository.existsByCommentAndUserId(comment, userId);
         if (wasLiked) {
-            likeRepository.deleteByCommentIdAndUserId(commentId, userId);
+            // Comment 객체를 사용하여 deleteByCommentAndUserId 호출
+            likeRepository.deleteByCommentAndUserId(comment, userId);
+            // Comment 엔티티의 likes 컬렉션에서도 제거 (양방향 관계 동기화)
+            comment.removeLike(comment.getLikes().stream()
+                    .filter(cl -> cl.getUserId().equals(userId))
+                    .findFirst().orElse(null));
         } else {
-            likeRepository.save(new CommentLike(commentId, userId));
+            CommentLike newLike = new CommentLike(comment, userId); // Comment 객체를 사용하여 CommentLike 생성
+            likeRepository.save(newLike);
+            comment.addLike(newLike); // Comment 엔티티의 likes 컬렉션에 추가 (양방향 관계 동기화)
             notifyAuthor(comment, userId);
         }
-        long count = likeRepository.countByCommentId(commentId);
+        // Comment 객체를 사용하여 countByComment 호출
+        long count = likeRepository.countByComment(comment);
         return new Result(!wasLiked, count);
     }
 

@@ -3,6 +3,7 @@ package com.example.study.entity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter; // Setter 추가
 
 import java.time.LocalDateTime;
 
@@ -10,6 +11,7 @@ import java.time.LocalDateTime;
 @Table(name = "notice_image",
         indexes = @Index(name = "ix_nimage_notice", columnList = "notice_id"))
 @Getter
+@Setter // notice 필드를 설정하기 위해 Setter 추가
 @NoArgsConstructor
 public class NoticeImage {
 
@@ -17,9 +19,7 @@ public class NoticeImage {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** 연결된 게시글 ID. 업로드 직후에는 null(미연결 상태). */
-    @Column(name = "notice_id")
-    private Long noticeId;
+    // 기존 noticeId 필드 제거
 
     /** 업로드한 사용자 */
     @Column(name = "user_id", nullable = false)
@@ -44,6 +44,12 @@ public class NoticeImage {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    // --- Notice 엔티티와의 ManyToOne 관계 추가 ---
+    @ManyToOne(fetch = FetchType.LAZY) // NoticeImage는 하나의 Notice에 속함 (지연 로딩)
+    @JoinColumn(name = "notice_id") // notice_id 컬럼이 Notice 엔티티의 ID를 참조
+    private Notice notice; // 연관 관계의 주인 (외래키를 가짐)
+    // ------------------------------------------
+
     public NoticeImage(Long userId, String storedName, String originalName,
                        long fileSize, String mimeType) {
         this.userId = userId;
@@ -51,15 +57,24 @@ public class NoticeImage {
         this.originalName = originalName;
         this.fileSize = fileSize;
         this.mimeType = mimeType;
+        // notice 필드는 나중에 attachToNotice 등을 통해 설정
     }
+
+    // Notice와 연결될 때 사용하는 생성자 (선택 사항)
+    public NoticeImage(Long userId, String storedName, String originalName,
+                       long fileSize, String mimeType, Notice notice) {
+        this(userId, storedName, originalName, fileSize, mimeType);
+        this.notice = notice;
+    }
+
 
     @PrePersist
     void onCreate() {
         this.createdAt = LocalDateTime.now();
     }
 
-    /** 게시글 저장 후 이미지를 게시글에 연결할 때 사용 */
-    public void attachToNotice(Long noticeId) {
-        this.noticeId = noticeId;
-    }
+    // 기존 attachToNotice 메서드는 더 이상 필요 없음 (setter 또는 생성자로 대체)
+    // public void attachToNotice(Long noticeId) {
+    //     this.noticeId = noticeId;
+    // }
 }

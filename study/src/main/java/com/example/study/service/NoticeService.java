@@ -3,6 +3,7 @@ package com.example.study.service;
 import com.example.study.dto.response.NoticeDetailResponse;
 import com.example.study.dto.response.NoticeListItem;
 import com.example.study.entity.Notice;
+import com.example.study.entity.NoticeImage; // NoticeImage import 추가
 import com.example.study.exception.ForbiddenException;
 import com.example.study.repository.CommentRepository;
 import com.example.study.repository.NoticeRepository;
@@ -16,6 +17,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors; // Collectors import 추가
 
 @Service
 @Transactional(readOnly = true)
@@ -25,7 +27,7 @@ public class NoticeService {
     private final CommentRepository commentRepository;
     private final NoticeLikeService noticeLikeService;
     private final UserRepository userRepository;
-    private final NoticeImageService noticeImageService;
+    private final NoticeImageService noticeImageService; // NoticeImageService는 여전히 필요 (업로드, 파일 삭제 등)
 
     public NoticeService(NoticeRepository noticeRepository,
                          CommentRepository commentRepository,
@@ -53,13 +55,25 @@ public class NoticeService {
     }
 
     public NoticeDetailResponse findDetail(Long id, Long currentUserId) {
+        // Notice를 가져올 때 이미지를 EAGER로 가져오거나, LAZY라면 getImages() 호출 시 로딩
         Notice n = noticeRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다. id=" + id));
         long c = commentRepository.countByNoticeId(id);
         long l = noticeLikeService.count(id);
         boolean iLiked = noticeLikeService.liked(id, currentUserId);
-        List<String> imageUrls = noticeImageService.getImageUrls(id);
-        List<NoticeImageService.ImageInfo> images = noticeImageService.getImages(id);
+
+        // Notice 엔티티의 images 컬렉션에서 직접 이미지 정보 추출
+        List<String> imageUrls = n.getImages().stream()
+                .map(img -> noticeImageService.getImageUrl(img.getStoredName())) // 변경된 메서드 호출
+                .collect(Collectors.toList());
+        List<NoticeImageService.ImageInfo> images = n.getImages().stream()
+                .map(img -> new NoticeImageService.ImageInfo(
+                        img.getId(),
+                        noticeImageService.getImageUrl(img.getStoredName()), // 변경된 메서드 호출
+                        img.getOriginalName()
+                ))
+                .collect(Collectors.toList());
+
         return NoticeDetailResponse.of(n, c, l, iLiked, canModify(n, currentUserId), imageUrls, images);
     }
 
@@ -71,8 +85,19 @@ public class NoticeService {
         long c = commentRepository.countByNoticeId(id);
         long l = noticeLikeService.count(id);
         boolean iLiked = noticeLikeService.liked(id, currentUserId);
-        List<String> imageUrls = noticeImageService.getImageUrls(id);
-        List<NoticeImageService.ImageInfo> images = noticeImageService.getImages(id);
+
+        // Notice 엔티티의 images 컬렉션에서 직접 이미지 정보 추출
+        List<String> imageUrls = n.getImages().stream()
+                .map(img -> noticeImageService.getImageUrl(img.getStoredName())) // 변경된 메서드 호출
+                .collect(Collectors.toList());
+        List<NoticeImageService.ImageInfo> images = n.getImages().stream()
+                .map(img -> new NoticeImageService.ImageInfo(
+                        img.getId(),
+                        noticeImageService.getImageUrl(img.getStoredName()), // 변경된 메서드 호출
+                        img.getOriginalName()
+                ))
+                .collect(Collectors.toList());
+
         return NoticeDetailResponse.of(n, c, l, iLiked, canModify(n, currentUserId), imageUrls, images);
     }
 
@@ -83,8 +108,16 @@ public class NoticeService {
         }
         Notice notice = new Notice(request.getAuthor(), request.getTitle(), request.getContent());
         notice.setAuthorId(currentUserId);
-        Notice saved = noticeRepository.save(notice);
-        noticeImageService.attachImages(saved.getId(), imageIds, currentUserId);
+        Notice saved = noticeRepository.save(notice); // Notice 저장 -> id가 생성됨
+
+        // imageIds에 해당하는 NoticeImage들을 찾아 Notice에 연결
+        if (imageIds != null && !imageIds.isEmpty()) {
+            List<NoticeImage> imagesToAttach = noticeImageService.findImagesByIds(imageIds, currentUserId); // 변경된 메서드 호출
+            for (NoticeImage image : imagesToAttach) {
+                saved.addImage(image); // Notice의 편의 메서드를 사용하여 양방향 관계 설정
+            }
+            // saved.getImages() 컬렉션에 추가된 이미지들은 cascade = ALL 에 의해 함께 저장됨
+        }
         return saved;
     }
 
@@ -98,10 +131,34 @@ public class NoticeService {
         notice.setAuthor(request.getAuthor());
         notice.setTitle(request.getTitle());
         notice.setContent(request.getContent());
-        Notice saved = noticeRepository.save(notice);
-        // 수정 시 syncImages 사용: 프론트에서 최종 imageIds 전체를 전달받아 동기화
-        noticeImageService.syncImages(saved.getId(), imageIds);
-        return saved;
+
+        // 이미지 동기화 로직
+        // 1. 현재 Notice에 연결된 이미지 ID 목록
+        List<Long> currentImageIds = notice.getImages().stream()
+                .map(NoticeImage::getId)
+                .collect(Collectors.toList());
+
+        // 2. 삭제할 이미지: currentImageIds에는 있지만 keepImageIds(imageIds)에는 없는 것
+        List<NoticeImage> imagesToDelete = notice.getImages().stream()
+                .filter(img -> !imageIds.contains(img.getId()))
+                .collect(Collectors.toList());
+        for (NoticeImage img : imagesToDelete) {
+            notice.removeImage(img); // Notice에서 이미지 제거 (orphanRemoval=true에 의해 DB에서도 삭제)
+            noticeImageService.deleteFile(img.getStoredName()); // 실제 파일 삭제
+        }
+
+        // 3. 추가할 이미지: keepImageIds(imageIds)에는 있지만 currentImageIds에는 없는 것
+        List<Long> newImageIds = imageIds.stream()
+                .filter(imageId -> !currentImageIds.contains(imageId))
+                .collect(Collectors.toList());
+        if (!newImageIds.isEmpty()) {
+            List<NoticeImage> imagesToAdd = noticeImageService.findImagesByIds(newImageIds, currentUserId); // 변경된 메서드 호출
+            for (NoticeImage img : imagesToAdd) {
+                notice.addImage(img); // Notice에 이미지 추가
+            }
+        }
+        // Notice 엔티티를 저장하면 변경된 images 컬렉션도 함께 반영됨
+        return noticeRepository.save(notice);
     }
 
     @Transactional
@@ -111,7 +168,11 @@ public class NoticeService {
         if (!canModify(notice, currentUserId)) {
             throw new ForbiddenException("본인 또는 관리자만 삭제할 수 있습니다.");
         }
-        noticeImageService.deleteByNoticeId(id);
+        // NoticeImageService를 통해 연결된 이미지 파일들을 먼저 삭제
+        // Notice 엔티티의 images 컬렉션을 통해 이미지 파일명을 얻어와 삭제
+        notice.getImages().forEach(img -> noticeImageService.deleteFile(img.getStoredName()));
+
+        // Notice를 삭제하면 cascade = ALL, orphanRemoval = true 설정에 의해 연결된 NoticeImage들도 자동으로 삭제됨
         noticeRepository.delete(notice);
     }
 

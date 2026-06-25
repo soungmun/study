@@ -1,5 +1,6 @@
 package com.example.study.service;
 
+import com.example.study.entity.Notice; // Notice 엔티티 import 추가
 import com.example.study.entity.NoticeImage;
 import com.example.study.repository.NoticeImageRepository;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,7 +39,7 @@ public class NoticeImageService {
 
     /**
      * 이미지 업로드 — 파일을 디스크에 저장하고 DB에 기록.
-     * 게시글 저장 전 미리 업로드할 수 있으며, 이때 noticeId는 null.
+     * 게시글 저장 전 미리 업로드할 수 있으며, 이때 notice는 null.
      */
     @Transactional
     public NoticeImage upload(MultipartFile file, Long userId) throws IOException {
@@ -54,6 +55,7 @@ public class NoticeImageService {
         Path dest = dir.resolve(storedName);
         file.transferTo(dest);
 
+        // NoticeImage 엔티티 생성 시 notice 필드는 아직 설정하지 않음
         NoticeImage image = new NoticeImage(
                 userId,
                 storedName,
@@ -65,85 +67,30 @@ public class NoticeImageService {
     }
 
     /**
-     * 게시글 최초 저장 시 이미지들을 해당 noticeId에 연결.
-     * imageIds 중 해당 userId가 업로드한 것만 연결 (보안).
+     * imageIds에 해당하는 NoticeImage들을 조회.
+     * NoticeService에서 Notice에 연결할 때 사용.
      */
-    @Transactional
-    public void attachImages(Long noticeId, List<Long> imageIds, Long userId) {
-        if (imageIds == null || imageIds.isEmpty()) return;
-        List<NoticeImage> images = imageRepository.findByIdInAndUserId(imageIds, userId);
-        images.forEach(img -> img.attachToNotice(noticeId));
+    public List<NoticeImage> findImagesByIds(List<Long> imageIds, Long userId) {
+        if (imageIds == null || imageIds.isEmpty()) return List.of();
+        // 보안: 해당 userId가 업로드한 이미지들만 가져오도록 함
+        return imageRepository.findByIdInAndUserId(imageIds, userId);
     }
 
-    /**
-     * 게시글 수정 시 이미지 동기화.
-     * - keepImageIds 에 없는 기존 이미지는 파일 + DB에서 완전 삭제
-     * - keepImageIds 에 있지만 아직 연결 안 된 이미지는 연결
-     * keepImageIds = 프론트에서 최종적으로 남길 imageId 전체 목록
-     */
-    @Transactional
-    public void syncImages(Long noticeId, List<Long> keepImageIds) {
-        // 현재 연결된 이미지
-        List<NoticeImage> current = imageRepository.findByNoticeIdOrderByIdAsc(noticeId);
+    // 기존 attachImages 메서드는 NoticeService에서 Notice의 addImage()로 대체되므로 삭제
 
-        if (keepImageIds == null || keepImageIds.isEmpty()) {
-            // 모두 파일 + DB 삭제
-            current.forEach(img -> deleteFile(img.getStoredName()));
-            imageRepository.deleteAll(current);
-            return;
-        }
+    // 기존 syncImages 메서드는 NoticeService에서 직접 컬렉션 조작으로 대체되므로 삭제
 
-        // 제거 대상: 현재 연결됐지만 keepImageIds에 없는 것 → 파일 + DB 삭제
-        List<NoticeImage> toDelete = current.stream()
-                .filter(img -> !keepImageIds.contains(img.getId()))
-                .toList();
-        toDelete.forEach(img -> deleteFile(img.getStoredName()));
-        imageRepository.deleteAll(toDelete);
-
-        // 추가 대상: keepImageIds에 있지만 아직 연결 안 된 것 (새로 업로드한 이미지)
-        List<Long> currentIds = current.stream().map(NoticeImage::getId).toList();
-        List<Long> newIds = keepImageIds.stream().filter(id -> !currentIds.contains(id)).toList();
-        if (!newIds.isEmpty()) {
-            List<NoticeImage> newImages = imageRepository.findByIdIn(newIds);
-            newImages.forEach(img -> img.attachToNotice(noticeId));
-        }
-    }
-
-    /** 업로드 직후 단일 이미지 URL 반환 */
-    public String getUploadedImageUrl(String storedName) {
+    /** 업로드된 이미지의 URL 반환 */
+    public String getImageUrl(String storedName) {
         return serverUrl + "/uploads/notice-images/" + storedName;
     }
 
-    /** 게시글에 연결된 이미지 URL 목록 반환 */
-    public List<String> getImageUrls(Long noticeId) {
-        return imageRepository.findByNoticeIdOrderByIdAsc(noticeId)
-                .stream()
-                .map(img -> serverUrl + "/uploads/notice-images/" + img.getStoredName())
-                .toList();
-    }
-
-    /** 게시글에 연결된 이미지 ID + URL 쌍 목록 반환 (수정 화면용) */
-    public List<ImageInfo> getImages(Long noticeId) {
-        return imageRepository.findByNoticeIdOrderByIdAsc(noticeId)
-                .stream()
-                .map(img -> new ImageInfo(
-                        img.getId(),
-                        serverUrl + "/uploads/notice-images/" + img.getStoredName(),
-                        img.getOriginalName()
-                ))
-                .toList();
-    }
+    // 기존 getImageUrls, getImages 메서드는 NoticeService에서 Notice.getImages()를 통해 직접 처리하므로 삭제
 
     /** 이미지 ID + URL + 원본명을 담는 간단한 DTO */
     public record ImageInfo(Long imageId, String url, String originalName) {}
 
-    /** 게시글 삭제 시 연결된 이미지도 삭제 */
-    @Transactional
-    public void deleteByNoticeId(Long noticeId) {
-        List<NoticeImage> images = imageRepository.findByNoticeIdOrderByIdAsc(noticeId);
-        images.forEach(img -> deleteFile(img.getStoredName()));
-        imageRepository.deleteByNoticeId(noticeId);
-    }
+    // 기존 deleteByNoticeId 메서드는 NoticeService에서 Notice 삭제 시 cascade에 의해 DB 삭제, 파일은 수동 삭제로 대체되므로 삭제
 
     // ── 내부 헬퍼 ─────────────────────────────────────────────
 
@@ -166,12 +113,14 @@ public class NoticeImageService {
         return filename.substring(filename.lastIndexOf('.'));
     }
 
-    private void deleteFile(String storedName) {
+    /** 실제 파일 시스템에서 이미지 파일 삭제 */
+    public void deleteFile(String storedName) {
         try {
             Path path = Paths.get(uploadDir).resolve(storedName);
             Files.deleteIfExists(path);
         } catch (IOException e) {
-            // 파일 삭제 실패는 로그만 남기고 DB 삭제는 진행
+            // 파일 삭제 실패는 로그만 남기고 DB 삭제는 진행 (DB 삭제는 JPA가 처리)
+            System.err.println("Failed to delete file: " + storedName + " - " + e.getMessage());
         }
     }
 }
