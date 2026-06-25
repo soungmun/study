@@ -44,9 +44,10 @@ public class NoticeService {
         if (keyword == null || keyword.isBlank()) {
             page = noticeRepository.findAll(pageable);
         } else if ("content".equalsIgnoreCase(type)) {
-            page = noticeRepository.findByContentContaining(keyword, pageable);
+            page = noticeRepository.findByContentLike(keyword, pageable);
         } else {
-            page = noticeRepository.findByTitleContaining(keyword, pageable);
+            // findByTitleContaining 대신 findByTitleLike 사용
+            page = noticeRepository.findByTitleLike(keyword, pageable);
         }
         return enrich(page);
     }
