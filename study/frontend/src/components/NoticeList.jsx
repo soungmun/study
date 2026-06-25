@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, memo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { api } from '../utils/api';
 
-const BASE_URL = 'http://localhost:8080/api/notices';
-const ADMIN_ME_URL = 'http://localhost:8080/api/admin/me';
 const PAGE_SIZE = 10;
 
 const PAGE_KEY = 'noticeListPage';
@@ -15,7 +15,7 @@ function badgeClass(n) {
 
 /* ───────────────────────── 서브 컴포넌트 ───────────────────────── */
 
-function Toolbar({ isAdmin, onWrite }) {
+const Toolbar = memo(function Toolbar({ isAdmin, onWrite }) {
   return (
     <div className="toolbar">
       <h2>공지사항</h2>
@@ -24,9 +24,9 @@ function Toolbar({ isAdmin, onWrite }) {
       )}
     </div>
   );
-}
+});
 
-function SearchBar({ type, keyword, searchTerm, onTypeChange, onKeywordChange, onSubmit, onReset }) {
+const SearchBar = memo(function SearchBar({ type, keyword, searchTerm, onTypeChange, onKeywordChange, onSubmit, onReset }) {
   return (
     <form className="search-bar" onSubmit={onSubmit}>
       <select value={type} onChange={onTypeChange} className="search-select">
@@ -46,12 +46,12 @@ function SearchBar({ type, keyword, searchTerm, onTypeChange, onKeywordChange, o
       )}
     </form>
   );
-}
+});
 
-function NoticeRow({ notice, seq, onClick }) {
+const NoticeRow = memo(function NoticeRow({ notice, onClick }) {
   return (
     <tr onClick={onClick} className="row">
-      <td><span className={badgeClass(seq)}>{seq}</span></td>
+      <td><span className={badgeClass(notice.id)}>{notice.id}</span></td>
       <td className="title">
         <span>{notice.title}</span>
         {notice.commentCount > 0 && (
@@ -66,14 +66,13 @@ function NoticeRow({ notice, seq, onClick }) {
         )}
       </td>
       <td className="author hide-sm">{notice.author}</td>
-      <td className="author hide-sm">{notice.content}</td>
       <td className="date hide-sm">{notice.createdAt}</td>
       <td className="views">{notice.viewCountText}</td>
     </tr>
   );
-}
+});
 
-function NoticeTable({ notices, pageNo, searchTerm, onRowClick }) {
+const NoticeTable = memo(function NoticeTable({ notices, searchTerm, onRowClick, isLoading }) {
   return (
     <table className="notice-table">
       <thead>
@@ -81,24 +80,29 @@ function NoticeTable({ notices, pageNo, searchTerm, onRowClick }) {
           <th style={{ width: 70 }}>번호</th>
           <th>제목</th>
           <th style={{ width: 120 }} className="hide-sm">작성자</th>
-          <th style={{ width: 120 }} className="hide-sm">내용</th>
           <th style={{ width: 170 }} className="hide-sm">작성일</th>
           <th style={{ width: 80 }}>조회</th>
         </tr>
       </thead>
       <tbody>
-        {notices.length === 0 ? (
+        {isLoading ? (
           <tr>
-            <td colSpan="6" className="empty">
+            <td colSpan="5" className="empty" style={{ padding: '40px 0' }}>
+              <div className="spinner" style={{ margin: '0 auto 10px' }} />
+              <p style={{ margin: 0, color: '#94a3b8' }}>로딩 중입니다...</p>
+            </td>
+          </tr>
+        ) : notices.length === 0 ? (
+          <tr>
+            <td colSpan="5" className="empty">
               {searchTerm ? '검색 결과가 없습니다.' : '등록된 글이 없습니다.'}
             </td>
           </tr>
         ) : (
-          notices.map((n, i) => (
+          notices.map((n) => (
             <NoticeRow
               key={n.id}
               notice={n}
-              seq={pageNo * PAGE_SIZE + i + 1}
               onClick={() => onRowClick(n.id)}
             />
           ))
@@ -106,9 +110,9 @@ function NoticeTable({ notices, pageNo, searchTerm, onRowClick }) {
       </tbody>
     </table>
   );
-}
+});
 
-function Pagination({ pageNo, totalPages, isFirst, isLast, onPageChange }) {
+const Pagination = memo(function Pagination({ pageNo, totalPages, isFirst, isLast, onPageChange }) {
   if (totalPages <= 0) return null;
   return (
     <div className="pagination">
@@ -127,64 +131,86 @@ function Pagination({ pageNo, totalPages, isFirst, isLast, onPageChange }) {
       <button onClick={() => onPageChange(totalPages - 1)} disabled={isLast}>»</button>
     </div>
   );
-}
+});
 
 /* ───────────────────────── 메인 컴포넌트 ───────────────────────── */
 
 export default function NoticeList() {
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
   const [page, setPage] = useState(null);
   const [pageNo, setPageNo] = useState(() => Number(sessionStorage.getItem(PAGE_KEY) ?? 0));
   const [type, setType] = useState(() => sessionStorage.getItem(TYPE_KEY) ?? 'title');
   const [keyword, setKeyword] = useState(() => sessionStorage.getItem(KEYWORD_KEY) ?? '');
   const [searchTerm, setSearchTerm] = useState(() => sessionStorage.getItem(KEYWORD_KEY) ?? '');
   const [error, setError] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // 관리자 여부 확인 — 로그인/로그아웃 시 auth-changed 로 갱신
-  useEffect(() => {
-    const check = () => {
-      fetch(ADMIN_ME_URL, { credentials: 'include' })
-        .then((r) => (r.ok ? r.json() : { admin: false }))
-        .then((d) => setIsAdmin(!!d.admin))
-        .catch(() => setIsAdmin(false));
-    };
-    check();
-    window.addEventListener('auth-changed', check);
-    return () => window.removeEventListener('auth-changed', check);
-  }, []);
-
+  // 실무 API 연동 패턴: 의존성 변경 시 AbortController를 통한 경합 상태(Race Condition) 완벽 통제 및 로딩 처리
   useEffect(() => {
     sessionStorage.setItem(PAGE_KEY, String(pageNo));
     sessionStorage.setItem(TYPE_KEY, type);
     sessionStorage.setItem(KEYWORD_KEY, searchTerm);
+
+    const controller = new AbortController();
     const params = new URLSearchParams({
       page: String(pageNo),
       size: String(PAGE_SIZE),
       type,
     });
     if (searchTerm.trim()) params.set('keyword', searchTerm.trim());
-    fetch(`${BASE_URL}?${params.toString()}`)
-      .then(async (r) => {
-        if (!r.ok) throw new Error(await r.text());
-        return r.json();
+    
+    setIsLoading(true);
+    setError(null);
+
+    api.get(`/notices?${params.toString()}`, { signal: controller.signal })
+      .then((data) => {
+        setPage(data);
       })
-      .then(setPage)
-      .catch((e) => setError(e.message));
+      .catch((e) => {
+        if (e.name === 'AbortError') return;
+        setError(e.message);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      controller.abort();
+    };
   }, [pageNo, type, searchTerm]);
 
-  const onSearch = (e) => {
+  // 하위 컴포넌트 전달용 이벤트 핸들러들은 useCallback으로 메모이제이션 처리 (리렌더링 최소화)
+  const onSearch = useCallback((e) => {
     e.preventDefault();
     setPageNo(0);
     setSearchTerm(keyword);
-  };
+  }, [keyword]);
 
-  const onReset = () => {
+  const onReset = useCallback(() => {
     setKeyword('');
     setSearchTerm('');
     setType('title');
     setPageNo(0);
-  };
+  }, []);
+
+  const handleRowClick = useCallback((id) => {
+    navigate(`/notices/${id}`);
+  }, [navigate]);
+
+  const handleWriteClick = useCallback(() => {
+    navigate('/notices/new');
+  }, [navigate]);
+
+  const handleTypeChange = useCallback((e) => {
+    setType(e.target.value);
+  }, []);
+
+  const handleKeywordChange = useCallback((e) => {
+    setKeyword(e.target.value);
+  }, []);
 
   const notices = Array.isArray(page?.content) ? page.content : [];
   const totalPages = Number.isFinite(page?.totalPages) ? page.totalPages : 0;
@@ -193,22 +219,22 @@ export default function NoticeList() {
 
   return (
     <div className="card">
-      <Toolbar isAdmin={isAdmin} onWrite={() => navigate('/notices/new')} />
+      <Toolbar isAdmin={isAdmin} onWrite={handleWriteClick} />
       <SearchBar
         type={type}
         keyword={keyword}
         searchTerm={searchTerm}
-        onTypeChange={(e) => setType(e.target.value)}
-        onKeywordChange={(e) => setKeyword(e.target.value)}
+        onTypeChange={handleTypeChange}
+        onKeywordChange={handleKeywordChange}
         onSubmit={onSearch}
         onReset={onReset}
       />
       {error && <div className="error">에러: {error}</div>}
       <NoticeTable
         notices={notices}
-        pageNo={pageNo}
         searchTerm={searchTerm}
-        onRowClick={(id) => navigate(`/notices/${id}`)}
+        onRowClick={handleRowClick}
+        isLoading={isLoading}
       />
       <Pagination
         pageNo={pageNo}

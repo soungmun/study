@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { api } from '../utils/api';
 
 const API = 'http://localhost:8080/api/auth';
 
 export default function AuthBar() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading, login, logout, setUser } = useAuth();
   const [authError, setAuthError] = useState(null);
   const [mode, setMode] = useState(null); // 'login' | 'signup' | null
   const [form, setForm] = useState({ username: '', password: '', nickname: '', email: '', notificationOptIn: false });
@@ -50,17 +51,6 @@ export default function AuthBar() {
       url.searchParams.delete('auth_error_description');
       window.history.replaceState({}, '', url.toString());
     }
-    const refresh = () => {
-      fetch(`${API}/me`, { credentials: 'include' })
-        .then((r) => (r.ok ? r.json() : null))
-        .then(setUser)
-        .catch(() => setUser(null))
-        .finally(() => setLoading(false));
-    };
-    refresh();
-    const onAuth = () => refresh();
-    window.addEventListener('auth-changed', onAuth);
-    return () => window.removeEventListener('auth-changed', onAuth);
   }, []);
 
   useEffect(() => {
@@ -98,13 +88,7 @@ export default function AuthBar() {
     }
     setEmailVer((p) => ({ ...p, sending: true, err: null, msg: null }));
     try {
-      const r = await fetch(`${API}/email/send-code`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-      const data = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(data.message || '발송 실패');
+      const data = await api.post('/auth/email/send-code', { email });
       setEmailVer((p) => ({
         ...p,
         sending: false,
@@ -128,13 +112,7 @@ export default function AuthBar() {
     }
     setEmailVer((p) => ({ ...p, verifying: true, err: null }));
     try {
-      const r = await fetch(`${API}/email/verify-code`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, code }),
-      });
-      const data = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(data.message || '인증 실패');
+      await api.post('/auth/email/verify-code', { email, code });
       setEmailVer((p) => ({ ...p, verifying: false, verifiedEmail: email, msg: '✅ 인증되었습니다.', err: null }));
     } catch (err) {
       setEmailVer((p) => ({ ...p, verifying: false, err: err.message }));
@@ -148,9 +126,7 @@ export default function AuthBar() {
   const fmtSec = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
   const onLogout = async () => {
-    await fetch(`${API}/logout`, { method: 'POST', credentials: 'include' });
-    setUser(null);
-    window.dispatchEvent(new Event('auth-changed'));
+    await logout();
   };
 
   const onSubmit = async (e) => {
@@ -165,32 +141,22 @@ export default function AuthBar() {
     }
     setSubmitting(true);
     try {
-      const url = mode === 'signup' ? `${API}/signup` : `${API}/login`;
-      const body = mode === 'signup'
-        ? {
-            username: form.username,
-            password: form.password,
-            nickname: form.nickname || null,
-            email: form.email?.trim() || null,
-            notificationOptIn: !!form.notificationOptIn,
-          }
-        : { username: form.username, password: form.password };
-      const r = await fetch(url, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      if (!r.ok) {
-        const data = await r.json().catch(() => ({}));
-        throw new Error(data.message || (mode === 'signup' ? '회원가입 실패' : '로그인 실패'));
+      if (mode === 'signup') {
+        const body = {
+          username: form.username,
+          password: form.password,
+          nickname: form.nickname || null,
+          email: form.email?.trim() || null,
+          notificationOptIn: !!form.notificationOptIn,
+        };
+        const userData = await api.post('/auth/signup', body);
+        setUser(userData);
+      } else {
+        await login(form.username, form.password);
       }
-      const data = await r.json();
-      setUser(data);
       setMode(null);
       setForm({ username: '', password: '', nickname: '', email: '', notificationOptIn: false });
       resetEmailVer();
-      window.dispatchEvent(new Event('auth-changed'));
     } catch (err) {
       setFormError(err.message);
     } finally {

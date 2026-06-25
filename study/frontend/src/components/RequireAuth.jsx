@@ -1,32 +1,9 @@
-import { useEffect, useState } from 'react';
-
-const ME = 'http://localhost:8080/api/auth/me';
+import { useAuth } from '../context/AuthContext';
 
 export default function RequireAuth({ children, title, hint }) {
-  const [state, setState] = useState('loading');
+  const { user, loading } = useAuth();
 
-  useEffect(() => {
-    let cancelled = false;
-    const check = () => {
-      setState('loading');
-      fetch(ME, { credentials: 'include' })
-        .then((r) => {
-          if (cancelled) return;
-          setState(r.ok ? 'authed' : 'guest');
-        })
-        .catch(() => {
-          if (!cancelled) setState('guest');
-        });
-    };
-    check();
-    window.addEventListener('auth-changed', check);
-    return () => {
-      cancelled = true;
-      window.removeEventListener('auth-changed', check);
-    };
-  }, []);
-
-  if (state === 'loading') {
+  if (loading) {
     return (
       <div className="card">
         <div className="book-empty">
@@ -37,7 +14,7 @@ export default function RequireAuth({ children, title, hint }) {
     );
   }
 
-  if (state === 'guest') {
+  if (!user) {
     return (
       <div className="card">
         <div className="toolbar">

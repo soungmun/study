@@ -18,28 +18,32 @@ import KakaoPay from './components/KakaoPay';
 import KakaoPayHistory from './components/KakaoPayHistory';
 import { KakaoPaySuccess, KakaoPayFail } from './components/KakaoPayResult';
 import './App.css';
+import { useAuth } from './context/AuthContext';
+import { api } from './utils/api';
 
 function MaintenanceBanner() {
   const [enabled, setEnabled] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     let cancelled = false;
-    const fetchStatus = () => {
-      fetch('http://localhost:8080/api/admin/maintenance/status', { credentials: 'include' })
-        .then((r) => (r.ok ? r.json() : null))
-        .then((data) => { if (!cancelled && data) setEnabled(!!data.enabled); })
-        .catch(() => {});
+    const fetchStatus = async () => {
+      try {
+        const data = await api.get('/admin/maintenance/status');
+        if (!cancelled && data) {
+          setEnabled(!!data.enabled);
+        }
+      } catch {
+        // 무시
+      }
     };
     fetchStatus();
     const id = setInterval(fetchStatus, 30000);
-    const onAuth = () => fetchStatus();
-    window.addEventListener('auth-changed', onAuth);
     return () => {
       cancelled = true;
       clearInterval(id);
-      window.removeEventListener('auth-changed', onAuth);
     };
-  }, []);
+  }, [user]);
 
   if (!enabled) return null;
   return (

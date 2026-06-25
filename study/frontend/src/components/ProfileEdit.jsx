@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-
-const API = 'http://localhost:8080/api/auth';
+import { useAuth } from '../context/AuthContext';
+import { api } from '../utils/api';
 
 export default function ProfileEdit() {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading, setUser } = useAuth();
   const [form, setForm] = useState({
     nickname: '',
     email: '',
@@ -22,67 +21,73 @@ export default function ProfileEdit() {
   // 닉네임 중복 체크 상태
   const [nicknameCheck, setNicknameCheck] = useState({ status: 'idle', message: null });
   // 'idle' | 'checking' | 'available' | 'taken' | 'error'
-  const nicknameTimerRef = useRef(null);
 
   useEffect(() => {
-    fetch(`${API}/me`, { credentials: 'include' })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((u) => {
-        if (!u) {
-          navigate('/');
-          return;
-        }
-        setUser(u);
-        setForm((f) => ({
-          ...f,
-          nickname: u.nickname || '',
-          email: u.email || '',
-          notificationOptIn: !!u.notificationOptIn,
-        }));
-      })
-      .finally(() => setLoading(false));
-  }, [navigate]);
+    if (!loading && !user) {
+      navigate('/');
+    } else if (user) {
+      setForm((f) => ({
+        ...f,
+        nickname: user.nickname || '',
+        email: user.email || '',
+        notificationOptIn: !!user.notificationOptIn,
+      }));
+    }
+  }, [user, loading, navigate]);
 
-  // 닉네임 변경 시 debounce 중복 체크 (500ms)
-  const handleNicknameChange = (e) => {
-    const value = e.target.value;
-    setForm((f) => ({ ...f, nickname: value }));
+  // 닉네임 변경 감지 및 안전한 디바운스 API 호출 처리 (React 실무 표준 패턴)
+  useEffect(() => {
+    const trimmed = form.nickname.trim();
+    const originalNickname = (user?.nickname || '').trim();
 
-    clearTimeout(nicknameTimerRef.current);
-
-    const trimmed = value.trim();
-    // 현재 저장된 닉네임과 같으면 체크 불필요
-    if (trimmed === (user?.nickname || '').trim()) {
+    // 입력값이 비어있거나, 기존 자신의 닉네임과 같다면 체크 생략
+    if (!trimmed || trimmed === originalNickname) {
       setNicknameCheck({ status: 'idle', message: null });
       return;
     }
-    if (!trimmed) {
-      setNicknameCheck({ status: 'idle', message: null });
-      return;
-    }
+
     if (trimmed.length > 50) {
       setNicknameCheck({ status: 'error', message: '닉네임은 50자 이하여야 합니다.' });
       return;
     }
 
     setNicknameCheck({ status: 'checking', message: null });
-    nicknameTimerRef.current = setTimeout(async () => {
+
+    let isCurrent = true;
+    const controller = new AbortController();
+
+    const timer = setTimeout(async () => {
       try {
-        const r = await fetch(
-          `${API}/check-nickname?nickname=${encodeURIComponent(trimmed)}`,
-          { credentials: 'include' }
-        );
-        if (r.status === 409) {
-          setNicknameCheck({ status: 'taken', message: '이미 사용 중인 닉네임입니다.' });
-        } else if (r.ok) {
+        await api.get(`/auth/check-nickname?nickname=${encodeURIComponent(trimmed)}`, {
+          signal: controller.signal
+        });
+        if (isCurrent) {
           setNicknameCheck({ status: 'available', message: '사용 가능한 닉네임입니다.' });
-        } else {
-          setNicknameCheck({ status: 'error', message: '확인 중 오류가 발생했습니다.' });
         }
-      } catch {
-        setNicknameCheck({ status: 'error', message: '서버 연결을 확인해 주세요.' });
+      } catch (err) {
+        // AbortError인 경우 무시
+        if (err.name === 'AbortError') return;
+        
+        if (isCurrent) {
+          if (err.status === 409) {
+            setNicknameCheck({ status: 'taken', message: '이미 사용 중인 닉네임입니다.' });
+          } else {
+            setNicknameCheck({ status: 'error', message: '확인 중 오류가 발생했습니다.' });
+          }
+        }
       }
     }, 500);
+
+    return () => {
+      isCurrent = false;
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [form.nickname, user?.nickname]);
+
+  const handleNicknameChange = (e) => {
+    const value = e.target.value;
+    setForm((f) => ({ ...f, nickname: value }));
   };
 
   const socialProvider = user?.kakaoId
@@ -122,17 +127,7 @@ export default function ProfileEdit() {
     }
 
     try {
-      const r = await fetch(`${API}/me`, {
-        method: 'PUT',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      if (!r.ok) {
-        const data = await r.json().catch(() => ({}));
-        throw new Error(data.message || '수정에 실패했습니다.');
-      }
-      const updated = await r.json();
+      const updated = await api.put('/auth/me', body);
       setUser(updated);
       setForm((f) => ({
         ...f,
@@ -146,7 +141,6 @@ export default function ProfileEdit() {
           ? '비밀번호가 변경되었습니다. 안내 메일을 보냈어요. 잠시 후 홈으로 이동합니다.'
           : '회원정보가 수정되었습니다. 잠시 후 홈으로 이동합니다.'
       );
-      window.dispatchEvent(new Event('auth-changed'));
       setTimeout(() => navigate('/'), 1200);
     } catch (err) {
       setError(err.message);

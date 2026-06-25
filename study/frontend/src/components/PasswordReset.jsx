@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-
-const API = 'http://localhost:8080/api/auth';
+import { api } from '../utils/api';
 
 export default function PasswordReset() {
   const [params] = useSearchParams();
@@ -17,6 +16,7 @@ export default function PasswordReset() {
     e.preventDefault();
     setError(null);
     setMessage(null);
+    
     if (!token) {
       setError('재설정 토큰이 없습니다. 메일의 링크로 다시 접속해 주세요.');
       return;
@@ -32,13 +32,7 @@ export default function PasswordReset() {
 
     setSubmitting(true);
     try {
-      const r = await fetch(`${API}/password/reset`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, newPassword: pw }),
-      });
-      const data = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(data.message || '변경 실패');
+      const data = await api.post('/auth/password/reset', { token, newPassword: pw });
       setMessage(data.message || '비밀번호가 변경되었습니다.');
       setTimeout(() => navigate('/'), 1500);
     } catch (err) {
