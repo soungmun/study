@@ -50,14 +50,23 @@ public class NoticeLikeService {
         Notice notice = noticeRepository.findById(noticeId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다. id=" + noticeId));
 
-        boolean wasLiked = likeRepository.existsByNoticeIdAndUserId(noticeId, userId);
+        // Notice 객체를 사용하여 existsByNoticeAndUserId 호출
+        boolean wasLiked = likeRepository.existsByNoticeAndUserId(notice, userId);
         if (wasLiked) {
-            likeRepository.deleteByNoticeIdAndUserId(noticeId, userId);
+            // Notice 객체를 사용하여 deleteByNoticeAndUserId 호출
+            likeRepository.deleteByNoticeAndUserId(notice, userId);
+            // Notice 엔티티의 likes 컬렉션에서도 제거 (양방향 관계 동기화)
+            notice.removeLike(notice.getLikes().stream()
+                    .filter(nl -> nl.getUserId().equals(userId))
+                    .findFirst().orElse(null));
         } else {
-            likeRepository.save(new NoticeLike(noticeId, userId));
+            NoticeLike newLike = new NoticeLike(notice, userId); // Notice 객체를 사용하여 NoticeLike 생성
+            likeRepository.save(newLike);
+            notice.addLike(newLike); // Notice 엔티티의 likes 컬렉션에 추가 (양방향 관계 동기화)
             notifyAuthor(notice, userId);
         }
-        long count = likeRepository.countByNoticeId(noticeId);
+        // Notice 객체를 사용하여 countByNotice 호출
+        long count = likeRepository.countByNotice(notice);
         return new Result(!wasLiked, count);
     }
 
@@ -84,10 +93,15 @@ public class NoticeLikeService {
     }
 
     public List<LikedUserResponse> listLikers(Long noticeId) {
-        if (!noticeRepository.existsById(noticeId)) {
-            throw new IllegalArgumentException("게시글을 찾을 수 없습니다. id=" + noticeId);
-        }
-        List<NoticeLike> likes = likeRepository.findByNoticeIdOrderByCreatedAtDesc(noticeId);
+        Notice notice = noticeRepository.findById(noticeId)
+                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다. id=" + noticeId));
+
+        // Notice 엔티티의 likes 컬렉션을 직접 사용
+        List<NoticeLike> likes = notice.getLikes().stream()
+                .sorted((l1, l2) -> l2.getCreatedAt().compareTo(l1.getCreatedAt())) // 최신순 정렬
+                .collect(Collectors.toList());
+
+
         if (likes.isEmpty()) return List.of();
 
         Set<Long> userIds = likes.stream().map(NoticeLike::getUserId).collect(Collectors.toSet());
@@ -108,12 +122,16 @@ public class NoticeLikeService {
     }
 
     public long count(Long noticeId) {
-        return likeRepository.countByNoticeId(noticeId);
+        Notice notice = noticeRepository.findById(noticeId)
+                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다. id=" + noticeId));
+        return likeRepository.countByNotice(notice);
     }
 
     public boolean liked(Long noticeId, Long userId) {
         if (userId == null) return false;
-        return likeRepository.existsByNoticeIdAndUserId(noticeId, userId);
+        Notice notice = noticeRepository.findById(noticeId)
+                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다. id=" + noticeId));
+        return likeRepository.existsByNoticeAndUserId(notice, userId);
     }
 
     public Map<Long, Long> countsByNoticeIds(Collection<Long> ids) {

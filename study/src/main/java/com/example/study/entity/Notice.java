@@ -51,6 +51,11 @@ public class Notice {
     private List<NoticeImage> images = new ArrayList<>();
     // ------------------------------------
 
+    // --- NoticeLike와의 연관 관계 추가 ---
+    @OneToMany(mappedBy = "notice", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<NoticeLike> likes = new ArrayList<>();
+    // ------------------------------------
+
     public Notice(String author, String title, String content) {
         this.author = author;
         this.title = title;
@@ -81,7 +86,7 @@ public class Notice {
         return String.valueOf(viewCount);
     }
 
-    // --- 편의 메서드 추가 (양방향 관계 설정 시 유용) ---
+    // --- NoticeImage 편의 메서드 ---
     public void addImage(NoticeImage image) {
         this.images.add(image);
         if (image.getNotice() != this) { // 무한 루프 방지
@@ -93,6 +98,22 @@ public class Notice {
         this.images.remove(image);
         if (image.getNotice() == this) { // 무한 루프 방지
             image.setNotice(null);
+        }
+    }
+    // -------------------------------------------------
+
+    // --- NoticeLike 편의 메서드 ---
+    public void addLike(NoticeLike noticeLike) {
+        this.likes.add(noticeLike);
+        if (noticeLike.getNotice() != this) { // 무한 루프 방지
+            noticeLike.setNotice(this);
+        }
+    }
+
+    public void removeLike(NoticeLike noticeLike) {
+        this.likes.remove(noticeLike);
+        if (noticeLike.getNotice() == this) { // 무한 루프 방지
+            noticeLike.setNotice(null);
         }
     }
     // -------------------------------------------------
