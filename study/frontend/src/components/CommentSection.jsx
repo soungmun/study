@@ -1,13 +1,9 @@
 import { useEffect, useState } from 'react';
-
-const API = 'http://localhost:8080/api';
-
-async function readError(res) {
-  const text = await res.text();
-  try { return JSON.parse(text).message || text; } catch { return text || `HTTP ${res.status}`; }
-}
+import { useAuth } from '../context/AuthContext';
+import { api } from '../utils/api';
 
 export default function CommentSection({ noticeId }) {
+  const { user } = useAuth();
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -15,23 +11,11 @@ export default function CommentSection({ noticeId }) {
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editingText, setEditingText] = useState('');
-  const [authed, setAuthed] = useState(false);
-
-  // 로그인 여부 확인 (작성 폼 노출용)
-  useEffect(() => {
-    fetch(`${API}/auth/me`, { credentials: 'include' })
-      .then((r) => setAuthed(r.ok))
-      .catch(() => setAuthed(false));
-  }, []);
 
   const load = () => {
     setLoading(true);
     setError(null);
-    fetch(`${API}/notices/${noticeId}/comments`, { credentials: 'include' })
-      .then(async (r) => {
-        if (!r.ok) throw new Error(await readError(r));
-        return r.json();
-      })
+    api.get(`/notices/${noticeId}/comments`)
       .then((data) => setComments(Array.isArray(data) ? data : []))
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
@@ -44,14 +28,7 @@ export default function CommentSection({ noticeId }) {
     if (!draft.trim()) return;
     setSubmitting(true);
     try {
-      const r = await fetch(`${API}/notices/${noticeId}/comments`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: draft.trim() }),
-      });
-      if (!r.ok) throw new Error(await readError(r));
-      const created = await r.json();
+      const created = await api.post(`/notices/${noticeId}/comments`, { content: draft.trim() });
       setComments((prev) => [...prev, created]);
       setDraft('');
     } catch (err) {
@@ -69,14 +46,7 @@ export default function CommentSection({ noticeId }) {
   const saveEdit = async (id) => {
     if (!editingText.trim()) return;
     try {
-      const r = await fetch(`${API}/comments/${id}`, {
-        method: 'PUT',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: editingText.trim() }),
-      });
-      if (!r.ok) throw new Error(await readError(r));
-      const updated = await r.json();
+      const updated = await api.put(`/comments/${id}`, { content: editingText.trim() });
       setComments((prev) => prev.map((c) => (c.id === id ? updated : c)));
       setEditingId(null);
       setEditingText('');
@@ -87,31 +57,23 @@ export default function CommentSection({ noticeId }) {
 
   const toggleLike = async (id) => {
     try {
-      const r = await fetch(`${API}/comments/${id}/like`, {
-        method: 'POST',
-        credentials: 'include',
-      });
-      if (!r.ok) {
-        if (r.status === 401) { alert('로그인이 필요합니다.'); return; }
-        throw new Error(await readError(r));
-      }
-      const { liked, count } = await r.json();
+      const { liked, count } = await api.post(`/comments/${id}/like`);
       setComments((prev) => prev.map((c) =>
         c.id === id ? { ...c, iLiked: liked, likeCount: count } : c
       ));
     } catch (err) {
-      alert(`좋아요 실패: ${err.message}`);
+      if (err.status === 401) {
+        alert('로그인이 필요합니다.');
+      } else {
+        alert(`좋아요 실패: ${err.message}`);
+      }
     }
   };
 
   const remove = async (id) => {
     if (!confirm('이 댓글을 삭제할까요?')) return;
     try {
-      const r = await fetch(`${API}/comments/${id}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-      if (!r.ok && r.status !== 204) throw new Error(await readError(r));
+      await api.delete(`/comments/${id}`);
       setComments((prev) => prev.filter((c) => c.id !== id));
     } catch (err) {
       alert(`삭제 실패: ${err.message}`);
@@ -200,7 +162,7 @@ export default function CommentSection({ noticeId }) {
         ))}
       </ul>
 
-      {authed ? (
+      {user ? (
         <form onSubmit={submit} style={{ marginTop: 16 }}>
           <textarea
             value={draft}

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { api } from '../utils/api'; // api 유틸리티 임포트
 
-const BASE_URL = 'http://localhost:8080/api/notices';
+const BASE_URL = '/notices'; // api 유틸리티 사용 시 /api/ 접두사 제거
 
 async function readError(res) {
   const text = await res.text();
@@ -12,6 +13,7 @@ export default function NoticeCreate() {
   const navigate = useNavigate();
   const [form, setForm] = useState({ author: '', title: '', content: '' });
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(null); // 에러 상태 추가
 
   // 업로드된 이미지 목록: [{ imageId, url, originalName, fileSize }]
   const [images, setImages] = useState([]);
@@ -26,26 +28,23 @@ export default function NoticeCreate() {
     e.target.value = ''; // 같은 파일 재선택 허용
 
     setUploading(true);
+    setError(null); // 새 업로드 시 에러 초기화
+
     for (const file of files) {
       const fd = new FormData();
       fd.append('file', file);
       try {
-        const r = await fetch(`${BASE_URL}/images`, {
-          method: 'POST',
-          credentials: 'include',
-          body: fd,
+        // api 유틸리티 사용
+        const data = await api.post(`${BASE_URL}/images`, fd, {
+          headers: { 'Content-Type': undefined }, // FormData 사용 시 Content-Type은 브라우저가 자동으로 설정
         });
-        if (!r.ok) {
-          alert(`업로드 실패 (${file.name}): ${await readError(r)}`);
-          continue;
-        }
-        const data = await r.json();
         setImages((prev) => [...prev, data]);
       } catch (err) {
-        alert(`업로드 실패 (${file.name}): ${err.message}`);
+        setError(`업로드 실패 (${file.name}): ${err.message}`);
+        // alert(`업로드 실패 (${file.name}): ${err.message}`); // alert 대신 에러 상태 사용
       }
     }
-    setUploading(false);
+    setUploading(false); // 모든 파일 처리 후 업로드 상태 해제
   };
 
   const removeImage = (imageId) => {
@@ -55,22 +54,22 @@ export default function NoticeCreate() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
-    const r = await fetch(BASE_URL, {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    setError(null); // 새 제출 시 에러 초기화
+
+    try {
+      // api 유틸리티 사용
+      await api.post(BASE_URL, {
         ...form,
         imageIds: images.map((img) => img.imageId),
-      }),
-    });
-    setSubmitting(false);
-    if (!r.ok) {
-      alert(await readError(r));
-      return;
+      });
+      alert('등록되었습니다.');
+      navigate('/');
+    } catch (err) {
+      setError(err.message); // alert 대신 에러 상태 사용
+      // alert(err.message);
+    } finally {
+      setSubmitting(false); // 제출 완료 후 상태 해제
     }
-    alert('등록되었습니다.');
-    navigate('/');
   };
 
   return (
@@ -167,6 +166,8 @@ export default function NoticeCreate() {
             </div>
           )}
         </div>
+
+        {error && <div className="error" style={{ marginTop: 12 }}>⚠️ {error}</div>} {/* 에러 메시지 표시 */}
 
         <div className="actions">
           <button type="button" className="ghost" onClick={() => navigate(-1)} disabled={submitting || uploading}>취소</button>

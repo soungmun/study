@@ -5,6 +5,7 @@ import com.example.study.dto.request.LoginRequest;
 import com.example.study.dto.response.MessageResponse;
 import com.example.study.dto.response.UserResponse;
 import com.example.study.entity.User;
+import com.example.study.repository.UserRepository;
 import com.example.study.service.AuthService;
 import com.example.study.service.GoogleOAuthService;
 import com.example.study.service.KakaoOAuthService;
@@ -50,6 +51,7 @@ public class AuthController {
     private final KakaoOAuthService kakao;
     private final NaverOAuthService naver;
     private final GoogleOAuthService google;
+    private final UserRepository userRepository;
     private final String frontendUrl;
     private final SecureRandom random = new SecureRandom();
 
@@ -59,6 +61,7 @@ public class AuthController {
             KakaoOAuthService kakao,
             NaverOAuthService naver,
             GoogleOAuthService google,
+            UserRepository userRepository,
             @Value("${app.frontend.url}") String frontendUrl
     ) {
         this.authService = authService;
@@ -66,6 +69,7 @@ public class AuthController {
         this.kakao = kakao;
         this.naver = naver;
         this.google = google;
+        this.userRepository = userRepository;
         this.frontendUrl = frontendUrl;
     }
 
@@ -97,7 +101,10 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<UserResponse> me(@AuthenticationPrincipal SecurityUser principal) {
         if (principal == null) return ResponseEntity.status(401).build();
-        return ResponseEntity.ok(UserResponse.from(principal.getUser()));
+        // 세션 캐시 대신 DB에서 최신 데이터 조회 (role 변경 등 즉시 반영)
+        return userRepository.findById(principal.getUserId())
+                .map(user -> ResponseEntity.ok(UserResponse.from(user)))
+                .orElse(ResponseEntity.status(401).build());
     }
 
     // ──────────────── 카카오 ────────────────

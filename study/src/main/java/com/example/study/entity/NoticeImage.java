@@ -61,8 +61,7 @@ public class NoticeImage {
     }
 
     // Notice와 연결될 때 사용하는 생성자 (선택 사항)
-    public NoticeImage(Long userId, String storedName, String originalName,
-                       long fileSize, String mimeType, Notice notice) {
+    public NoticeImage(Long userId, String storedName, String originalName, long fileSize, String mimeType, Notice notice) {
         this(userId, storedName, originalName, fileSize, mimeType);
         this.notice = notice;
     }
@@ -72,9 +71,4 @@ public class NoticeImage {
     void onCreate() {
         this.createdAt = LocalDateTime.now();
     }
-
-    // 기존 attachToNotice 메서드는 더 이상 필요 없음 (setter 또는 생성자로 대체)
-    // public void attachToNotice(Long noticeId) {
-    //     this.noticeId = noticeId;
-    // }
 }

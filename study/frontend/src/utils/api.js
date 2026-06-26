@@ -50,6 +50,11 @@ async function request(endpoint, options = {}) {
 
     return data;
   } catch (error) {
+    // AbortError는 요청 취소를 의미하므로, 콘솔에 에러로 로깅하지 않습니다.
+    if (error.name === 'AbortError') {
+      // console.log(`[API Aborted] ${options.method || 'GET'} ${url}`); // 필요하다면 일반 로그로 남길 수 있음
+      throw error; // AbortError도 여전히 호출자에게 전달하여 처리할 수 있도록 함
+    }
     console.error(`[API Error] ${options.method || 'GET'} ${url} -`, error);
     throw error;
   }

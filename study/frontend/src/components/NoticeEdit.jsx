@@ -1,12 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-
-const BASE_URL = 'http://localhost:8080/api/notices';
-
-async function readError(res) {
-  const text = await res.text();
-  try { return JSON.parse(text).message || text; } catch { return text || `HTTP ${res.status}`; }
-}
+import { api } from '../utils/api';
 
 export default function NoticeEdit() {
   const { id } = useParams();
@@ -19,11 +13,9 @@ export default function NoticeEdit() {
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-    fetch(`${BASE_URL}/${id}`, { credentials: 'include' })
-      .then((r) => r.json())
+    api.get(`/notices/${id}`)
       .then((n) => {
         setForm({ author: n.author, title: n.title, content: n.content });
-        // 기존 이미지 로드 (images 필드: [{ imageId, url, originalName }])
         if (n.images && n.images.length > 0) {
           setImages(n.images);
         }
@@ -32,7 +24,6 @@ export default function NoticeEdit() {
 
   const onChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
-  // 새 파일 선택 시 기존 이미지를 모두 교체
   const handleFileChange = async (e) => {
     const files = Array.from(e.target.files);
     if (!files.length) return;
@@ -44,29 +35,20 @@ export default function NoticeEdit() {
       const fd = new FormData();
       fd.append('file', file);
       try {
-        const r = await fetch(`${BASE_URL}/images`, {
-          method: 'POST',
-          credentials: 'include',
-          body: fd,
+        const data = await api.post('/notices/images', fd, {
+          headers: { 'Content-Type': undefined },
         });
-        if (!r.ok) {
-          alert(`업로드 실패 (${file.name}): ${await readError(r)}`);
-          continue;
-        }
-        const data = await r.json();
         newImages.push(data);
       } catch (err) {
         alert(`업로드 실패 (${file.name}): ${err.message}`);
       }
     }
-    // 기존 이미지를 모두 지우고 새 이미지로 교체
     if (newImages.length > 0) {
       setImages(newImages);
     }
     setUploading(false);
   };
 
-  // 이미지 제거 (로컬 상태에서만 제거 — 저장 시 syncImages로 처리)
   const removeImage = (imageId) => {
     setImages((prev) => prev.filter((img) => img.imageId !== imageId));
   };
@@ -74,23 +56,18 @@ export default function NoticeEdit() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
-    const r = await fetch(`${BASE_URL}/${id}`, {
-      method: 'PUT',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    try {
+      await api.put(`/notices/${id}`, {
         ...form,
-        // 남은 이미지 id 전체 전달 (기존 유지분 + 새로 추가분)
         imageIds: images.map((img) => img.imageId),
-      }),
-    });
-    setSubmitting(false);
-    if (!r.ok) {
-      alert(await readError(r));
-      return;
+      });
+      alert('수정되었습니다.');
+      navigate(`/notices/${id}`);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSubmitting(false);
     }
-    alert('수정되었습니다.');
-    navigate(`/notices/${id}`);
   };
 
   return (

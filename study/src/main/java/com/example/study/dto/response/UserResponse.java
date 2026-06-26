@@ -11,7 +11,8 @@ public record UserResponse(
         String nickname,
         String profileImage,
         String email,
-        boolean notificationOptIn
+        boolean notificationOptIn,
+        String role
 ) {
     public static UserResponse from(User user) {
         return new UserResponse(
@@ -23,7 +24,8 @@ public record UserResponse(
                 user.getNickname(),
                 user.getProfileImage(),
                 user.getEmail(),
-                user.isNotificationOptIn()
+                user.isNotificationOptIn(),
+                user.getRole()
         );
     }
 }

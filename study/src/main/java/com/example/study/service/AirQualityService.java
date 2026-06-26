@@ -3,8 +3,11 @@ package com.example.study.service;
 import com.example.study.dto.response.AirQualityResponse;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
@@ -16,6 +19,7 @@ import java.util.Map;
 @Service
 public class AirQualityService {
 
+    private static final Logger log = LoggerFactory.getLogger(AirQualityService.class);
     private static final String AIR_URL = "https://air-quality-api.open-meteo.com/v1/air-quality";
 
     private final RestClient restClient = RestClient.create();
@@ -32,10 +36,18 @@ public class AirQualityService {
                 .build()
                 .toUri();
 
-        OpenMeteoAir body = restClient.get()
-                .uri(uri)
-                .retrieve()
-                .body(OpenMeteoAir.class);
+        OpenMeteoAir body = null;
+        try {
+            body = restClient.get()
+                    .uri(uri)
+                    .retrieve()
+                    .body(OpenMeteoAir.class);
+        } catch (RestClientException e) {
+            log.error("Failed to fetch air quality data from Open-Meteo API for tomorrow (lat={}, lng={}): {}", lat, lng, e.getMessage());
+            // 에러 발생 시 기본 응답 또는 null 반환하여 프론트엔드에서 처리하도록 함
+            return AirQualityResponse.empty(lat, lng); // 새로운 헬퍼 메서드 추가 필요
+        }
+
 
         Hourly h = body != null ? body.hourly() : null;
         Double pm10 = avg(h != null ? h.pm10() : null);
@@ -89,10 +101,18 @@ public class AirQualityService {
                 .build()
                 .toUri();
 
-        OpenMeteoAir body = restClient.get()
-                .uri(uri)
-                .retrieve()
-                .body(OpenMeteoAir.class);
+        OpenMeteoAir body = null;
+        try {
+            body = restClient.get()
+                    .uri(uri)
+                    .retrieve()
+                    .body(OpenMeteoAir.class);
+        } catch (RestClientException e) {
+            log.error("Failed to fetch air quality data from Open-Meteo API (lat={}, lng={}): {}", lat, lng, e.getMessage());
+            // 에러 발생 시 기본 응답 또는 null 반환하여 프론트엔드에서 처리하도록 함
+            return AirQualityResponse.empty(lat, lng); // 새로운 헬퍼 메서드 추가 필요
+        }
+
 
         Current cur = body != null ? body.current() : null;
         Double pm10 = cur != null ? cur.pm10() : null;

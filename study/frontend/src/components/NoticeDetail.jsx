@@ -1,13 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { api } from '../utils/api';
 import CommentSection from './CommentSection';
-
-const BASE_URL = 'http://localhost:8080/api/notices';
-
-async function readError(res) {
-  const text = await res.text();
-  try { return JSON.parse(text).message || text; } catch { return text || `HTTP ${res.status}`; }
-}
 
 export default function NoticeDetail() {
   const { id } = useParams();
@@ -21,11 +15,7 @@ export default function NoticeDetail() {
   useEffect(() => {
     if (fetchedIdRef.current === id) return;
     fetchedIdRef.current = id;
-    fetch(`${BASE_URL}/${id}/views`, { method: 'POST', credentials: 'include' })
-      .then(async (r) => {
-        if (!r.ok) throw new Error(await readError(r));
-        return r.json();
-      })
+    api.post(`/notices/${id}/views`)
       .then(setNotice)
       .catch((e) => setError(e.message));
   }, [id]);
@@ -34,9 +24,7 @@ export default function NoticeDetail() {
     if (likers !== null) { setLikers(null); return; }
     setLoadingLikers(true);
     try {
-      const r = await fetch(`${BASE_URL}/${id}/likes`, { credentials: 'include' });
-      if (!r.ok) throw new Error(await readError(r));
-      const data = await r.json();
+      const data = await api.get(`/notices/${id}/likes`);
       setLikers(Array.isArray(data) ? data : []);
     } catch (e) {
       alert(`좋아요 목록 실패: ${e.message}`);
@@ -47,40 +35,31 @@ export default function NoticeDetail() {
 
   const toggleLike = async () => {
     try {
-      const r = await fetch(`${BASE_URL}/${id}/like`, {
-        method: 'POST',
-        credentials: 'include',
-      });
-      if (!r.ok) {
-        const msg = await readError(r);
-        if (r.status === 401) {
-          alert('로그인이 필요합니다.');
-        } else {
-          alert(`좋아요 실패: ${msg}`);
-        }
-        return;
-      }
-      const { liked, count } = await r.json();
+      const { liked, count } = await api.post(`/notices/${id}/like`);
       setNotice((prev) => prev && { ...prev, iLiked: liked, likeCount: count });
       // 목록이 펼쳐져 있으면 즉시 갱신
       if (likers !== null) {
-        const lr = await fetch(`${BASE_URL}/${id}/likes`, { credentials: 'include' });
-        if (lr.ok) setLikers(await lr.json());
+        const data = await api.get(`/notices/${id}/likes`);
+        setLikers(data);
       }
     } catch (e) {
-      alert(`좋아요 실패: ${e.message}`);
+      if (e.status === 401) {
+        alert('로그인이 필요합니다.');
+      } else {
+        alert(`좋아요 실패: ${e.message}`);
+      }
     }
   };
 
   const remove = async () => {
     if (!confirm('정말 삭제하시겠습니까?')) return;
-    const r = await fetch(`${BASE_URL}/${id}`, { method: 'DELETE', credentials: 'include' });
-    if (!r.ok) {
-      alert(`삭제 실패: ${await readError(r)}`);
-      return;
+    try {
+      await api.delete(`/notices/${id}`);
+      alert('삭제되었습니다.');
+      navigate('/');
+    } catch (e) {
+      alert(`삭제 실패: ${e.message}`);
     }
-    alert('삭제되었습니다.');
-    navigate('/');
   };
 
   if (error) return <div className="card"><div className="error">에러: {error}</div></div>;
