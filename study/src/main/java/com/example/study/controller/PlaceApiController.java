@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/places")
 public class PlaceApiController {
@@ -23,6 +25,12 @@ public class PlaceApiController {
             @RequestParam(value = "page", defaultValue = "1") int page,
             @RequestParam(value = "size", defaultValue = "15") int size) {
         return placeService.search(query, page, size);
+    }
+
+    @GetMapping("/autocomplete")
+    public List<String> autocomplete(
+            @RequestParam("query") String query) {
+        return placeService.autocomplete(query);
     }
 
     @GetMapping("/nearby")

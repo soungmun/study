@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 const BASE_URL = 'http://localhost:8080/api/books/search';
+const AUTOCOMPLETE_URL = 'http://localhost:8080/api/books/autocomplete';
 const PAGE_SIZE = 12;
 
 const TARGET_OPTIONS = [
@@ -36,7 +37,12 @@ export default function BookSearch() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const topRef = useRef(null);
+  const inputRef = useRef(null);
+  const suggestionsRef = useRef(null);
+  const debounceRef = useRef(null);
 
   useEffect(() => {
     if (!submitted.trim()) {
@@ -73,10 +79,60 @@ export default function BookSearch() {
     return () => controller.abort();
   }, [submitted, sort, target, page]);
 
+  useEffect(() => {
+    if (!query.trim() || query.length < 1) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+
+    debounceRef.current = setTimeout(() => {
+      fetch(`${AUTOCOMPLETE_URL}?query=${encodeURIComponent(query.trim())}`)
+        .then(r => r.json())
+        .then(data => {
+          setSuggestions(data || []);
+          setShowSuggestions(true);
+        })
+        .catch(() => {
+          setSuggestions([]);
+          setShowSuggestions(false);
+        });
+    }, 300);
+
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, [query]);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(e.target) &&
+          inputRef.current && !inputRef.current.contains(e.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const onSearch = (e) => {
     e.preventDefault();
     setPage(1);
     setSubmitted(query);
+    setShowSuggestions(false);
+  };
+
+  const onSelectSuggestion = (suggestion) => {
+    setQuery(suggestion);
+    setSubmitted(suggestion);
+    setShowSuggestions(false);
+    setPage(1);
   };
 
   const onReset = () => {
@@ -87,6 +143,8 @@ export default function BookSearch() {
     setPage(1);
     setResult(null);
     setError(null);
+    setSuggestions([]);
+    setShowSuggestions(false);
   };
 
   const documents = result?.documents ?? [];
@@ -119,13 +177,29 @@ export default function BookSearch() {
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
         </select>
-        <input
-          type="text"
-          className="search-input"
-          placeholder="책 제목, 저자, 출판사 등 검색"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
+        <div className="search-input-wrapper" ref={inputRef}>
+          <input
+            type="text"
+            className="search-input"
+            placeholder="책 제목, 저자, 출판사 등 검색"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onFocus={() => query.trim() && suggestions.length > 0 && setShowSuggestions(true)}
+          />
+          {showSuggestions && suggestions.length > 0 && (
+            <div className="autocomplete-dropdown" ref={suggestionsRef}>
+              {suggestions.map((s, idx) => (
+                <div
+                  key={idx}
+                  className="autocomplete-item"
+                  onMouseDown={() => onSelectSuggestion(s)}
+                >
+                  {s}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
         <button type="submit" className="primary" disabled={!query.trim()}>검색</button>
         {submitted && (
           <button type="button" className="ghost" onClick={onReset}>초기화</button>

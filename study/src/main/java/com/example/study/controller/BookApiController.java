@@ -26,4 +26,10 @@ public class BookApiController {
             @RequestParam(value = "size", defaultValue = "10") int size) {
         return bookService.search(query, sort, target, page, size);
     }
+
+    @GetMapping("/autocomplete")
+    public java.util.List<String> autocomplete(
+            @RequestParam("query") String query) {
+        return bookService.autocomplete(query);
+    }
 }

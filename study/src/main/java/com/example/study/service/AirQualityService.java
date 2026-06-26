@@ -20,7 +20,7 @@ import java.util.Map;
 public class AirQualityService {
 
     private static final Logger log = LoggerFactory.getLogger(AirQualityService.class);
-    private static final String AIR_URL = "https://air-quality-api.open-meteo.com/v1/air-quality";
+    private static final String AIR_URL = "https://api.open-meteo.com/v1/air-quality";
 
     private final RestClient restClient = RestClient.create();
 

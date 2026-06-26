@@ -8,6 +8,8 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class BookService {
@@ -27,7 +29,7 @@ public class BookService {
         if (query == null || query.isBlank()) {
             return new BookSearchResponse(
                     new BookSearchResponse.Meta(0, 0, true),
-                    java.util.List.of()
+                    List.of()
             );
         }
 
@@ -48,5 +50,40 @@ public class BookService {
                 .header(HttpHeaders.AUTHORIZATION, "KakaoAK " + apiKey)
                 .retrieve()
                 .body(BookSearchResponse.class);
+    }
+
+    public List<String> autocomplete(String query) {
+        if (query == null || query.isBlank()) {
+            return List.of();
+        }
+
+        URI uri = UriComponentsBuilder.fromUriString(bookSearchUrl)
+                .queryParam("query", query)
+                .queryParam("sort", "accuracy")
+                .queryParam("page", 1)
+                .queryParam("size", 10)
+                .build()
+                .encode()
+                .toUri();
+
+        try {
+            BookSearchResponse response = restClient.get()
+                    .uri(uri)
+                    .header(HttpHeaders.AUTHORIZATION, "KakaoAK " + apiKey)
+                    .retrieve()
+                    .body(BookSearchResponse.class);
+
+            if (response == null || response.documents() == null) {
+                return List.of();
+            }
+
+            return response.documents().stream()
+                    .map(b -> b.title())
+                    .distinct()
+                    .limit(10)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            return List.of();
+        }
     }
 }

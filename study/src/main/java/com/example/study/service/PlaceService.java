@@ -13,6 +13,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class PlaceService {
@@ -52,6 +53,40 @@ public class PlaceService {
                 .header(HttpHeaders.AUTHORIZATION, "KakaoAK " + apiKey)
                 .retrieve()
                 .body(PlaceSearchResponse.class);
+    }
+
+    public List<String> autocomplete(String query) {
+        if (query == null || query.isBlank()) {
+            return List.of();
+        }
+
+        URI uri = UriComponentsBuilder.fromUriString(SEARCH_URL)
+                .queryParam("query", query)
+                .queryParam("page", 1)
+                .queryParam("size", 10)
+                .build()
+                .encode()
+                .toUri();
+
+        try {
+            PlaceSearchResponse response = restClient.get()
+                    .uri(uri)
+                    .header(HttpHeaders.AUTHORIZATION, "KakaoAK " + apiKey)
+                    .retrieve()
+                    .body(PlaceSearchResponse.class);
+
+            if (response == null || response.documents() == null) {
+                return List.of();
+            }
+
+            return response.documents().stream()
+                    .map(PlaceSearchResponse.Document::place_name)
+                    .distinct()
+                    .limit(10)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            return List.of();
+        }
     }
 
     public PlaceSearchResponse searchNearby(double lat, double lng, String categoryGroupCode, int radius, int size) {

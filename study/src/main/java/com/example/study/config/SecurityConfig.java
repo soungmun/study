@@ -50,9 +50,9 @@ public class SecurityConfig {
                 // 정적 리소스
                 .requestMatchers("/favicon.ico", "/favicon.svg", "/static/**", "/css/**", "/js/**", "/images/**").permitAll()
                 // 공개 API
-                .requestMatchers(HttpMethod.GET,
+                .requestMatchers(
                     "/api/notices", "/api/notices/**",
-                    "/api/books", "/api/weather/**", "/api/air-quality/**",
+                    "/api/books/**", "/api/weather/**", "/api/air/**",
                     "/api/places/**", "/api/stock/**", "/api/stocks/**", "/api/news/**",
                     "/uploads/**",
                     "/swagger-ui/**", "/v3/api-docs/**"

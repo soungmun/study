@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 
 const BASE_URL = 'http://localhost:8080/api/places/search';
+const AUTOCOMPLETE_URL = 'http://localhost:8080/api/places/autocomplete';
 const NEARBY_URL = 'http://localhost:8080/api/places/nearby';
 const WEATHER_URL = 'http://localhost:8080/api/weather';
-const AIR_URL = 'http://localhost:8080/api/air';
 const PAGE_SIZE = 15;
 const DEFAULT_CENTER = { lat: 37.4892775, lng: 126.7246513 }; // 부평역
 
@@ -61,12 +61,56 @@ export default function MapSearch() {
   const [weather, setWeather] = useState(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [weatherError, setWeatherError] = useState(null);
-  const [air, setAir] = useState(null);
-  const [airLoading, setAirLoading] = useState(false);
-  const [airError, setAirError] = useState(null);
   const [fallbackAddress, setFallbackAddress] = useState('');
   const [restaurants, setRestaurants] = useState([]);
   const [restaurantsLoading, setRestaurantsLoading] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const inputRef = useRef(null);
+  const suggestionsRef = useRef(null);
+  const debounceRef = useRef(null);
+
+  useEffect(() => {
+    if (!query.trim() || query.length < 1) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+
+    debounceRef.current = setTimeout(() => {
+      fetch(`${AUTOCOMPLETE_URL}?query=${encodeURIComponent(query.trim())}`)
+        .then(r => r.json())
+        .then(data => {
+          setSuggestions(data || []);
+          setShowSuggestions(true);
+        })
+        .catch(() => {
+          setSuggestions([]);
+          setShowSuggestions(false);
+        });
+    }, 300);
+
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, [query]);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(e.target) &&
+          inputRef.current && !inputRef.current.contains(e.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const findNearestPlace = (lat, lng) =>
     new Promise((resolve) => {
@@ -287,9 +331,6 @@ export default function MapSearch() {
       setWeather(null);
       setWeatherError(null);
       setWeatherLoading(false);
-      setAir(null);
-      setAirError(null);
-      setAirLoading(false);
       return;
     }
     const lat = parseFloat(selectedPlace.y);
@@ -299,8 +340,6 @@ export default function MapSearch() {
     const controller = new AbortController();
     setWeatherLoading(true);
     setWeatherError(null);
-    setAirLoading(true);
-    setAirError(null);
 
     fetch(`${WEATHER_URL}?lat=${lat}&lng=${lng}`, { signal: controller.signal })
       .then(async (r) => {
@@ -315,21 +354,6 @@ export default function MapSearch() {
         if (e.name === 'AbortError') return;
         setWeatherError(e.message);
         setWeatherLoading(false);
-      });
-
-    fetch(`${AIR_URL}?lat=${lat}&lng=${lng}`, { signal: controller.signal })
-      .then(async (r) => {
-        if (!r.ok) throw new Error(await r.text());
-        return r.json();
-      })
-      .then((data) => {
-        setAir(data);
-        setAirLoading(false);
-      })
-      .catch((e) => {
-        if (e.name === 'AbortError') return;
-        setAirError(e.message);
-        setAirLoading(false);
       });
 
     return () => controller.abort();
@@ -481,6 +505,15 @@ export default function MapSearch() {
     setPage(1);
     setSubmitted(query);
     setSelectedId(null);
+    setShowSuggestions(false);
+  };
+
+  const onSelectSuggestion = (suggestion) => {
+    setQuery(suggestion);
+    setSubmitted(suggestion);
+    setShowSuggestions(false);
+    setPage(1);
+    setSelectedId(null);
   };
 
   const onReset = () => {
@@ -489,6 +522,8 @@ export default function MapSearch() {
     setResult(null);
     setError(null);
     setSelectedId(null);
+    setSuggestions([]);
+    setShowSuggestions(false);
     if (kakaoReady) {
       markersRef.current.forEach((m) => m.setMap(null));
       markersRef.current = [];
@@ -510,13 +545,29 @@ export default function MapSearch() {
       </div>
 
       <form className="search-bar" onSubmit={onSearch}>
-        <input
-          type="text"
-          className="search-input"
-          placeholder="검색할 장소 (예: 카페, 강남역, 서울대)"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
+        <div className="search-input-wrapper" ref={inputRef}>
+          <input
+            type="text"
+            className="search-input"
+            placeholder="검색할 장소 (예: 카페, 강남역, 서울대)"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onFocus={() => query.trim() && suggestions.length > 0 && setShowSuggestions(true)}
+          />
+          {showSuggestions && suggestions.length > 0 && (
+            <div className="autocomplete-dropdown" ref={suggestionsRef}>
+              {suggestions.map((s, idx) => (
+                <div
+                  key={idx}
+                  className="autocomplete-item"
+                  onMouseDown={() => onSelectSuggestion(s)}
+                >
+                  {s}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
         <button type="submit" className="primary" disabled={!query.trim()}>검색</button>
         {submitted && (
           <button type="button" className="ghost" onClick={onReset}>초기화</button>
@@ -535,9 +586,6 @@ export default function MapSearch() {
           weather={weather}
           weatherLoading={weatherLoading}
           weatherError={weatherError}
-          air={air}
-          airLoading={airLoading}
-          airError={airError}
           fallbackAddress={fallbackAddress}
           restaurants={restaurants}
           restaurantsLoading={restaurantsLoading}
@@ -561,7 +609,7 @@ export default function MapSearch() {
   );
 }
 
-function PlaceDetail({ place, weather, weatherLoading, weatherError, air, airLoading, airError, fallbackAddress, restaurants, restaurantsLoading, onRestaurantClick }) {
+function PlaceDetail({ place, weather, weatherLoading, weatherError, fallbackAddress, restaurants, restaurantsLoading, onRestaurantClick }) {
   if (!place) {
     return (
       <aside className="place-detail place-detail-empty">
@@ -601,12 +649,6 @@ function PlaceDetail({ place, weather, weatherLoading, weatherError, air, airLoa
             )}
           </span>
         </div>
-
-        <AirCard
-          air={air}
-          loading={airLoading}
-          error={airError}
-        />
 
         <RestaurantList
           items={restaurants}
@@ -650,50 +692,6 @@ function RestaurantList({ items, loading, onItemClick }) {
             );
           })}
         </ul>
-      )}
-    </div>
-  );
-}
-
-function AirCard({ air, loading, error }) {
-  return (
-    <div className="air-card">
-      <div className="air-card-title">🌫️ 미세먼지</div>
-      {loading && (
-        <div className="air-card-status">
-          <span className="spinner spinner-sm" />
-          <span>대기질 정보를 불러오는 중…</span>
-        </div>
-      )}
-      {!loading && error && (
-        <div className="air-card-status" style={{ color: '#b91c1c' }}>
-          ⚠️ 대기질 정보를 가져오지 못했어요
-        </div>
-      )}
-      {!loading && !error && air && (
-        <>
-          <div className="air-card-grid">
-            <div className="air-card-cell" style={{ background: air.pm10Color || '#94a3b8' }}>
-              <span className="air-card-label">PM10 (미세먼지)</span>
-              <span className="air-card-value">
-                {air.pm10 != null ? `${Math.round(air.pm10)} ㎍/㎥` : '—'}
-              </span>
-              <span className="air-card-grade">{air.pm10Grade || '정보없음'}</span>
-            </div>
-            <div className="air-card-cell" style={{ background: air.pm25Color || '#94a3b8' }}>
-              <span className="air-card-label">PM2.5 (초미세)</span>
-              <span className="air-card-value">
-                {air.pm25 != null ? `${Math.round(air.pm25)} ㎍/㎥` : '—'}
-              </span>
-              <span className="air-card-grade">{air.pm25Grade || '정보없음'}</span>
-            </div>
-          </div>
-          {air.europeanAqi != null && (
-            <div className="air-card-aqi">
-              유럽 AQI 지수: <strong>{air.europeanAqi}</strong>
-            </div>
-          )}
-        </>
       )}
     </div>
   );
