@@ -65,7 +65,7 @@ const NoticeRow = memo(function NoticeRow({ notice, onClick }) {
           </span>
         )}
       </td>
-      <td className="author hide-sm">{notice.author}</td>
+      <td className="author hide-sm">{notice.nickname}</td>
       <td className="date hide-sm">{notice.createdAt}</td>
       <td className="views">{notice.viewCountText}</td>
     </tr>

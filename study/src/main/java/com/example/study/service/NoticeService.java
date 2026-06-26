@@ -4,6 +4,7 @@ import com.example.study.dto.response.NoticeDetailResponse;
 import com.example.study.dto.response.NoticeListItem;
 import com.example.study.entity.Notice;
 import com.example.study.entity.NoticeImage; // NoticeImage import 추가
+import com.example.study.entity.User; // User import 추가
 import com.example.study.exception.ForbiddenException;
 import com.example.study.repository.CommentRepository;
 import com.example.study.repository.NoticeRepository;
@@ -18,6 +19,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors; // Collectors import 추가
+import java.util.function.Function; // Function import 추가
 
 @Service
 @Transactional(readOnly = true)
@@ -43,7 +45,7 @@ public class NoticeService {
 
     public Page<NoticeListItem> search(String type, String keyword, Pageable pageable) {
         Page<Notice> page;
-        if (keyword == null || keyword.isBlank()) {
+        if (keyword == null || keyword.isBlank()) { // keyword == null 중복 제거
             page = noticeRepository.findAll(pageable);
         } else if ("content".equalsIgnoreCase(type)) {
             page = noticeRepository.findByContentLike(keyword, pageable);
@@ -106,7 +108,10 @@ public class NoticeService {
         if (!isAdmin(currentUserId)) {
             throw new ForbiddenException("관리자만 공지를 등록할 수 있습니다.");
         }
-        Notice notice = new Notice(request.getAuthor(), request.getTitle(), request.getContent());
+        User authorUser = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new IllegalArgumentException("작성자 정보를 찾을 수 없습니다. id=" + currentUserId));
+
+        Notice notice = new Notice(displayName(authorUser), request.getTitle(), request.getContent()); // 닉네임 사용
         notice.setAuthorId(currentUserId);
         Notice saved = noticeRepository.save(notice); // Notice 저장 -> id가 생성됨
 
@@ -128,7 +133,10 @@ public class NoticeService {
         if (!canModify(notice, currentUserId)) {
             throw new ForbiddenException("본인 또는 관리자만 수정할 수 있습니다.");
         }
-        notice.setAuthor(request.getAuthor());
+        User authorUser = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new IllegalArgumentException("작성자 정보를 찾을 수 없습니다. id=" + currentUserId));
+
+        notice.setAuthor(displayName(authorUser)); // 닉네임 사용
         notice.setTitle(request.getTitle());
         notice.setContent(request.getContent());
 
@@ -194,7 +202,18 @@ public class NoticeService {
     /** Page<Notice> → Page<NoticeListItem> 변환 + 댓글/좋아요 카운트 일괄 join */
     private Page<NoticeListItem> enrich(Page<Notice> page) {
         List<Notice> content = page.getContent();
-        if (content.isEmpty()) return page.map(n -> NoticeListItem.of(n, 0, 0));
+        if (content.isEmpty()) return page.map(n -> NoticeListItem.of(n, null, 0, 0)); // null 대신 User 객체 전달
+
+        // 모든 작성자 ID를 수집
+        List<Long> authorIds = content.stream()
+                .map(Notice::getAuthorId)
+                .filter(java.util.Objects::nonNull) // authorId가 null이 아닌 경우만 필터링
+                .distinct()
+                .toList();
+
+        // 작성자 정보를 일괄 조회
+        Map<Long, User> authorMap = userRepository.findAllById(authorIds).stream()
+                .collect(Collectors.toMap(User::getId, Function.identity()));
 
         List<Long> ids = content.stream().map(Notice::getId).toList();
         Map<Long, Long> commentMap = countMap(commentRepository.countGroupByNoticeIds(ids));
@@ -202,6 +221,7 @@ public class NoticeService {
 
         return page.map(n -> NoticeListItem.of(
                 n,
+                authorMap.get(n.getAuthorId()), // 조회된 User 객체를 전달
                 commentMap.getOrDefault(n.getId(), 0L),
                 likeMap.getOrDefault(n.getId(), 0L)
         ));
@@ -211,5 +231,10 @@ public class NoticeService {
         Map<Long, Long> m = new HashMap<>();
         for (Object[] r : rows) m.put((Long) r[0], (Long) r[1]);
         return m;
+    }
+
+    /** User 객체로부터 표시 이름 (닉네임 또는 사용자 이름)을 가져오는 헬퍼 메서드 */
+    private String displayName(User u) {
+        return u.getNickname() != null ? u.getNickname() : u.getUsername();
     }
 }

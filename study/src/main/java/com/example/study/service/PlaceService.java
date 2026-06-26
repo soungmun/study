@@ -80,7 +80,7 @@ public class PlaceService {
             }
 
             return response.documents().stream()
-                    .map(PlaceSearchResponse.Document::place_name)
+                    .map(PlaceSearchResponse.Document::placeName)
                     .distinct()
                     .limit(10)
                     .collect(Collectors.toList());
