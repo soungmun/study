@@ -175,6 +175,7 @@ public class AuthController {
         if (!(savedState instanceof String ss) || !ss.equals(state)) {
             redirectError(res, base, "state_mismatch", ""); return;
         }
+        if (session == null) { redirectError(res, base, "no_session", ""); return; }
         Object lastCode = session.getAttribute(SESSION_NAVER_LAST_CODE);
         if (code.equals(lastCode)) { res.sendRedirect(base); return; }
         session.setAttribute(SESSION_NAVER_LAST_CODE, code);

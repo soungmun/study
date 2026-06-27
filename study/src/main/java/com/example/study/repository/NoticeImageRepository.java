@@ -16,6 +16,9 @@ public interface NoticeImageRepository extends JpaRepository<NoticeImage, Long> 
 
     List<NoticeImage> findByIdIn(List<Long> ids);
 
+    // 회원 탈퇴 시 해당 사용자가 업로드한 이미지 조회
+    List<NoticeImage> findByUserId(Long userId);
+
     @Transactional
     // 기존 deleteByNoticeId(Long noticeId) 대신 Notice 객체를 받도록 변경
     void deleteByNotice(Notice notice);

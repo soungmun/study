@@ -27,4 +27,8 @@ public interface NoticeLikeRepository extends JpaRepository<NoticeLike, Long> {
 
     // 기존 findByNoticeIdOrderByCreatedAtDesc 대신 Notice 객체를 받도록 변경
     List<NoticeLike> findByNoticeOrderByCreatedAtDesc(Notice notice);
+
+    // 회원 탈퇴 시 해당 사용자가 누른 게시글 좋아요 전체 삭제
+    @Transactional
+    void deleteByUserId(Long userId);
 }

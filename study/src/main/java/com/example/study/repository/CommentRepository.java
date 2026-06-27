@@ -10,6 +10,9 @@ import java.util.List;
 
 public interface CommentRepository extends JpaRepository<Comment, Long> {
     List<Comment> findByNoticeIdOrderByCreatedAtAsc(Long noticeId);
+
+    // 회원 탈퇴 시 해당 사용자가 작성한 댓글 조회
+    List<Comment> findByUserId(Long userId);
     long countByNoticeId(Long noticeId);
     void deleteByNoticeId(Long noticeId);
 

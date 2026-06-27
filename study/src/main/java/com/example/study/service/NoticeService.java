@@ -63,6 +63,7 @@ public class NoticeService {
         long c = commentRepository.countByNoticeId(id);
         long l = noticeLikeService.count(id);
         boolean iLiked = noticeLikeService.liked(id, currentUserId);
+        User authorUser = userRepository.findById(n.getAuthorId()).orElse(null); // 작성자 정보 가져오기
 
         // Notice 엔티티의 images 컬렉션에서 직접 이미지 정보 추출
         List<String> imageUrls = n.getImages().stream()
@@ -76,7 +77,7 @@ public class NoticeService {
                 ))
                 .collect(Collectors.toList());
 
-        return NoticeDetailResponse.of(n, c, l, iLiked, canModify(n, currentUserId), imageUrls, images);
+        return NoticeDetailResponse.of(n, authorUser, c, l, iLiked, canModify(n, currentUserId), imageUrls, images);
     }
 
     @Transactional
@@ -87,6 +88,7 @@ public class NoticeService {
         long c = commentRepository.countByNoticeId(id);
         long l = noticeLikeService.count(id);
         boolean iLiked = noticeLikeService.liked(id, currentUserId);
+        User authorUser = userRepository.findById(n.getAuthorId()).orElse(null); // 작성자 정보 가져오기
 
         // Notice 엔티티의 images 컬렉션에서 직접 이미지 정보 추출
         List<String> imageUrls = n.getImages().stream()
@@ -100,7 +102,7 @@ public class NoticeService {
                 ))
                 .collect(Collectors.toList());
 
-        return NoticeDetailResponse.of(n, c, l, iLiked, canModify(n, currentUserId), imageUrls, images);
+        return NoticeDetailResponse.of(n, authorUser, c, l, iLiked, canModify(n, currentUserId), imageUrls, images);
     }
 
     @Transactional
@@ -111,7 +113,7 @@ public class NoticeService {
         User authorUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new IllegalArgumentException("작성자 정보를 찾을 수 없습니다. id=" + currentUserId));
 
-        Notice notice = new Notice(displayName(authorUser), request.getTitle(), request.getContent()); // 닉네임 사용
+        Notice notice = new Notice(authorUser.getUsername(), request.getTitle(), request.getContent()); // username 사용
         notice.setAuthorId(currentUserId);
         Notice saved = noticeRepository.save(notice); // Notice 저장 -> id가 생성됨
 
@@ -136,7 +138,7 @@ public class NoticeService {
         User authorUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new IllegalArgumentException("작성자 정보를 찾을 수 없습니다. id=" + currentUserId));
 
-        notice.setAuthor(displayName(authorUser)); // 닉네임 사용
+        notice.setAuthor(authorUser.getUsername()); // username 사용
         notice.setTitle(request.getTitle());
         notice.setContent(request.getContent());
 

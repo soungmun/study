@@ -120,4 +120,15 @@ public class User {
     public void setKakaoTalkOptIn(boolean kakaoTalkOptIn) { this.kakaoTalkOptIn = kakaoTalkOptIn; }
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
+
+    /** User 객체로부터 표시 이름 (닉네임 또는 사용자 이름)을 가져오는 헬퍼 메서드 */
+    public String getDisplayName() {
+        if (this.nickname != null && !this.nickname.isBlank()) {
+            return this.nickname;
+        }
+        if (this.username != null && !this.username.isBlank()) {
+            return this.username;
+        }
+        return "(알 수 없음)";
+    }
 }

@@ -28,4 +28,8 @@ public interface CommentLikeRepository extends JpaRepository<CommentLike, Long> 
     // JPQL 쿼리도 commentId 대신 comment.id로 변경
     @Query("SELECT cl.comment.id FROM CommentLike cl WHERE cl.userId = :userId AND cl.comment.id IN :ids")
     List<Long> findLikedCommentIds(@Param("userId") Long userId, @Param("ids") Collection<Long> ids);
+
+    // 회원 탈퇴 시 해당 사용자가 누른 댓글 좋아요 전체 삭제
+    @Transactional
+    void deleteByUserId(Long userId);
 }

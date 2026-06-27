@@ -11,18 +11,24 @@ import com.example.study.dto.response.KakaoTokenResponse;
 import com.example.study.dto.response.KakaoUserResponse;
 import com.example.study.dto.response.NaverTokenResponse;
 import com.example.study.dto.response.NaverUserResponse;
+import com.example.study.entity.Comment;
 import com.example.study.entity.User;
+import com.example.study.repository.CommentLikeRepository;
+import com.example.study.repository.CommentRepository;
+import com.example.study.repository.NoticeLikeRepository;
+import com.example.study.repository.NoticeRepository;
 import com.example.study.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Base64;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -50,8 +56,14 @@ public class AuthService {
     private final NaverOAuthService naverOAuth;
     private final GoogleOAuthService googleOAuth;
     private final EmailVerificationService emailVerificationService;
+    private final NoticeRepository noticeRepository;
+    private final CommentRepository commentRepository;
+    private final NoticeLikeRepository noticeLikeRepository;
+    private final CommentLikeRepository commentLikeRepository;
+    private final NoticeImageService noticeImageService;
+
     private final String frontendUrl;
-    private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final PasswordEncoder passwordEncoder;
     private final SecureRandom random = new SecureRandom();
 
     public AuthService(
@@ -61,6 +73,12 @@ public class AuthService {
             NaverOAuthService naverOAuth,
             GoogleOAuthService googleOAuth,
             EmailVerificationService emailVerificationService,
+            NoticeRepository noticeRepository,
+            CommentRepository commentRepository,
+            NoticeLikeRepository noticeLikeRepository,
+            CommentLikeRepository commentLikeRepository,
+            NoticeImageService noticeImageService,
+            PasswordEncoder passwordEncoder,
             @Value("${app.frontend.url}") String frontendUrl
     ) {
         this.userRepository = userRepository;
@@ -69,9 +87,16 @@ public class AuthService {
         this.naverOAuth = naverOAuth;
         this.googleOAuth = googleOAuth;
         this.emailVerificationService = emailVerificationService;
+        this.noticeRepository = noticeRepository;
+        this.commentRepository = commentRepository;
+        this.noticeLikeRepository = noticeLikeRepository;
+        this.commentLikeRepository = commentLikeRepository;
+        this.noticeImageService = noticeImageService;
+        this.passwordEncoder = passwordEncoder;
         this.frontendUrl = frontendUrl;
     }
 
+    @Transactional
     public Result signup(SignupRequest req) {
         if (userRepository.existsByUsername(req.username())) {
             return Result.fail(Result.Code.USERNAME_TAKEN);
@@ -89,7 +114,7 @@ public class AuthService {
         u.setNotificationOptIn(Boolean.TRUE.equals(req.notificationOptIn()));
         userRepository.save(u);
         emailVerificationService.consume(req.email());
-        emailService.sendWelcome(u.getEmail(), displayName(u));
+        emailService.sendWelcome(u.getEmail(), u.getDisplayName());
         return Result.ok(u);
     }
 
@@ -99,6 +124,7 @@ public class AuthService {
                         && passwordEncoder.matches(req.password(), u.getPassword()));
     }
 
+    @Transactional
     public void issueResetToken(PasswordForgotRequest req) {
         userRepository.findByEmail(req.email().trim()).ifPresent(u -> {
             if (u.getPassword() == null || u.getPassword().isBlank()) {
@@ -110,11 +136,12 @@ public class AuthService {
             u.setResetToken(token);
             u.setResetTokenExpiresAt(LocalDateTime.now().plusMinutes(30));
             userRepository.save(u);
-            emailService.sendPasswordReset(u.getEmail(), displayName(u),
+            emailService.sendPasswordReset(u.getEmail(), u.getDisplayName(),
                     frontendUrl + "/reset?token=" + token);
         });
     }
 
+    @Transactional
     public Result resetPassword(PasswordResetRequest req) {
         return userRepository.findByResetToken(req.token())
                 .filter(u -> u.getResetTokenExpiresAt() != null
@@ -129,6 +156,7 @@ public class AuthService {
                 .orElse(Result.fail(Result.Code.INVALID_TOKEN));
     }
 
+    @Transactional
     public Result updateProfile(Long userId, UserUpdateRequest req) {
         return userRepository.findById(userId)
                 .map(u -> {
@@ -166,11 +194,40 @@ public class AuthService {
                     }
                     userRepository.save(u);
                     if (passwordChanged && u.getEmail() != null && !u.getEmail().isBlank()) {
-                        emailService.sendPasswordChanged(u.getEmail(), displayName(u));
+                        emailService.sendPasswordChanged(u.getEmail(), u.getDisplayName());
                     }
                     return Result.ok(u);
                 })
                 .orElse(Result.fail(Result.Code.NOT_FOUND));
+    }
+
+    @Transactional
+    public void deleteAccount(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다. id=" + userId));
+
+        // 1. 게시글 작성자 익명화
+        noticeRepository.findByAuthorId(userId).forEach(notice -> {
+            notice.setAuthorId(null);
+            notice.setAuthor("(탈퇴 회원)");
+            noticeRepository.save(notice);
+        });
+
+        // 2. 댓글 삭제 (userId 컬럼이 NOT NULL 이므로 삭제 처리)
+        List<Comment> userComments = commentRepository.findByUserId(userId);
+        commentRepository.deleteAll(userComments);
+
+        // 3. 게시글 좋아요 삭제
+        noticeLikeRepository.deleteByUserId(userId);
+
+        // 4. 댓글 좋아요 삭제
+        commentLikeRepository.deleteByUserId(userId);
+
+        // 5. 업로드한 이미지 삭제 (파일 + DB)
+        noticeImageService.deleteByUserId(userId);
+
+        // 6. User 엔티티 삭제
+        userRepository.delete(user);
     }
 
     public User syncKakaoUser(String code) {
@@ -339,9 +396,5 @@ public class AuthService {
         }
         userRepository.save(user);
         return user;
-    }
-
-    private static String displayName(User u) {
-        return u.getNickname() != null ? u.getNickname() : u.getUsername();
     }
 }

@@ -71,7 +71,7 @@ export default function NoticeDetail() {
         <h2>{notice.title}</h2>
       </div>
       <div className="meta">
-        <span className="chip author">작성자 · {notice.author}</span>
+        <span className="chip author">작성자 · {notice.nickname}</span>
         <span className="chip date">{notice.createdAt}</span>
         <span className="chip views">조회 {notice.viewCountText}</span>
       </div>

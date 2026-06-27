@@ -1,8 +1,9 @@
 package com.example.study.service;
 
-import com.example.study.entity.Notice; // Notice 엔티티 import 추가
 import com.example.study.entity.NoticeImage;
 import com.example.study.repository.NoticeImageRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,7 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class NoticeImageService {
 
+    private static final Logger log = LoggerFactory.getLogger(NoticeImageService.class);
     private static final long MAX_FILE_SIZE = 10 * 1024 * 1024L; // 10MB
     private static final List<String> ALLOWED_TYPES = List.of(
             "image/jpeg", "image/png", "image/gif", "image/webp"
@@ -45,17 +47,14 @@ public class NoticeImageService {
     public NoticeImage upload(MultipartFile file, Long userId) throws IOException {
         validateFile(file);
 
-        // 저장 디렉토리 생성
         Path dir = Paths.get(uploadDir);
         Files.createDirectories(dir);
 
-        // UUID 기반 파일명으로 저장 (원본명 충돌 방지)
         String ext = extractExtension(file.getOriginalFilename());
         String storedName = UUID.randomUUID() + ext;
         Path dest = dir.resolve(storedName);
         file.transferTo(dest);
 
-        // NoticeImage 엔티티 생성 시 notice 필드는 아직 설정하지 않음
         NoticeImage image = new NoticeImage(
                 userId,
                 storedName,
@@ -72,27 +71,36 @@ public class NoticeImageService {
      */
     public List<NoticeImage> findImagesByIds(List<Long> imageIds, Long userId) {
         if (imageIds == null || imageIds.isEmpty()) return List.of();
-        // 보안: 해당 userId가 업로드한 이미지들만 가져오도록 함
         return imageRepository.findByIdInAndUserId(imageIds, userId);
     }
-
-    // 기존 attachImages 메서드는 NoticeService에서 Notice의 addImage()로 대체되므로 삭제
-
-    // 기존 syncImages 메서드는 NoticeService에서 직접 컬렉션 조작으로 대체되므로 삭제
 
     /** 업로드된 이미지의 URL 반환 */
     public String getImageUrl(String storedName) {
         return serverUrl + "/uploads/notice-images/" + storedName;
     }
 
-    // 기존 getImageUrls, getImages 메서드는 NoticeService에서 Notice.getImages()를 통해 직접 처리하므로 삭제
-
     /** 이미지 ID + URL + 원본명을 담는 간단한 DTO */
     public record ImageInfo(Long imageId, String url, String originalName) {}
 
-    // 기존 deleteByNoticeId 메서드는 NoticeService에서 Notice 삭제 시 cascade에 의해 DB 삭제, 파일은 수동 삭제로 대체되므로 삭제
+    /** 회원 탈퇴 시 해당 사용자가 업로드한 모든 이미지 삭제 (파일 + DB) */
+    @Transactional
+    public void deleteByUserId(Long userId) {
+        List<NoticeImage> images = imageRepository.findByUserId(userId);
+        for (NoticeImage image : images) {
+            deleteFile(image.getStoredName());
+        }
+        imageRepository.deleteAll(images);
+    }
 
-    // ── 내부 헬퍼 ─────────────────────────────────────────────
+    /** 실제 파일 시스템에서 이미지 파일 삭제 */
+    public void deleteFile(String storedName) {
+        try {
+            Path path = Paths.get(uploadDir).resolve(storedName);
+            Files.deleteIfExists(path);
+        } catch (IOException e) {
+            log.warn("파일 삭제 실패: {} - {}", storedName, e.getMessage());
+        }
+    }
 
     private void validateFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
@@ -111,16 +119,5 @@ public class NoticeImageService {
     private String extractExtension(String filename) {
         if (filename == null || !filename.contains(".")) return "";
         return filename.substring(filename.lastIndexOf('.'));
-    }
-
-    /** 실제 파일 시스템에서 이미지 파일 삭제 */
-    public void deleteFile(String storedName) {
-        try {
-            Path path = Paths.get(uploadDir).resolve(storedName);
-            Files.deleteIfExists(path);
-        } catch (IOException e) {
-            // 파일 삭제 실패는 로그만 남기고 DB 삭제는 진행 (DB 삭제는 JPA가 처리)
-            System.err.println("Failed to delete file: " + storedName + " - " + e.getMessage());
-        }
     }
 }

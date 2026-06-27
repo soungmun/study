@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../utils/api'; // api 유틸리티 임포트
+import { useAuth } from '../context/AuthContext'; // useAuth 훅 임포트
 
 const BASE_URL = '/notices'; // api 유틸리티 사용 시 /api/ 접두사 제거
 
+// readError 함수는 api 유틸리티에서 에러를 던지므로 더 이상 필요 없을 수 있지만,
+// fetch 직접 사용 시를 대비해 남겨두거나 api 유틸리티의 에러 처리 방식에 맞게 조정
 async function readError(res) {
   const text = await res.text();
   try { return JSON.parse(text).message || text; } catch { return text || `HTTP ${res.status}`; }
@@ -11,13 +14,17 @@ async function readError(res) {
 
 export default function NoticeCreate() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ author: '', title: '', content: '' });
+  const { user } = useAuth(); // 현재 로그인한 사용자 정보 가져오기
+  const [form, setForm] = useState({ title: '', content: '', author: user.username || user.nickname || '' });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null); // 에러 상태 추가
 
   // 업로드된 이미지 목록: [{ imageId, url, originalName, fileSize }]
   const [images, setImages] = useState([]);
   const [uploading, setUploading] = useState(false);
+
+  // user.nickname이 변경될 때마다 폼의 author를 업데이트하는 로직은 필요 없음.
+  // 백엔드에서 currentUserId로 닉네임을 가져오므로.
 
   const onChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -59,7 +66,9 @@ export default function NoticeCreate() {
     try {
       // api 유틸리티 사용
       await api.post(BASE_URL, {
-        ...form,
+        title: form.title,
+        content: form.content,
+        author: form.author, // 작성자 필드 추가
         imageIds: images.map((img) => img.imageId),
       });
       alert('등록되었습니다.');
@@ -72,6 +81,18 @@ export default function NoticeCreate() {
     }
   };
 
+  // 로그인하지 않은 경우 (user가 null) 처리
+  if (!user) {
+    return (
+      <div className="card">
+        <div className="book-empty">
+          <div className="spinner" />
+          <p>로그인 정보가 없습니다. 로그인 후 다시 시도해주세요.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="card">
       <div className="toolbar">
@@ -80,7 +101,8 @@ export default function NoticeCreate() {
       <form onSubmit={handleSubmit} className="form">
         <label>
           작성자
-          <input name="author" value={form.author} onChange={onChange} placeholder="이름을 입력하세요" />
+          {/* 작성자 입력 필드 대신 닉네임 표시 */}
+          <input name="author" value={form.author} readOnly className="readonly-input" />
         </label>
         <label>
           제목
@@ -136,7 +158,7 @@ export default function NoticeCreate() {
                 >
                   <img
                     src={img.url}
-                    alt={img.originalName}
+                    alt={`첨부 이미지 ${i + 1}`}
                     style={{ width: '100%', height: 90, objectFit: 'cover', display: 'block' }}
                   />
                   <div style={{ padding: '4px 6px', fontSize: 11, color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
