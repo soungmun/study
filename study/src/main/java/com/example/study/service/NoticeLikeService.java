@@ -9,7 +9,6 @@ import com.example.study.repository.NoticeRepository;
 import com.example.study.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,19 +29,13 @@ public class NoticeLikeService {
     private final NoticeLikeRepository likeRepository;
     private final NoticeRepository noticeRepository;
     private final UserRepository userRepository;
-    private final EmailService emailService;
-    private final String frontendUrl;
 
     public NoticeLikeService(NoticeLikeRepository likeRepository,
                              NoticeRepository noticeRepository,
-                             UserRepository userRepository,
-                             EmailService emailService,
-                             @Value("${app.frontend.url}") String frontendUrl) {
+                             UserRepository userRepository) {
         this.likeRepository = likeRepository;
         this.noticeRepository = noticeRepository;
         this.userRepository = userRepository;
-        this.emailService = emailService;
-        this.frontendUrl = frontendUrl;
     }
 
     @Transactional
@@ -63,34 +56,12 @@ public class NoticeLikeService {
             NoticeLike newLike = new NoticeLike(notice, userId); // Notice 객체를 사용하여 NoticeLike 생성
             likeRepository.save(newLike);
             notice.addLike(newLike); // Notice 엔티티의 likes 컬렉션에 추가 (양방향 관계 동기화)
-            notifyAuthor(notice, userId);
         }
         // Notice 객체를 사용하여 countByNotice 호출
         long count = likeRepository.countByNotice(notice);
         return new Result(!wasLiked, count);
     }
 
-    /** 좋아요가 새로 추가됐을 때 작성자에게 메일 (작성자 본인이 누른 경우는 제외) */
-    private void notifyAuthor(Notice notice, Long likerUserId) {
-        if (notice.getAuthorId() == null || notice.getAuthorId().equals(likerUserId)) {
-            return;  // 작성자 정보 없거나 자기 자신
-        }
-        try {
-            User author = userRepository.findById(notice.getAuthorId()).orElse(null);
-            User liker = userRepository.findById(likerUserId).orElse(null);
-            if (author == null || author.getEmail() == null || author.getEmail().isBlank()) return;
-            String url = frontendUrl + "/notices/" + notice.getId();
-            emailService.sendNoticeLiked(
-                    author.getEmail(),
-                    displayName(author),
-                    displayName(liker),
-                    notice.getTitle(),
-                    url
-            );
-        } catch (Exception e) {
-            log.warn("[NoticeLike] 알림 메일 실패 noticeId={}, liker={}: {}", notice.getId(), likerUserId, e.getMessage());
-        }
-    }
 
     public List<LikedUserResponse> listLikers(Long noticeId) {
         Notice notice = noticeRepository.findById(noticeId)
