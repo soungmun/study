@@ -21,8 +21,16 @@ import java.util.Map;
 import java.util.stream.Collectors; // Collectors import 추가
 import java.util.function.Function; // Function import 추가
 
+/**
+ * 공지사항(Notice)과 관련된 주요 비즈니스 로직을 담당하는 서비스 클래스입니다.
+ * 공지사항의 CRUD(생성, 조회, 수정, 삭제) 및 검색 기능, 조회수 증가, 이미지 동기화 처리를 수행합니다.
+ */
+/**
+ * 공지사항 게시판의 비즈니스 로직을 처리하는 서비스 클래스입니다.
+ * 게시글 CRUD 연산 및 조회수 증가, 목록 검색 기능 등을 수행합니다.
+ */
 @Service
-@Transactional(readOnly = true)
+@Transactional
 public class NoticeService {
 
     private final NoticeRepository noticeRepository;
@@ -43,6 +51,13 @@ public class NoticeService {
         this.noticeImageService = noticeImageService;
     }
 
+    /**
+     * 공지사항 목록을 검색 및 페이징하여 반환합니다.
+     * @param type 검색 조건 (예: "content" 등)
+     * @param keyword 검색어
+     * @param pageable 페이징 정보
+     * @return 검색된 공지사항 목록 (작성자 정보, 댓글 수, 좋아요 수가 포함된 DTO)
+     */
     public Page<NoticeListItem> search(String type, String keyword, Pageable pageable) {
         Page<Notice> page;
         if (keyword == null || keyword.isBlank()) { // keyword == null 중복 제거
@@ -56,6 +71,12 @@ public class NoticeService {
         return enrich(page);
     }
 
+    /**
+     * 특정 공지사항의 상세 정보를 조회합니다.
+     * @param id 공지사항 ID
+     * @param currentUserId 현재 로그인한 사용자 ID (좋아요 여부 및 수정 권한 확인용)
+     * @return 공지사항 상세 정보 (이미지, 댓글 수, 좋아요 수 등 포함)
+     */
     public NoticeDetailResponse findDetail(Long id, Long currentUserId) {
         // Notice를 가져올 때 이미지를 EAGER로 가져오거나, LAZY라면 getImages() 호출 시 로딩
         Notice n = noticeRepository.findById(id)
@@ -80,6 +101,12 @@ public class NoticeService {
         return NoticeDetailResponse.of(n, authorUser, c, l, iLiked, canModify(n, currentUserId), imageUrls, images);
     }
 
+    /**
+     * 공지사항의 조회수를 1 증가시키고 상세 정보를 반환합니다.
+     * @param id 공지사항 ID
+     * @param currentUserId 현재 로그인한 사용자 ID
+     * @return 공지사항 상세 정보
+     */
     @Transactional
     public NoticeDetailResponse increaseViewCount(Long id, Long currentUserId) {
         Notice n = noticeRepository.findById(id)
@@ -105,6 +132,13 @@ public class NoticeService {
         return NoticeDetailResponse.of(n, authorUser, c, l, iLiked, canModify(n, currentUserId), imageUrls, images);
     }
 
+    /**
+     * 새로운 공지사항을 등록합니다. (관리자 권한 필요)
+     * @param request 등록할 공지사항 데이터
+     * @param currentUserId 작성자(현재 로그인한 관리자) ID
+     * @param imageIds 함께 등록할 첨부 이미지 ID 목록
+     * @return 등록된 공지사항 엔티티
+     */
     @Transactional
     public Notice create(Notice request, Long currentUserId, List<Long> imageIds) {
         if (!isAdmin(currentUserId)) {
@@ -128,6 +162,16 @@ public class NoticeService {
         return saved;
     }
 
+    /**
+     * 기존 공지사항을 수정합니다. (작성자 본인 또는 관리자 권한 필요)
+     * 변경된 이미지 목록을 비교하여 삭제된 이미지는 DB와 파일 시스템에서 제거하고, 새로운 이미지를 추가합니다.
+     *
+     * @param id 수정할 공지사항 ID
+     * @param request 수정할 내용이 담긴 데이터
+     * @param currentUserId 현재 로그인한 사용자 ID
+     * @param imageIds 최종적으로 유지/추가할 첨부 이미지 ID 목록
+     * @return 수정된 공지사항 엔티티
+     */
     @Transactional
     public Notice update(Long id, Notice request, Long currentUserId, List<Long> imageIds) {
         Notice notice = noticeRepository.findById(id)
@@ -171,6 +215,13 @@ public class NoticeService {
         return noticeRepository.save(notice);
     }
 
+    /**
+     * 공지사항을 삭제합니다. (작성자 본인 또는 관리자 권한 필요)
+     * 삭제 시 공지사항에 연결된 이미지 파일들도 파일 시스템에서 모두 제거됩니다.
+     *
+     * @param id 삭제할 공지사항 ID
+     * @param currentUserId 현재 로그인한 사용자 ID
+     */
     @Transactional
     public void delete(Long id, Long currentUserId) {
         Notice notice = noticeRepository.findById(id)

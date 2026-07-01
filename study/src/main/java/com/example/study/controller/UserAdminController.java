@@ -10,8 +10,12 @@ import org.springframework.web.bind.annotation.*; // RestController, RequestMapp
 
 import java.util.List;
 
+/**
+ * 관리자용 사용자 관리 HTTP 요청을 처리하는 컨트롤러 클래스입니다.
+ * 사용자 목록 조회 및 상세 정보 확인, 권한/상태 변경 등의 관리자 API를 제공합니다.
+ */
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api/admin/users")
 public class UserAdminController {
 
     private final UserRepository userRepository;

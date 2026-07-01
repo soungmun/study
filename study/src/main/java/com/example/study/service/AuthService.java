@@ -31,6 +31,10 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * 사용자 인증 및 계정 관리 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
+ * 소셜 로그인(카카오, 네이버, 구글) 연동 및 회원가입, 로그인 처리를 수행합니다.
+ */
 @Service
 public class AuthService {
 

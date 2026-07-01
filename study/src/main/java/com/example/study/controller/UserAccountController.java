@@ -20,8 +20,12 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * 사용자 계정 관련 HTTP 요청을 처리하는 컨트롤러 클래스입니다.
+ * 내 정보 조회 및 수정, 비밀번호 찾기/변경, 계정 탈퇴 등의 API를 제공합니다.
+ */
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api/account")
 public class UserAccountController {
 
     private static final String DEFAULT_FORGOT_MESSAGE =

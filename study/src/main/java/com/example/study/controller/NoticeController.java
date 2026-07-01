@@ -16,6 +16,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * 공지사항 게시판과 관련된 HTTP 요청을 처리하는 컨트롤러입니다.
+ * 게시글 목록 조회, 상세 조회, 작성, 수정, 삭제 및 좋아요, 조회수 증가 등의 API를 제공합니다.
+ */
 @RestController
 @RequestMapping("/api/notices")
 public class NoticeController {

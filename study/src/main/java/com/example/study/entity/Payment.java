@@ -16,6 +16,10 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 
+/**
+ * 결제 내역 데이터를 관리하는 엔티티 클래스입니다.
+ * 사용자 결제 정보, 결제 상태, 주문 번호 등을 저장합니다.
+ */
 @Entity
 @Table(name = "payment")
 @Getter

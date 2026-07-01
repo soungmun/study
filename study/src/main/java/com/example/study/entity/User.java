@@ -3,6 +3,10 @@ package com.example.study.entity;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+/**
+ * 사용자 정보를 관리하는 엔티티 클래스.
+ * 회원 기본 정보 및 소셜 로그인 연동 정보, 권한(Role) 등을 저장합니다.
+ */
 @Entity
 @Table(
         name = "users",

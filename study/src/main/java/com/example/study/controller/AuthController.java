@@ -32,6 +32,10 @@ import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Base64;
 
+/**
+ * 사용자 인증 및 회원가입 관련 HTTP 요청을 처리하는 컨트롤러입니다.
+ * 로그인, 회원가입, 토큰 갱신, 로그아웃 등의 API를 제공합니다.
+ */
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {

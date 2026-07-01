@@ -12,6 +12,10 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List; // List 추가
 
+/**
+ * 공지사항 게시글 데이터를 관리하는 엔티티 클래스.
+ * 제목, 내용, 작성자, 조회수 등 게시글의 기본 정보를 저장합니다.
+ */
 @Entity
 @Table(name = "notice")
 @Getter
