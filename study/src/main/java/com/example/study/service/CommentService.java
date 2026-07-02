@@ -14,8 +14,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * 댓글 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
+ * 공지사항 게시글에 대한 댓글 작성, 수정, 삭제 및 조회 기능을 제공합니다.
+ */
 @Service
-@Transactional(readOnly = true)
+@Transactional
 public class CommentService {
 
     private final CommentRepository commentRepository;

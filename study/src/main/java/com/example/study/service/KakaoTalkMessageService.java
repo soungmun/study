@@ -21,6 +21,10 @@ import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+/**
+ * 카카오톡 메시지 발송 연동 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
+ * 사용자에게 알림톡 혹은 카카오톡 메시지를 전송하는 기능을 담당합니다.
+ */
 @Service
 public class KakaoTalkMessageService {
 

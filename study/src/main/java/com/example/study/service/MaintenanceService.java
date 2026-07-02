@@ -5,6 +5,10 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+/**
+ * 시스템 점검 모드 관련 상태를 관리하는 서비스 클래스입니다.
+ * 점검 시작/종료 처리 및 현재 점검 상태를 메모리에 캐싱하여 제공합니다.
+ */
 @Service
 public class MaintenanceService {
 

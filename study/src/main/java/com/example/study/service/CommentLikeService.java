@@ -20,8 +20,12 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * 댓글 좋아요 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
+ * 특정 사용자의 댓글 좋아요 추가 및 취소(토글) 기능을 수행합니다.
+ */
 @Service
-@Transactional(readOnly = true)
+@Transactional
 public class CommentLikeService {
 
     private static final Logger log = LoggerFactory.getLogger(CommentLikeService.class);

@@ -13,8 +13,12 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * 공지사항 댓글 관련 HTTP 요청을 처리하는 컨트롤러 클래스입니다.
+ * 댓글 작성, 수정, 삭제 및 좋아요 기능을 제공합니다.
+ */
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/notices/{noticeId}/comments")
 public class CommentController {
 
     private final CommentService commentService;
@@ -25,14 +29,14 @@ public class CommentController {
         this.commentLikeService = commentLikeService;
     }
 
-    @GetMapping("/notices/{noticeId}/comments")
+    @GetMapping("")
     public ResponseEntity<List<CommentResponse>> list(@PathVariable Long noticeId,
                                                       @AuthenticationPrincipal SecurityUser principal) {
         return ResponseEntity.ok(commentService.listByNotice(noticeId,
                 principal != null ? principal.getUserId() : null));
     }
 
-    @PostMapping("/notices/{noticeId}/comments")
+    @PostMapping("")
     public ResponseEntity<?> create(@PathVariable Long noticeId,
                                     @Valid @RequestBody CommentRequest req,
                                     @AuthenticationPrincipal SecurityUser principal) {

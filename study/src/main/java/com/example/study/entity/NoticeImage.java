@@ -7,6 +7,10 @@ import lombok.Setter; // Setter 추가
 
 import java.time.LocalDateTime;
 
+/**
+ * 공지사항 첨부 이미지 데이터를 관리하는 엔티티 클래스입니다.
+ * 원본 파일명, 서버 저장 파일명 등을 저장합니다.
+ */
 @Entity
 @Table(name = "notice_image",
         indexes = @Index(name = "ix_nimage_notice", columnList = "notice_id"))

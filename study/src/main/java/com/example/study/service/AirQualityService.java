@@ -16,6 +16,10 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 미세먼지 및 대기질 정보 조회 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
+ * 외부 API 연동을 통해 실시간 대기 정보를 가져옵니다.
+ */
 @Service
 public class AirQualityService {
 

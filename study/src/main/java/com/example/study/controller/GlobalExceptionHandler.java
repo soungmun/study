@@ -12,6 +12,10 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 import java.util.stream.Collectors;
 
+/**
+ * 전역 예외 처리를 담당하는 어드바이스(ControllerAdvice) 클래스입니다.
+ * 애플리케이션 전반에서 발생하는 예외를 가로채어 일관된 에러 응답을 반환합니다.
+ */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 

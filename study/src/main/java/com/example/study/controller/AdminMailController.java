@@ -9,8 +9,12 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
+/**
+ * 관리자용 메일 발송 HTTP 요청을 처리하는 컨트롤러 클래스입니다.
+ * 전체 사용자에게 공지 메일을 보내는 등의 기능을 제공합니다.
+ */
 @RestController
-@RequestMapping("/api/admin")
+@RequestMapping("/api/admin/mail")
 public class AdminMailController {
 
     private final DailyMailScheduler dailyMailScheduler;

@@ -24,8 +24,12 @@ import java.util.stream.Collectors;
  * 공지사항 게시글의 '좋아요' 기능과 관련된 비즈니스 로직을 처리하는 서비스 클래스입니다.
  * 좋아요 토글(추가/취소), 좋아요 누른 사용자 목록 조회, 개수 집계 등을 담당합니다.
  */
+/**
+ * 공지사항 게시글 좋아요 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
+ * 특정 사용자의 게시글 좋아요 추가 및 취소 처리를 수행합니다.
+ */
 @Service
-@Transactional(readOnly = true)
+@Transactional
 public class NoticeLikeService {
 
     private static final Logger log = LoggerFactory.getLogger(NoticeLikeService.class);

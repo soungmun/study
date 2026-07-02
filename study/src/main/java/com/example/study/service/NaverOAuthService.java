@@ -17,6 +17,10 @@ import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
+/**
+ * 네이버 소셜 로그인 연동 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
+ * 네이버 OAuth API와의 통신 및 토큰 발급, 사용자 정보 조회를 수행합니다.
+ */
 @Service
 public class NaverOAuthService {
 

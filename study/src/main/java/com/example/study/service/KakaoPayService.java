@@ -18,6 +18,10 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * 카카오페이 결제 연동 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
+ * 결제 준비, 승인, 취소 처리 등의 외부 결제 API 통신을 수행합니다.
+ */
 @Service
 public class KakaoPayService {
 

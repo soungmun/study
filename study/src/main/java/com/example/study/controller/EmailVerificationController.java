@@ -11,6 +11,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * 이메일 인증 관련 HTTP 요청을 처리하는 컨트롤러 클래스입니다.
+ * 회원가입 시 인증번호 발송 및 확인 API를 제공합니다.
+ */
 @RestController
 @RequestMapping("/api/auth/email")
 public class EmailVerificationController {

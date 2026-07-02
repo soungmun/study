@@ -12,8 +12,12 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.Map;
 
+/**
+ * 공지사항 게시판 이미지 처리 관련 HTTP 요청을 처리하는 컨트롤러 클래스입니다.
+ * 이미지 파일 업로드 및 서빙 API를 제공합니다.
+ */
 @RestController
-@RequestMapping("/api/notices/images")
+@RequestMapping("/api/notices")
 public class NoticeImageController {
 
     private final NoticeImageService imageService;
@@ -31,7 +35,7 @@ public class NoticeImageController {
      * 응답: { "imageId": 1, "url": "http://localhost:8080/uploads/notice-images/uuid.jpg" }
      * 게시글 저장 시 imageIds 배열에 이 id를 포함하면 연결됩니다.
      */
-    @PostMapping
+    @PostMapping("/images")
     public ResponseEntity<?> upload(
             @RequestParam("file") MultipartFile file,
             @AuthenticationPrincipal SecurityUser principal) {

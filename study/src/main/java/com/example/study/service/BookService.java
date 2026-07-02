@@ -11,6 +11,10 @@ import java.net.URI;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * 도서 검색 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
+ * 외부 API(예: 카카오 도서검색)를 사용하여 책 정보를 검색하고 자동완성을 제공합니다.
+ */
 @Service
 public class BookService {
 

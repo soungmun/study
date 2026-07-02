@@ -11,6 +11,10 @@ import org.springframework.web.client.RestClient;
 import java.util.Comparator;
 import java.util.List;
 
+/**
+ * 주식 시세 조회 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
+ * 외부 금융 API를 통해 종목 현재가, 차트 정보, 상승/하락률 정보를 제공합니다.
+ */
 @Service
 public class StockService {
 

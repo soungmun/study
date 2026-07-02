@@ -12,6 +12,10 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List; // List 추가
 
+/**
+ * 게시글의 댓글 데이터를 관리하는 엔티티 클래스입니다.
+ * 작성자, 내용, 작성 시간 등을 저장합니다.
+ */
 @Entity
 @Table(
         name = "notice_comment",

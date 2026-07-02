@@ -16,6 +16,10 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * 공지사항 이미지 파일 업로드 및 삭제 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
+ * 로컬 파일 시스템 또는 클라우드 스토리지에 이미지를 저장하고 관리합니다.
+ */
 @Service
 @Transactional(readOnly = true)
 public class NoticeImageService {

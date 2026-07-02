@@ -7,6 +7,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * 도서 정보 검색 관련 HTTP 요청을 처리하는 컨트롤러 클래스입니다.
+ * 책 검색 및 상세 정보 조회 API를 제공합니다.
+ */
 @RestController
 @RequestMapping("/api/books")
 public class BookApiController {

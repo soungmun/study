@@ -16,6 +16,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 주식 관련 뉴스 검색 비즈니스 로직을 처리하는 서비스 클래스입니다.
+ * 네이버 검색 API 등을 이용하여 특정 종목 관련 뉴스를 가져옵니다.
+ */
 @Service
 public class NewsService {
 

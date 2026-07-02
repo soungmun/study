@@ -9,6 +9,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+/**
+ * 주식 정보 조회 관련 HTTP 요청을 처리하는 컨트롤러 클래스입니다.
+ * 주식 시세 데이터, 차트 정보, 관련 뉴스 등을 제공하는 API를 포함합니다.
+ */
 @RestController
 @RequestMapping("/api/stocks")
 public class StockApiController {

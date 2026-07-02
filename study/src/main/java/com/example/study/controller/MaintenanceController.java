@@ -15,6 +15,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 관리자용 시스템 점검 상태 관리 HTTP 요청을 처리하는 컨트롤러 클래스입니다.
+ * 점검 모드 켜기/끄기 및 점검 상태 조회 API를 제공합니다.
+ */
 @RestController
 @RequestMapping("/api/admin/maintenance")
 public class MaintenanceController {

@@ -16,6 +16,10 @@ import org.springframework.web.bind.annotation.*;
  * Notice JSP 뷰 전용 MVC Controller.
  * REST API(/api/notices)와 별개로 동작하며 /notices/** 경로로 JSP 페이지를 서빙합니다.
  */
+/**
+ * 공지사항 게시판 뷰(View) 렌더링 HTTP 요청을 처리하는 컨트롤러 클래스입니다.
+ * SSR 기반으로 공지사항 목록 및 상세 화면 템플릿을 반환합니다.
+ */
 @Controller
 @RequestMapping("/notices")
 public class NoticeViewController {

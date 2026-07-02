@@ -7,6 +7,10 @@ import lombok.Setter; // Setter 추가
 
 import java.time.LocalDateTime;
 
+/**
+ * 댓글 좋아요 데이터를 관리하는 엔티티 클래스입니다.
+ * 어떤 사용자가 어떤 댓글에 좋아요를 눌렀는지 기록합니다.
+ */
 @Entity
 @Table(
         name = "comment_like",

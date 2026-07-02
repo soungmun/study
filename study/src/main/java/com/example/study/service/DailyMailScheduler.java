@@ -21,6 +21,10 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 
+/**
+ * 매일 정기적으로 발송되는 메일 스케줄러 클래스입니다.
+ * 사용자의 메일 수신 동의 여부에 따라 정기 소식지 등을 자동 발송합니다.
+ */
 @Service
 public class DailyMailScheduler {
 

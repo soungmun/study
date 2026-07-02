@@ -9,6 +9,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+/**
+ * 장소 및 위치 검색 관련 HTTP 요청을 처리하는 컨트롤러 클래스입니다.
+ * 키워드를 통한 장소 검색, 지도 마커 정보 등을 제공하는 API를 포함합니다.
+ */
 @RestController
 @RequestMapping("/api/places")
 public class PlaceApiController {

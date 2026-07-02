@@ -15,6 +15,10 @@ import java.net.URI;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * 장소 검색 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
+ * 카카오 로컬 API 등을 사용하여 장소 키워드 검색 및 주변 장소 정보를 제공합니다.
+ */
 @Service
 public class PlaceService {
 

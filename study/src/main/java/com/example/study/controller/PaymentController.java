@@ -19,8 +19,12 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * 결제 관련 HTTP 요청을 처리하는 컨트롤러 클래스입니다.
+ * 결제 준비, 승인, 취소 및 내역 조회 등의 API를 제공합니다.
+ */
 @RestController
-@RequestMapping("/api/payments/kakao")
+@RequestMapping("/api/payments")
 public class PaymentController {
 
     private final KakaoPayService kakaoPayService;

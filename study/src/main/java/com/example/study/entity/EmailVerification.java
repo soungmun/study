@@ -7,6 +7,10 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 
+/**
+ * 이메일 인증 정보를 관리하는 엔티티 클래스입니다.
+ * 발송된 인증 코드와 만료 시간, 인증 성공 여부 등을 저장합니다.
+ */
 @Entity
 @Table(
         name = "email_verification",

@@ -17,6 +17,10 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 
+/**
+ * 구글 소셜 로그인 연동 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
+ * 구글 OAuth API와의 통신 및 토큰 갱신, 사용자 정보 조회를 수행합니다.
+ */
 @Service
 public class GoogleOAuthService {
 

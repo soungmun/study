@@ -13,6 +13,10 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 날씨 정보 조회 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
+ * 기상청 또는 글로벌 날씨 API를 연동하여 특정 위치의 단기 일기 예보를 제공합니다.
+ */
 @Service
 public class WeatherService {
 
