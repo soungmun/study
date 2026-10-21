@@ -96,7 +96,6 @@ public class WeatherService {
         OpenMeteoCurrent cw = body != null ? body.currentWeather() : null;
         Integer code = cw != null ? cw.weathercode() : null;
         Map<String, String> meta = describe(code);
-
         return new WeatherResponse(
                 lat,
                 lng,

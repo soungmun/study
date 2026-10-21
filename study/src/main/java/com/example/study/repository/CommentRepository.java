@@ -15,7 +15,6 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     List<Comment> findByUserId(Long userId);
     long countByNoticeId(Long noticeId);
     void deleteByNoticeId(Long noticeId);
-
     @Query("SELECT c.noticeId, COUNT(c) FROM Comment c WHERE c.noticeId IN :ids GROUP BY c.noticeId")
     List<Object[]> countGroupByNoticeIds(@Param("ids") Collection<Long> ids);
 }
