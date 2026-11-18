@@ -44,7 +44,7 @@ public class CommentController {
         return ResponseEntity.ok(commentService.create(noticeId, principal.getUserId(), req.content()));
     }
 
-    @PutMapping("/comments/{commentId}")
+    @PutMapping("/{commentId}")
     public ResponseEntity<?> update(@PathVariable Long commentId,
                                     @Valid @RequestBody CommentRequest req,
                                     @AuthenticationPrincipal SecurityUser principal) {
@@ -56,7 +56,7 @@ public class CommentController {
         }
     }
 
-    @DeleteMapping("/comments/{commentId}")
+    @DeleteMapping("/{commentId}")
     public ResponseEntity<?> delete(@PathVariable Long commentId,
                                     @AuthenticationPrincipal SecurityUser principal) {
         if (principal == null) return ResponseEntity.status(401).body(MessageResponse.of("로그인이 필요합니다."));
@@ -68,7 +68,7 @@ public class CommentController {
         }
     }
 
-    @PostMapping("/comments/{commentId}/like")
+    @PostMapping("/{commentId}/like")
     public ResponseEntity<?> toggleLike(@PathVariable Long commentId,
                                         @AuthenticationPrincipal SecurityUser principal) {
         if (principal == null) return ResponseEntity.status(401).body(MessageResponse.of("로그인이 필요합니다."));
