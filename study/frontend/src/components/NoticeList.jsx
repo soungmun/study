@@ -82,7 +82,11 @@ const NoticeTable = memo(function NoticeTable({ notices, searchTerm, onRowClick,
     <table className="notice-table">
       <thead>
         <tr>
-          <th style={{ width: 70 }}>번호</th><th>제목</th><th style={{ width: 120 }} className="hide-sm">작성자</th><th style={{ width: 170 }} className="hide-sm">작성일</th><th style={{ width: 80 }}>조회</th>
+          <th style={{ width: 70 }}>번호</th>
+          <th>제목</th>
+          <th style={{ width: 120 }} className="hide-sm">작성자</th>
+          <th style={{ width: 170 }} className="hide-sm">작성일</th>
+          <th style={{ width: 80 }}>조회</th>
         </tr>
       </thead>
       <tbody>
@@ -239,7 +243,7 @@ export default function NoticeList() {
       <NoticeTable
         notices={notices}
         searchTerm={searchTerm}
-        onRowClick={handleRowClick}
+        onRowClick={handleRowClick}//상세페이지
         isLoading={isLoading}
       />
       <Pagination
