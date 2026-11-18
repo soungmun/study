@@ -9,8 +9,8 @@ export default function NoticeDetail() {
   const [notice, setNotice] = useState(null);
   const [error, setError] = useState(null);
   const [likers, setLikers] = useState(null); // null = 미오픈, 배열 = 오픈됨
-  const [loadingLikers, setLoadingLikers] = useState(false);
-  const fetchedIdRef = useRef(null);
+  const [loadingLikers, setLoadingLikers] = useState(false);//좋아요 누른 사람의 리스트
+  const fetchedIdRef = useRef(null);//중복방지
 
   // id가 바뀔 때마다 조회수 증가 API 호출 후 공지 데이터를 받아서 state에 저장. 중복 호출 방지를 위해 fetchedIdRef 사용
   useEffect(() => {

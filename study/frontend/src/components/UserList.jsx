@@ -22,7 +22,7 @@ export default function UserList() {
         return r.json();
       })
       .then((data) => {
-        if (data) setUsers(data);
+        if (data) setUsers(data);//데이터세팅
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
