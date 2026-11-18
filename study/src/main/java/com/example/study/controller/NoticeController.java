@@ -2,6 +2,7 @@ package com.example.study.controller;
 
 import com.example.study.config.SecurityUser;
 import com.example.study.dto.request.NoticeRequest;
+import com.example.study.dto.response.LikedUserResponse;
 import com.example.study.dto.response.MessageResponse;
 import com.example.study.dto.response.NoticeDetailResponse;
 import com.example.study.dto.response.NoticeListItem;
@@ -60,7 +61,7 @@ public class NoticeController {
     }
 
     @GetMapping("/{id}/likes")
-    public java.util.List<com.example.study.dto.response.LikedUserResponse> likers(@PathVariable Long id) {
+    public java.util.List<LikedUserResponse> likers(@PathVariable Long id) {
         return noticeLikeService.listLikers(id);
     }
 

@@ -38,7 +38,7 @@ public class NoticeService {
     private final NoticeLikeService noticeLikeService;
     private final UserRepository userRepository;
     private final NoticeImageService noticeImageService; // NoticeImageService는 여전히 필요 (업로드, 파일 삭제 등)
-
+    private     Page<Notice> page;
     public NoticeService(NoticeRepository noticeRepository,
                          CommentRepository commentRepository,
                          NoticeLikeService noticeLikeService,
