@@ -12,6 +12,7 @@ export default function CommentSection({ noticeId }) {
   const [editingId, setEditingId] = useState(null);
   const [editingText, setEditingText] = useState('');
 
+  // 댓글 목록을 API로 불러와서 state에 저장
   const load = () => {
     setLoading(true);
     setError(null);
@@ -21,8 +22,10 @@ export default function CommentSection({ noticeId }) {
       .finally(() => setLoading(false));
   };
 
+  // noticeId가 바뀔 때마다 댓글 목록 재조회
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [noticeId]);
 
+  // 새 댓글 등록 후 목록에 즉시 추가
   const submit = async (e) => {
     e.preventDefault();
     if (!draft.trim()) return;
@@ -38,11 +41,13 @@ export default function CommentSection({ noticeId }) {
     }
   };
 
+  // 댓글 수정 시작: 수정할 댓글 id와 기존 내용을 state에 저장
   const startEdit = (c) => {
     setEditingId(c.id);
     setEditingText(c.content);
   };
 
+  // 수정된 댓글 내용을 서버에 저장 후 목록 업데이트
   const saveEdit = async (id) => {
     if (!editingText.trim()) return;
     try {
@@ -55,6 +60,7 @@ export default function CommentSection({ noticeId }) {
     }
   };
 
+  // 댓글 좋아요 토글. 응답으로 받은 liked, count로 해당 댓글 state 즉시 업데이트
   const toggleLike = async (id) => {
     try {
       const { liked, count } = await api.post(`/comments/${id}/like`);
@@ -70,6 +76,7 @@ export default function CommentSection({ noticeId }) {
     }
   };
 
+  // 댓글 삭제 확인 후 API 호출, 성공 시 목록에서 제거
   const remove = async (id) => {
     if (!confirm('이 댓글을 삭제할까요?')) return;
     try {

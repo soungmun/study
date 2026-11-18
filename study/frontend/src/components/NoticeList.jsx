@@ -9,12 +9,14 @@ const PAGE_KEY = 'noticeListPage';
 const TYPE_KEY = 'noticeListType';
 const KEYWORD_KEY = 'noticeListKeyword';
 
+// 공지 번호에 따라 뱃지 색상 클래스 반환 (6가지 색상 순환)
 function badgeClass(n) {
   return `id-badge c${(Number(n) || 0) % 6}`;
 }
 
 /* ───────────────────────── 서브 컴포넌트 ───────────────────────── */
 
+// 목록 상단 툴바: 제목 + 관리자일 때 글쓰기 버튼 표시
 const Toolbar = memo(function Toolbar({ isAdmin, onWrite }) {
   return (
     <div className="toolbar">
@@ -26,6 +28,7 @@ const Toolbar = memo(function Toolbar({ isAdmin, onWrite }) {
   );
 });
 
+// 검색 타입(제목/내용) 선택 + 키워드 입력 폼. 초기화 버튼은 검색어 있을 때만 표시
 const SearchBar = memo(function SearchBar({ type, keyword, searchTerm, onTypeChange, onKeywordChange, onSubmit, onReset }) {
   return (
     <form className="search-bar" onSubmit={onSubmit}>
@@ -48,6 +51,7 @@ const SearchBar = memo(function SearchBar({ type, keyword, searchTerm, onTypeCha
   );
 });
 
+// 공지사항 목록의 행 하나: 번호, 제목(댓글/좋아요 수 포함), 작성자, 날짜, 조회수 표시
 const NoticeRow = memo(function NoticeRow({ notice, onClick }) {
   return (
     <tr onClick={onClick} className="row">
@@ -72,6 +76,7 @@ const NoticeRow = memo(function NoticeRow({ notice, onClick }) {
   );
 });
 
+// 공지사항 테이블: 로딩/빈 목록/데이터 세 가지 상태를 각각 렌더링
 const NoticeTable = memo(function NoticeTable({ notices, searchTerm, onRowClick, isLoading }) {
   return (
     <table className="notice-table">
@@ -108,6 +113,7 @@ const NoticeTable = memo(function NoticeTable({ notices, searchTerm, onRowClick,
   );
 });
 
+// 페이지 네비게이션: 처음/이전/번호/다음/마지막 버튼. 페이지 없으면 렌더링 안 함
 const Pagination = memo(function Pagination({ pageNo, totalPages, isFirst, isLast, onPageChange }) {
   if (totalPages <= 0) return null;
   return (
@@ -192,18 +198,22 @@ export default function NoticeList() {
     setPageNo(0);
   }, []);
 
+  // 공지 행 클릭 시 상세 페이지로 이동
   const handleRowClick = useCallback((id) => {
     navigate(`/notices/${id}`);
   }, [navigate]);
 
+  // 글쓰기 버튼 클릭 시 작성 페이지로 이동
   const handleWriteClick = useCallback(() => {
     navigate('/notices/new');
   }, [navigate]);
 
+  // 검색 타입(제목/내용) 변경
   const handleTypeChange = useCallback((e) => {
     setType(e.target.value);
   }, []);
 
+  // 검색어 입력 시 keyword state 업데이트
   const handleKeywordChange = useCallback((e) => {
     setKeyword(e.target.value);
   }, []);

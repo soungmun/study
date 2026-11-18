@@ -26,6 +26,7 @@ export default function NoticeCreate() {
   // user.nickname이 변경될 때마다 폼의 author를 업데이트하는 로직은 필요 없음.
   // 백엔드에서 currentUserId로 닉네임을 가져오므로.
 
+  // 입력 필드 변경 시 form state 업데이트
   const onChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   // 파일 선택 시 바로 서버에 업로드
@@ -54,6 +55,7 @@ export default function NoticeCreate() {
     setUploading(false); // 모든 파일 처리 후 업로드 상태 해제
   };
 
+  // 첨부 이미지 목록에서 해당 이미지 제거
   const removeImage = (imageId) => {
     setImages((prev) => prev.filter((img) => img.imageId !== imageId));
   };

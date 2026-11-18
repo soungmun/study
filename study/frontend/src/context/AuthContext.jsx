@@ -7,6 +7,7 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    // 앱 시작 시 현재 로그인 상태를 서버에서 확인해 user state 초기화
     useEffect(() => {
         const fetchUser = async () => {
             try {
@@ -22,6 +23,7 @@ export const AuthProvider = ({ children }) => {
         fetchUser();
     }, []);
 
+    // 로그인 API 호출 후 성공 시 user state에 사용자 정보 저장
     const login = async (username, password) => {
         try {
             const userData = await api.post('/auth/login', { username, password });
@@ -33,6 +35,7 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    // 로그아웃 API 호출 후 user state 초기화
     const logout = async () => {
         try {
             await api.post('/auth/logout');
@@ -44,6 +47,7 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    // 회원 탈퇴 API 호출 후 user state 초기화
     const deleteAccount = async () => {
         try {
             await api.delete('/auth/me');
@@ -55,7 +59,7 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    // 프로필 업데이트 기능 추가
+    // 프로필 수정 API 호출 후 user state를 최신 정보로 갱신
     const updateProfile = async (profileData) => {
         try {
             const updatedUser = await api.put('/auth/me', profileData);
@@ -74,6 +78,7 @@ export const AuthProvider = ({ children }) => {
     );
 };
 
+// AuthContext 값(user, login, logout 등)을 꺼내 쓰기 위한 커스텀 훅
 export const useAuth = () => {
     return useContext(AuthContext);
 };

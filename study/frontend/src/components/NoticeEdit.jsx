@@ -12,6 +12,7 @@ export default function NoticeEdit() {
   const [images, setImages] = useState([]);
   const [uploading, setUploading] = useState(false);
 
+  // 공지사항 id로 기존 데이터를 불러와서 form과 이미지 목록 초기화
   useEffect(() => {
     api.get(`/notices/${id}`)
       .then((n) => {
@@ -22,8 +23,10 @@ export default function NoticeEdit() {
       });
   }, [id]);
 
+  // 입력 필드 변경 시 form state 업데이트
   const onChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
+  // 파일 선택 시 파일을 하나씩 서버에 업로드 후 이미지 목록에 추가
   const handleFileChange = async (e) => {
     const files = Array.from(e.target.files);
     if (!files.length) return;
@@ -49,10 +52,12 @@ export default function NoticeEdit() {
     setUploading(false);
   };
 
+  // 첨부 이미지 목록에서 해당 이미지 제거
   const removeImage = (imageId) => {
     setImages((prev) => prev.filter((img) => img.imageId !== imageId));
   };
 
+  // 수정 내용을 서버에 저장 후 상세 페이지로 이동
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
