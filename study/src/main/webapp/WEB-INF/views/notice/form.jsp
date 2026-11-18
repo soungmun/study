@@ -11,11 +11,14 @@
 <body>
 <div class="container">
     <%-- 돌아가기/취소 URL: mode에 따라 다르게 --%>
-    <c:url var="backUrl" value="/notices">
-        <c:if test="${mode == 'edit'}">
-            <c:param name="id" value="${notice.id}"/>
-        </c:if>
-    </c:url>
+    <c:choose>
+        <c:when test="${mode == 'edit'}">
+            <c:url var="backUrl" value="/notices/${notice.id}"/>
+        </c:when>
+        <c:otherwise>
+            <c:url var="backUrl" value="/notices"/>
+        </c:otherwise>
+    </c:choose>
     <a href="${backUrl}" class="back-link">← ${mode == 'edit' ? '돌아가기' : '목록으로'}</a>
     <h1><c:choose><c:when test="${mode == 'edit'}">✏️ 공지사항 수정</c:when><c:otherwise>📝 공지사항 작성</c:otherwise></c:choose></h1>
 
@@ -107,9 +110,15 @@
 
     /* 드래그 앤 드롭 */
     const uploadArea = document.querySelector('.upload-area');
-    // The following lines were commented out due to syntax errors.
-    //     }
-    // });
+    uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+    uploadArea.addEventListener('dragleave', () => { uploadArea.classList.remove('dragover'); });
+    uploadArea.addEventListener('drop', async e => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        for (const file of Array.from(e.dataTransfer.files)) {
+            await uploadFile(file);
+        }
+    });
 
     /* ── 이미지 서버 업로드 ── */
     async function uploadFile(file) {

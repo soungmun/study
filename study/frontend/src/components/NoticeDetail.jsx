@@ -12,6 +12,7 @@ export default function NoticeDetail() {
   const [loadingLikers, setLoadingLikers] = useState(false);
   const fetchedIdRef = useRef(null);
 
+  // id가 바뀔 때마다 조회수 증가 API 호출 후 공지 데이터를 받아서 state에 저장. 중복 호출 방지를 위해 fetchedIdRef 사용
   useEffect(() => {
     if (fetchedIdRef.current === id) return;
     fetchedIdRef.current = id;
@@ -20,6 +21,7 @@ export default function NoticeDetail() {
       .catch((e) => setError(e.message));
   }, [id]);
 
+  // 좋아요 누른 사람 목록 열기/닫기. likers가 null이면 API 호출해서 목록 표시, 이미 열려있으면 닫기
   const toggleLikersList = async () => {
     if (likers !== null) { setLikers(null); return; }
     setLoadingLikers(true);
@@ -27,12 +29,11 @@ export default function NoticeDetail() {
       const data = await api.get(`/notices/${id}/likes`);
       setLikers(Array.isArray(data) ? data : []);
     } catch (e) {
-      alert(`좋아요 목록 실패: ${e.message}`);
-    } finally {
       setLoadingLikers(false);
     }
   };
 
+  // 좋아요 누르기/취소. 응답으로 받은 liked(여부), count(개수)로 화면 즉시 업데이트. 목록이 열려있으면 목록도 갱신
   const toggleLike = async () => {
     try {
       const { liked, count } = await api.post(`/notices/${id}/like`);
@@ -51,6 +52,7 @@ export default function NoticeDetail() {
     }
   };
 
+  // 공지사항 삭제. 확인 후 DELETE API 호출, 성공 시 목록 페이지로 이동
   const remove = async () => {
     if (!confirm('정말 삭제하시겠습니까?')) return;
     try {
