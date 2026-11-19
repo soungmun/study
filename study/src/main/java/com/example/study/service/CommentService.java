@@ -77,9 +77,12 @@ public class CommentService {
     }
 
     @Transactional
-    public CommentResponse update(Long commentId, Long userId, String content) {
+    public CommentResponse update(Long noticeId, Long commentId, Long userId, String content) {
         Comment c = commentRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("댓글을 찾을 수 없습니다."));
+        if (!c.getNoticeId().equals(noticeId)) {
+            throw new IllegalArgumentException("해당 게시글의 댓글이 아닙니다.");
+        }
         if (!c.getUserId().equals(userId)) {
             throw new SecurityException("본인 댓글만 수정할 수 있습니다.");
         }
@@ -93,9 +96,12 @@ public class CommentService {
     }
 
     @Transactional
-    public void delete(Long commentId, Long userId) {
+    public void delete(Long noticeId, Long commentId, Long userId) {
         Comment c = commentRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("댓글을 찾을 수 없습니다."));
+        if (!c.getNoticeId().equals(noticeId)) {
+            throw new IllegalArgumentException("해당 게시글의 댓글이 아닙니다.");
+        }
         if (!c.getUserId().equals(userId)) {
             throw new SecurityException("본인 댓글만 삭제할 수 있습니다.");
         }

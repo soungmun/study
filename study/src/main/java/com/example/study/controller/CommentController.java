@@ -45,23 +45,25 @@ public class CommentController {
     }
 
     @PutMapping("/{commentId}")
-    public ResponseEntity<?> update(@PathVariable Long commentId,
+    public ResponseEntity<?> update(@PathVariable Long noticeId,
+                                    @PathVariable Long commentId,
                                     @Valid @RequestBody CommentRequest req,
                                     @AuthenticationPrincipal SecurityUser principal) {
         if (principal == null) return ResponseEntity.status(401).body(MessageResponse.of("로그인이 필요합니다."));
         try {
-            return ResponseEntity.ok(commentService.update(commentId, principal.getUserId(), req.content()));
+            return ResponseEntity.ok(commentService.update(noticeId, commentId, principal.getUserId(), req.content()));
         } catch (SecurityException e) {
             return ResponseEntity.status(403).body(MessageResponse.of(e.getMessage()));
         }
     }
 
     @DeleteMapping("/{commentId}")
-    public ResponseEntity<?> delete(@PathVariable Long commentId,
+    public ResponseEntity<?> delete(@PathVariable Long noticeId,
+                                    @PathVariable Long commentId,
                                     @AuthenticationPrincipal SecurityUser principal) {
         if (principal == null) return ResponseEntity.status(401).body(MessageResponse.of("로그인이 필요합니다."));
         try {
-            commentService.delete(commentId, principal.getUserId());
+            commentService.delete(noticeId, commentId, principal.getUserId());
             return ResponseEntity.noContent().build();
         } catch (SecurityException e) {
             return ResponseEntity.status(403).body(MessageResponse.of(e.getMessage()));
