@@ -3,8 +3,8 @@ package com.example.study.service;
 import com.example.study.dto.response.NoticeDetailResponse;
 import com.example.study.dto.response.NoticeListItem;
 import com.example.study.entity.Notice;
-import com.example.study.entity.NoticeImage; // NoticeImage import 추가
-import com.example.study.entity.User; // User import 추가
+import com.example.study.entity.NoticeImage;
+import com.example.study.entity.User;
 import com.example.study.exception.ForbiddenException;
 import com.example.study.repository.CommentRepository;
 import com.example.study.repository.NoticeRepository;
@@ -37,8 +37,7 @@ public class NoticeService {
     private final CommentRepository commentRepository;
     private final NoticeLikeService noticeLikeService;
     private final UserRepository userRepository;
-    private final NoticeImageService noticeImageService; // NoticeImageService는 여전히 필요 (업로드, 파일 삭제 등)
-    private     Page<Notice> page;
+    private final NoticeImageService noticeImageService;
     public NoticeService(NoticeRepository noticeRepository,
                          CommentRepository commentRepository,
                          NoticeLikeService noticeLikeService,
@@ -286,8 +285,4 @@ public class NoticeService {
         return m;
     }
 
-    /** User 객체로부터 표시 이름 (닉네임 또는 사용자 이름)을 가져오는 헬퍼 메서드 */
-    private String displayName(User u) {
-        return u.getNickname() != null ? u.getNickname() : u.getUsername();
-    }
 }

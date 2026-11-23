@@ -46,7 +46,7 @@ public class NoticeImageController {
 
         try {
             NoticeImage saved = imageService.upload(file, principal.getUserId());
-            // 변경된 메서드 이름으로 수정
+
             String url = imageService.getImageUrl(saved.getStoredName());
 
             return ResponseEntity.ok(Map.of(
