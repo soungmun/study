@@ -46,6 +46,12 @@ public class NaverOAuthService {
         this.redirectUri = redirectUri;
     }
 
+    /**
+     * 네이버 OAuth 인증 페이지 URL을 생성합니다.
+     *
+     * @param state CSRF 방지용 state 값
+     * @return 네이버 로그인 페이지 URL
+     */
     public String authorizeUrl(String state) {
         return UriComponentsBuilder.fromUriString(AUTHORIZE_URL)
                 .queryParam("response_type", "code")
@@ -56,6 +62,13 @@ public class NaverOAuthService {
                 .toUriString();
     }
 
+    /**
+     * 네이버 인증 코드를 액세스 토큰으로 교환합니다.
+     *
+     * @param code  네이버 OAuth 인증 코드
+     * @param state CSRF 방지용 state 값
+     * @return 네이버 토큰 응답 (access_token 등)
+     */
     public NaverTokenResponse exchangeCode(String code, String state) {
         URI uri = UriComponentsBuilder.fromUriString(TOKEN_URL)
                 .queryParam("grant_type", "authorization_code")
@@ -91,6 +104,12 @@ public class NaverOAuthService {
         }
     }
 
+    /**
+     * 네이버 액세스 토큰으로 사용자 프로필 정보를 조회합니다.
+     *
+     * @param accessToken 네이버 액세스 토큰
+     * @return 네이버 사용자 정보 (id, 이메일, 닉네임 등)
+     */
     public NaverUserResponse fetchUser(String accessToken) {
         return restClient.get()
                 .uri(URI.create(USER_URL))

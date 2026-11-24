@@ -47,6 +47,12 @@ public class GoogleOAuthService {
         this.redirectUri = redirectUri;
     }
 
+    /**
+     * 구글 OAuth 인증 페이지 URL을 생성합니다.
+     *
+     * @param state CSRF 방지용 state 값 (null 가능)
+     * @return 구글 로그인 페이지 URL
+     */
     public String authorizeUrl(String state) {
         UriComponentsBuilder b = UriComponentsBuilder.fromUriString(AUTHORIZE_URL)
                 .queryParam("response_type", "code")
@@ -61,6 +67,12 @@ public class GoogleOAuthService {
         return b.build().toUriString();
     }
 
+    /**
+     * 구글 인증 코드를 액세스 토큰으로 교환합니다.
+     *
+     * @param code 구글 OAuth 인증 코드
+     * @return 구글 토큰 응답 (access_token, id_token 등)
+     */
     public GoogleTokenResponse exchangeCode(String code) {
         MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
         form.add("grant_type", "authorization_code");
@@ -96,6 +108,12 @@ public class GoogleOAuthService {
         }
     }
 
+    /**
+     * 구글 액세스 토큰으로 사용자 프로필 정보를 조회합니다.
+     *
+     * @param accessToken 구글 액세스 토큰
+     * @return 구글 사용자 정보 (sub, email, name, picture 등)
+     */
     public GoogleUserResponse fetchUser(String accessToken) {
         return restClient.get()
                 .uri(URI.create(USER_URL))

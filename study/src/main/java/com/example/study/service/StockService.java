@@ -85,6 +85,11 @@ public class StockService {
 
     private record Symbol(String code, String name) {}
 
+    /**
+     * 코스피, 코스닥, 주요 대형주 시세를 일괄 조회합니다.
+     *
+     * @return 감시 목록(WATCHLIST) 종목들의 현재 시세 목록
+     */
     public List<Quote> fetchWatchlist() {
         return WATCHLIST.stream().map(this::fetchOne).toList();
     }

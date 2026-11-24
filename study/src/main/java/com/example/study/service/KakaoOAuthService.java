@@ -48,6 +48,12 @@ public class KakaoOAuthService {
         this.redirectUri = redirectUri;
     }
 
+    /**
+     * 카카오 OAuth 인증 페이지 URL을 생성합니다.
+     *
+     * @param state CSRF 방지용 state 값 (null 가능)
+     * @return 카카오 로그인 페이지 URL
+     */
     public String authorizeUrl(String state) {
         UriComponentsBuilder b = UriComponentsBuilder.fromUriString(AUTHORIZE_URL)
                 .queryParam("response_type", "code")
@@ -60,6 +66,12 @@ public class KakaoOAuthService {
         return b.build().toUriString();
     }
 
+    /**
+     * 카카오 리프레시 토큰으로 새로운 액세스 토큰을 발급받습니다.
+     *
+     * @param refreshToken 카카오 리프레시 토큰
+     * @return 새로운 토큰 응답
+     */
     public KakaoTokenResponse refreshToken(String refreshToken) {
         MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
         form.add("grant_type", "refresh_token");
@@ -87,6 +99,12 @@ public class KakaoOAuthService {
         }
     }
 
+    /**
+     * 카카오 인증 코드를 액세스 토큰으로 교환합니다.
+     *
+     * @param code 카카오 OAuth 인증 코드
+     * @return 카카오 토큰 응답 (access_token, refresh_token 등)
+     */
     public KakaoTokenResponse exchangeCode(String code) {
         MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
         form.add("grant_type", "authorization_code");
@@ -119,6 +137,12 @@ public class KakaoOAuthService {
         }
     }
 
+    /**
+     * 카카오 액세스 토큰으로 사용자 프로필 정보를 조회합니다.
+     *
+     * @param accessToken 카카오 액세스 토큰
+     * @return 카카오 사용자 정보 (id, 이메일, 닉네임 등)
+     */
     public KakaoUserResponse fetchUser(String accessToken) {
         return restClient.get()
                 .uri(URI.create(USER_URL))

@@ -6,6 +6,7 @@ import com.example.study.entity.User;
 import com.example.study.repository.CommentRepository;
 import com.example.study.repository.NoticeRepository;
 import com.example.study.repository.UserRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +19,7 @@ import java.util.stream.Collectors;
  * 댓글 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
  * 공지사항 게시글에 대한 댓글 작성, 수정, 삭제 및 조회 기능을 제공합니다.
  */
+@Slf4j
 @Service
 @Transactional
 public class CommentService {
@@ -37,6 +39,14 @@ public class CommentService {
         this.commentLikeService = commentLikeService;
     }
 
+    /**
+     * 특정 게시글의 댓글 목록을 작성 시간 오름차순으로 반환합니다.
+     * 작성자 닉네임, 좋아요 수, 본인 여부를 일괄 조회하여 함께 반환합니다.
+     *
+     * @param noticeId      댓글을 조회할 게시글 ID
+     * @param currentUserId 현재 로그인한 사용자 ID (본인 여부, 좋아요 여부 판별용)
+     * @return 댓글 응답 DTO 목록 (댓글이 없으면 빈 리스트)
+     */
     public List<CommentResponse> listByNotice(Long noticeId, Long currentUserId) {
         if (!noticeRepository.existsById(noticeId)) {
             throw new IllegalArgumentException("게시글을 찾을 수 없습니다. id=" + noticeId);
@@ -65,6 +75,15 @@ public class CommentService {
                 .toList();
     }
 
+    /**
+     * 게시글에 새 댓글을 작성합니다.
+     * 게시글 존재 여부와 작성자 정보를 확인한 뒤 저장합니다.
+     *
+     * @param noticeId 댓글을 달 게시글 ID
+     * @param userId   작성자 ID
+     * @param content  댓글 내용
+     * @return 저장된 댓글 응답 DTO (좋아요 0, 본인 댓글로 세팅)
+     */
     @Transactional
     public CommentResponse create(Long noticeId, Long userId, String content) {
         if (!noticeRepository.existsById(noticeId)) {
@@ -76,6 +95,16 @@ public class CommentService {
         return CommentResponse.of(saved, displayName(user), true, 0L, false);
     }
 
+    /**
+     * 댓글 내용을 수정합니다.
+     * 해당 게시글의 댓글인지, 본인이 작성한 댓글인지 검증합니다.
+     *
+     * @param noticeId  댓글이 속한 게시글 ID
+     * @param commentId 수정할 댓글 ID
+     * @param userId    요청한 사용자 ID (본인 여부 검증용)
+     * @param content   새로운 댓글 내용
+     * @return 수정된 댓글 응답 DTO
+     */
     @Transactional
     public CommentResponse update(Long noticeId, Long commentId, Long userId, String content) {
         Comment c = commentRepository.findById(commentId)
@@ -95,10 +124,19 @@ public class CommentService {
         return CommentResponse.of(c, displayName(user), true, likeCount, iLiked);
     }
 
+    /**
+     * 댓글을 삭제합니다.
+     * 해당 게시글의 댓글인지, 본인이 작성한 댓글인지 검증합니다.
+     *
+     * @param noticeId  댓글이 속한 게시글 ID
+     * @param commentId 삭제할 댓글 ID
+     * @param userId    요청한 사용자 ID (본인 여부 검증용)
+     */
     @Transactional
     public void delete(Long noticeId, Long commentId, Long userId) {
         Comment c = commentRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("댓글을 찾을 수 없습니다."));
+
         if (!c.getNoticeId().equals(noticeId)) {
             throw new IllegalArgumentException("해당 게시글의 댓글이 아닙니다.");
         }

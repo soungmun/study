@@ -53,6 +53,13 @@ public class NewsService {
         }
     }
 
+    /**
+     * 한국 주식·증시 관련 Google News 상위 헤드라인을 반환합니다.
+     * 오류 발생 시 빈 리스트를 반환합니다.
+     *
+     * @param max 최대 반환 개수
+     * @return 뉴스 헤드라인 목록
+     */
     public List<Headline> fetchTop(int max) {
         try {
             String xml = restClient.get()

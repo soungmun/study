@@ -36,6 +36,14 @@ public class PlaceService {
         this.apiKey = apiKey;
     }
 
+    /**
+     * 카카오 로컬 API를 사용하여 키워드로 장소를 검색합니다.
+     *
+     * @param query 검색 키워드
+     * @param page  페이지 번호 (1~45)
+     * @param size  페이지당 결과 수 (1~15)
+     * @return 장소 검색 결과 DTO
+     */
     public PlaceSearchResponse search(String query, int page, int size) {
         if (query == null || query.isBlank()) {
             return new PlaceSearchResponse(
@@ -59,6 +67,12 @@ public class PlaceService {
                 .body(PlaceSearchResponse.class);
     }
 
+    /**
+     * 장소 이름 자동완성 목록을 반환합니다. 최대 10개의 중복 없는 장소명을 반환합니다.
+     *
+     * @param query 자동완성 검색어
+     * @return 장소 이름 목록 (최대 10개, 오류 시 빈 리스트)
+     */
     public List<String> autocomplete(String query) {
         if (query == null || query.isBlank()) {
             return List.of();
@@ -93,6 +107,17 @@ public class PlaceService {
         }
     }
 
+    /**
+     * 특정 좌표 주변의 카테고리별 장소를 검색합니다.
+     * 카테고리 API 쿼터 초과 등 실패 시 키워드 검색으로 자동 폴백합니다.
+     *
+     * @param lat                 중심 위도
+     * @param lng                 중심 경도
+     * @param categoryGroupCode   카카오 카테고리 그룹 코드 (예: FD6=음식점, CE7=카페)
+     * @param radius              검색 반경 (미터, 최대 20000)
+     * @param size                결과 수 (최대 15)
+     * @return 주변 장소 검색 결과 DTO
+     */
     public PlaceSearchResponse searchNearby(double lat, double lng, String categoryGroupCode, int radius, int size) {
         if (categoryGroupCode == null || categoryGroupCode.isBlank()) {
             return EMPTY;

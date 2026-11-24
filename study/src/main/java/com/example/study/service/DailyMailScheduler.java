@@ -66,11 +66,19 @@ public class DailyMailScheduler {
         this.kakaoTalkMessageService = kakaoTalkMessageService;
     }
 
+    /**
+     * 매일 오후 8시에 수신 동의 회원들에게 일일 뉴스레터를 발송합니다.
+     * 이미 오늘 발송된 경우 스킵합니다.
+     */
     @Scheduled(cron = "0 0 20 * * *", zone = "Asia/Seoul")
     public void sendDailyGreeting() {
         trySendForToday("정시", false);
     }
 
+    /**
+     * 서버 기동 시 오늘 미발송 여부를 확인하고, 미발송이면 즉시 발송합니다.
+     * 예약 시간을 놓친 채 재기동된 경우 자동으로 보완 발송합니다.
+     */
     @EventListener(ApplicationReadyEvent.class)
     public void catchUpOnStartup() {
         // 오늘 미발송이면 부팅 시각 무관 즉시 catch-up.
@@ -86,7 +94,12 @@ public class DailyMailScheduler {
         trySendForToday("기동시점-catchup", false);
     }
 
-    /** 관리자 강제 재발송 — 상태 파일 무시, 동기 발송 후 결과 반환. */
+    /**
+     * 관리자가 오늘의 뉴스레터를 강제로 재발송합니다.
+     * 이미 발송된 경우에도 상태 파일을 무시하고 즉시 발송합니다.
+     *
+     * @return 발송 결과 (sent 여부, 수신자 수, 메시지)
+     */
     public synchronized DailyMailResult forceSendNow() {
         return trySendForToday("강제-재발송", true);
     }

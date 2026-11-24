@@ -17,10 +17,17 @@ public class MaintenanceService {
     private volatile LocalDateTime lastEnabledAt;
     private volatile LocalDateTime lastDisabledAt;
 
+    /** 현재 점검 모드 활성화 여부를 반환합니다. */
     public boolean isEnabled() {
         return enabled.get();
     }
 
+    /**
+     * 점검 모드를 활성화합니다. 이미 활성화 상태이면 false를 반환합니다.
+     *
+     * @param byUsername 점검을 시작한 관리자 아이디
+     * @return 새로 활성화되면 true, 이미 활성화 상태이면 false
+     */
     public synchronized boolean enable(String byUsername) {
         if (enabled.get()) return false;
         enabled.set(true);
@@ -29,6 +36,11 @@ public class MaintenanceService {
         return true;
     }
 
+    /**
+     * 점검 모드를 비활성화합니다. 이미 비활성화 상태이면 false를 반환합니다.
+     *
+     * @return 새로 비활성화되면 true, 이미 비활성화 상태이면 false
+     */
     public synchronized boolean disable() {
         if (!enabled.get()) return false;
         enabled.set(false);

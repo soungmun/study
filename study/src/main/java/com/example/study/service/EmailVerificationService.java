@@ -15,6 +15,10 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
+/**
+ * 회원가입 이메일 인증 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
+ * 인증번호 발송, 검증, 소비(완료 처리) 기능을 담당합니다.
+ */
 @Service
 public class EmailVerificationService {
 
@@ -40,7 +44,13 @@ public class EmailVerificationService {
         this.mailboxVerifier = mailboxVerifier;
     }
 
-    /** 인증번호 발송. 결과: { sent: true, expiresInSeconds } */
+    /**
+     * 이메일로 인증번호를 발송합니다.
+     * 이미 가입된 이메일, 없는 메일 주소, 60초 내 재발송 요청 시 예외를 던집니다.
+     *
+     * @param rawEmail 인증번호를 받을 이메일 주소
+     * @return 발송 결과 (sent: true, expiresInSeconds: 유효 시간)
+     */
     @Transactional
     public SendResult sendCode(String rawEmail) {
         String email = normalize(rawEmail);
@@ -92,7 +102,13 @@ public class EmailVerificationService {
         return new SendResult(true, CODE_VALID_MINUTES * 60L);
     }
 
-    /** 코드 검증 → 성공 시 verifiedAt 마킹 */
+    /**
+     * 입력한 인증번호가 올바른지 검증하고, 성공 시 인증 완료 처리합니다.
+     * 만료되었거나 코드가 불일치하면 예외를 던집니다.
+     *
+     * @param rawEmail 인증 대상 이메일
+     * @param code     사용자가 입력한 인증번호
+     */
     @Transactional
     public void verifyCode(String rawEmail, String code) {
         String email = normalize(rawEmail);
@@ -107,7 +123,13 @@ public class EmailVerificationService {
         ev.markVerified();
     }
 
-    /** 회원가입 시점에 호출 — 인증된 상태이고 30분 안인지 */
+    /**
+     * 이메일 인증이 완료되었고 30분 이내인지 확인합니다.
+     * 회원가입 직전 최종 유효성 검사에 사용합니다.
+     *
+     * @param rawEmail 확인할 이메일
+     * @return 인증 완료 상태이면 true
+     */
     public boolean isEmailVerified(String rawEmail) {
         String email = normalize(rawEmail);
         return repository.findByEmail(email)
@@ -116,7 +138,11 @@ public class EmailVerificationService {
                 .orElse(false);
     }
 
-    /** 가입 완료 후 정리 */
+    /**
+     * 회원가입 완료 후 인증 레코드를 삭제합니다.
+     *
+     * @param rawEmail 정리할 이메일
+     */
     @Transactional
     public void consume(String rawEmail) {
         repository.deleteByEmail(normalize(rawEmail));

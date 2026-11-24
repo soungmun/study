@@ -24,6 +24,13 @@ public class WeatherService {
 
     private final RestClient restClient = RestClient.create();
 
+    /**
+     * 내일의 날씨 예보(최고/최저 기온, 날씨 코드)를 조회합니다.
+     *
+     * @param lat 위도
+     * @param lng 경도
+     * @return 날씨 응답 DTO
+     */
     public WeatherResponse getTomorrow(double lat, double lng) {
         LocalDate tomorrow = LocalDate.now(ZoneId.of("Asia/Seoul")).plusDays(1);
         URI uri = UriComponentsBuilder.fromUriString(WEATHER_URL)
@@ -79,6 +86,13 @@ public class WeatherService {
         return list == null || list.isEmpty() ? null : list.get(0);
     }
 
+    /**
+     * 현재 날씨(기온, 풍속, 풍향, 날씨 코드)를 조회합니다.
+     *
+     * @param lat 위도
+     * @param lng 경도
+     * @return 날씨 응답 DTO
+     */
     public WeatherResponse getWeather(double lat, double lng) {
         URI uri = UriComponentsBuilder.fromUriString(WEATHER_URL)
                 .queryParam("latitude", lat)

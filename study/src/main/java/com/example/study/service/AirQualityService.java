@@ -28,6 +28,14 @@ public class AirQualityService {
 
     private final RestClient restClient = RestClient.create();
 
+    /**
+     * 내일의 대기질 정보(PM10, PM2.5, AQI)를 조회합니다.
+     * 하루치 시간별 데이터의 평균값으로 계산합니다.
+     *
+     * @param lat 위도
+     * @param lng 경도
+     * @return 대기질 응답 DTO (오류 시 빈 응답 반환)
+     */
     public AirQualityResponse getTomorrow(double lat, double lng) {
         LocalDate tomorrow = LocalDate.now(ZoneId.of("Asia/Seoul")).plusDays(1);
         URI uri = UriComponentsBuilder.fromUriString(AIR_URL)
@@ -96,6 +104,13 @@ public class AirQualityService {
         return n == 0 ? null : (int) Math.round((double) sum / n);
     }
 
+    /**
+     * 현재 시점의 대기질 정보(PM10, PM2.5, AQI)를 조회합니다.
+     *
+     * @param lat 위도
+     * @param lng 경도
+     * @return 대기질 응답 DTO (오류 시 빈 응답 반환)
+     */
     public AirQualityResponse get(double lat, double lng) {
         URI uri = UriComponentsBuilder.fromUriString(AIR_URL)
                 .queryParam("latitude", lat)

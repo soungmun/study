@@ -52,6 +52,14 @@ public class KakaoPayService {
         this.paymentRepository = paymentRepository;
     }
 
+    /**
+     * 카카오페이 결제 준비를 요청합니다.
+     * DB에 결제 레코드를 생성하고, 카카오페이로부터 결제 페이지 URL(tid)을 받아 반환합니다.
+     *
+     * @param req    결제 준비 요청 (상품명, 수량, 금액)
+     * @param userId 결제 요청 사용자 ID (비회원이면 null)
+     * @return 카카오페이 결제 준비 응답 (tid, 결제 페이지 URL 등)
+     */
     @Transactional
     public KakaoPayReadyResponse ready(KakaoPayReadyRequest req, Long userId) {
         ensureSecretConfigured();
@@ -132,6 +140,14 @@ public class KakaoPayService {
         return null;
     }
 
+    /**
+     * 카카오페이 결제 승인을 처리합니다.
+     * 결제 성공 시 Payment 상태를 APPROVED로 변경합니다.
+     *
+     * @param partnerOrderId 주문 ID (ready 단계에서 생성된 고유 ID)
+     * @param pgToken        카카오페이 결제 완료 후 전달받는 pg_token
+     * @return 승인 완료된 Payment 엔티티
+     */
     @Transactional
     public Payment approve(String partnerOrderId, String pgToken) {
         ensureSecretConfigured();
@@ -171,6 +187,12 @@ public class KakaoPayService {
         return paymentRepository.save(payment);
     }
 
+    /**
+     * 결제를 취소 상태(CANCELED)로 변경합니다.
+     *
+     * @param partnerOrderId 취소할 주문 ID
+     * @return 상태가 변경된 Payment, 없으면 null
+     */
     @Transactional
     public Payment markCanceled(String partnerOrderId) {
         return paymentRepository.findByPartnerOrderId(partnerOrderId)
@@ -178,6 +200,12 @@ public class KakaoPayService {
                 .orElse(null);
     }
 
+    /**
+     * 결제를 실패 상태(FAILED)로 변경합니다.
+     *
+     * @param partnerOrderId 실패 처리할 주문 ID
+     * @return 상태가 변경된 Payment, 없으면 null
+     */
     @Transactional
     public Payment markFailed(String partnerOrderId) {
         return paymentRepository.findByPartnerOrderId(partnerOrderId)

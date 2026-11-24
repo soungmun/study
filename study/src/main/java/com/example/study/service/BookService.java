@@ -29,6 +29,16 @@ public class BookService {
         this.bookSearchUrl = bookSearchUrl;
     }
 
+    /**
+     * 카카오 도서 검색 API를 호출하여 책 목록을 반환합니다.
+     *
+     * @param query  검색어
+     * @param sort   정렬 기준 (accuracy: 정확도순, latest: 최신순)
+     * @param target 검색 대상 필드 (title, isbn, publisher 등, null이면 전체)
+     * @param page   페이지 번호 (1부터 시작)
+     * @param size   페이지당 결과 수 (최대 50)
+     * @return 검색 결과 DTO (도서 목록 + 메타 정보)
+     */
     public BookSearchResponse search(String query, String sort, String target, int page, int size) {
         if (query == null || query.isBlank()) {
             return new BookSearchResponse(
@@ -56,6 +66,13 @@ public class BookService {
                 .body(BookSearchResponse.class);
     }
 
+    /**
+     * 검색어로 도서 제목 자동완성 목록을 반환합니다.
+     * 최대 10개의 중복 없는 제목 목록을 반환하며, 오류 발생 시 빈 리스트를 반환합니다.
+     *
+     * @param query 자동완성 검색어
+     * @return 도서 제목 목록 (최대 10개)
+     */
     public List<String> autocomplete(String query) {
         if (query == null || query.isBlank()) {
             return List.of();

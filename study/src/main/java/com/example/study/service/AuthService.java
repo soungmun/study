@@ -100,6 +100,14 @@ public class AuthService {
         this.frontendUrl = frontendUrl;
     }
 
+    /**
+     * 신규 회원을 등록합니다.
+     * 아이디 중복 확인 및 이메일 인증 완료 여부를 검증한 뒤 계정을 생성합니다.
+     * 성공 시 환영 메일을 발송합니다.
+     *
+     * @param req 회원가입 요청 정보 (아이디, 비밀번호, 이메일, 닉네임 등)
+     * @return OK(성공), USERNAME_TAKEN(아이디 중복), EMAIL_NOT_VERIFIED(이메일 미인증)
+     */
     @Transactional
     public Result signup(SignupRequest req) {
         if (userRepository.existsByUsername(req.username())) {
@@ -122,12 +130,25 @@ public class AuthService {
         return Result.ok(u);
     }
 
+    /**
+     * 아이디/비밀번호로 로그인합니다.
+     *
+     * @param req 로그인 요청 (아이디, 비밀번호)
+     * @return 인증 성공 시 User, 실패 시 빈 Optional
+     */
     public Optional<User> login(LoginRequest req) {
         return userRepository.findByUsername(req.username())
                 .filter(u -> u.getPassword() != null
                         && passwordEncoder.matches(req.password(), u.getPassword()));
     }
 
+    /**
+     * 비밀번호 재설정 토큰을 발급하고 메일로 발송합니다.
+     * 소셜 전용 계정(비밀번호 없는 계정)은 발급하지 않습니다.
+     * 이메일이 존재하지 않아도 보안상 오류를 노출하지 않습니다.
+     *
+     * @param req 비밀번호 찾기 요청 (이메일)
+     */
     @Transactional
     public void issueResetToken(PasswordForgotRequest req) {
         userRepository.findByEmail(req.email().trim()).ifPresent(u -> {
@@ -145,6 +166,13 @@ public class AuthService {
         });
     }
 
+    /**
+     * 재설정 토큰으로 비밀번호를 변경합니다.
+     * 토큰이 없거나 만료된 경우 INVALID_TOKEN을 반환합니다.
+     *
+     * @param req 비밀번호 재설정 요청 (토큰, 새 비밀번호)
+     * @return OK(성공), INVALID_TOKEN(토큰 불일치 또는 만료)
+     */
     @Transactional
     public Result resetPassword(PasswordResetRequest req) {
         return userRepository.findByResetToken(req.token())
@@ -160,6 +188,15 @@ public class AuthService {
                 .orElse(Result.fail(Result.Code.INVALID_TOKEN));
     }
 
+    /**
+     * 회원 프로필을 수정합니다. (닉네임, 이메일, 비밀번호, 알림 수신 동의)
+     * 소셜 전용 계정은 이메일/비밀번호 변경이 불가합니다.
+     * 비밀번호 변경 성공 시 변경 안내 메일을 발송합니다.
+     *
+     * @param userId 수정할 사용자 ID
+     * @param req    수정 요청 정보
+     * @return OK(성공), SOCIAL_LOCKED(소셜 전용 계정), CURRENT_PASSWORD_MISMATCH(현재 비밀번호 불일치), NOT_FOUND(사용자 없음)
+     */
     @Transactional
     public Result updateProfile(Long userId, UserUpdateRequest req) {
         return userRepository.findById(userId)
@@ -205,6 +242,12 @@ public class AuthService {
                 .orElse(Result.fail(Result.Code.NOT_FOUND));
     }
 
+    /**
+     * 회원 탈퇴 처리를 수행합니다.
+     * 작성 게시글 익명화 → 댓글 삭제 → 좋아요 삭제 → 이미지 삭제 → 계정 삭제 순으로 진행합니다.
+     *
+     * @param userId 탈퇴할 사용자 ID
+     */
     @Transactional
     public void deleteAccount(Long userId) {
         User user = userRepository.findById(userId)
@@ -234,6 +277,13 @@ public class AuthService {
         userRepository.delete(user);
     }
 
+    /**
+     * 카카오 인증 코드로 사용자를 조회하거나 신규 생성합니다.
+     * 최초 로그인 시 카카오 프로필 정보로 계정을 자동 생성합니다.
+     *
+     * @param code 카카오 OAuth 인증 코드
+     * @return 로그인 처리된 User 엔티티
+     */
     public User syncKakaoUser(String code) {
         log.info("[KakaoLogin] code 수신 길이={} prefix={}",
                 code == null ? 0 : code.length(),
@@ -293,6 +343,14 @@ public class AuthService {
         return user;
     }
 
+    /**
+     * 네이버 인증 코드로 사용자를 조회하거나 신규 생성합니다.
+     * 최초 로그인 시 네이버 프로필 정보로 계정을 자동 생성합니다.
+     *
+     * @param code  네이버 OAuth 인증 코드
+     * @param state CSRF 방지용 state 값
+     * @return 로그인 처리된 User 엔티티
+     */
     public User syncNaverUser(String code, String state) {
         log.info("[NaverLogin] code 수신 길이={} prefix={}",
                 code == null ? 0 : code.length(),
@@ -349,6 +407,13 @@ public class AuthService {
         return user;
     }
 
+    /**
+     * 구글 인증 코드로 사용자를 조회하거나 신규 생성합니다.
+     * 최초 로그인 시 구글 프로필 정보로 계정을 자동 생성합니다.
+     *
+     * @param code 구글 OAuth 인증 코드
+     * @return 로그인 처리된 User 엔티티
+     */
     public User syncGoogleUser(String code) {
         log.info("[GoogleLogin] code 수신 길이={} prefix={}",
                 code == null ? 0 : code.length(),

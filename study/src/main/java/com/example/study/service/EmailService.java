@@ -14,6 +14,10 @@ import org.springframework.stereotype.Service;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 
+/**
+ * 이메일 발송 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
+ * 회원가입 환영, 비밀번호 재설정, 좋아요 알림, 단체 메일 등 다양한 메일 발송 기능을 제공합니다.
+ */
 @Service
 public class EmailService {
 
@@ -33,6 +37,12 @@ public class EmailService {
         this.fromName = fromName;
     }
 
+    /**
+     * 회원가입 완료 환영 메일을 비동기로 발송합니다.
+     *
+     * @param toEmail     수신자 이메일
+     * @param displayName 수신자 표시 이름
+     */
     @Async
     public void sendWelcome(String toEmail, String displayName) {
         String subject = "[Study Notice] 회원가입을 환영합니다 🎉";
@@ -46,6 +56,13 @@ public class EmailService {
         send(toEmail, subject, html);
     }
 
+    /**
+     * 비밀번호 재설정 링크를 담은 메일을 비동기로 발송합니다. 링크는 30분간 유효합니다.
+     *
+     * @param toEmail     수신자 이메일
+     * @param displayName 수신자 표시 이름
+     * @param resetUrl    비밀번호 재설정 페이지 URL (토큰 포함)
+     */
     @Async
     public void sendPasswordReset(String toEmail, String displayName, String resetUrl) {
         String subject = "[Study Notice] 비밀번호 재설정 안내";
@@ -67,6 +84,12 @@ public class EmailService {
         send(toEmail, subject, html);
     }
 
+    /**
+     * 비밀번호 변경 완료 알림 메일을 비동기로 발송합니다.
+     *
+     * @param toEmail     수신자 이메일
+     * @param displayName 수신자 표시 이름
+     */
     @Async
     public void sendPasswordChanged(String toEmail, String displayName) {
         String subject = "[Study Notice] 비밀번호가 변경되었습니다";
@@ -81,7 +104,14 @@ public class EmailService {
         send(toEmail, subject, html);
     }
 
-    /** 회원가입 인증번호 메일 (동기 — 발송 결과를 사용자가 즉시 알아야 하므로) */
+    /**
+     * 회원가입 이메일 인증번호를 동기로 발송합니다.
+     * 발송 결과를 즉시 확인해야 하므로 @Async를 사용하지 않습니다.
+     *
+     * @param toEmail      수신자 이메일
+     * @param code         6자리 인증번호
+     * @param validMinutes 인증번호 유효 시간 (분)
+     */
     public void sendVerificationCode(String toEmail, String code, int validMinutes) throws MessagingException, UnsupportedEncodingException {
         String subject = "[Study Notice] 이메일 인증번호: " + code;
         String html = """
@@ -106,6 +136,15 @@ public class EmailService {
         log.info("[Mail] 인증번호 발송 완료 → {}", toEmail);
     }
 
+    /**
+     * 게시글에 좋아요가 눌렸을 때 작성자에게 알림 메일을 비동기로 발송합니다.
+     *
+     * @param toEmail     수신자(게시글 작성자) 이메일
+     * @param authorName  게시글 작성자 이름
+     * @param likerName   좋아요를 누른 사용자 이름
+     * @param noticeTitle 게시글 제목
+     * @param noticeUrl   게시글 링크 URL
+     */
     @Async
     public void sendNoticeLiked(String toEmail, String authorName, String likerName,
                                  String noticeTitle, String noticeUrl) {
@@ -126,6 +165,16 @@ public class EmailService {
         send(toEmail, subject, html);
     }
 
+    /**
+     * 댓글에 좋아요가 눌렸을 때 댓글 작성자에게 알림 메일을 비동기로 발송합니다.
+     *
+     * @param toEmail        수신자(댓글 작성자) 이메일
+     * @param commentAuthor  댓글 작성자 이름
+     * @param likerName      좋아요를 누른 사용자 이름
+     * @param noticeTitle    게시글 제목
+     * @param commentExcerpt 댓글 내용 발췌 (최대 200자)
+     * @param noticeUrl      게시글 링크 URL
+     */
     @Async
     public void sendCommentLiked(String toEmail, String commentAuthor, String likerName,
                                   String noticeTitle, String commentExcerpt, String noticeUrl) {
@@ -151,6 +200,11 @@ public class EmailService {
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     }
 
+    /**
+     * 서버 점검 시작 안내 메일을 비동기로 단체 발송합니다.
+     *
+     * @param recipients 수신자 이메일 목록
+     */
     @Async
     public void sendMaintenanceNotice(java.util.List<String> recipients) {
         if (recipients == null || recipients.isEmpty()) return;
@@ -167,6 +221,11 @@ public class EmailService {
         sendBroadcastSync(recipients, subject, html);
     }
 
+    /**
+     * 서버 점검 완료 안내 메일을 비동기로 단체 발송합니다.
+     *
+     * @param recipients 수신자 이메일 목록
+     */
     @Async
     public void sendMaintenanceEndNotice(java.util.List<String> recipients) {
         if (recipients == null || recipients.isEmpty()) return;
@@ -182,7 +241,15 @@ public class EmailService {
         sendBroadcastSync(recipients, subject, html);
     }
 
-    /** 동기 단체 메일 — 호출자에게 발송 성공/실패 결과를 즉시 알려야 할 때 사용. */
+    /**
+     * 단체 메일을 동기로 발송합니다. 호출자에게 발송 성공/실패 결과를 즉시 반환합니다.
+     * 수신자는 BCC로 처리되어 서로의 주소가 노출되지 않습니다.
+     *
+     * @param recipients 수신자 이메일 목록
+     * @param subject    메일 제목
+     * @param html       HTML 본문
+     * @return 발송 성공 시 true
+     */
     public boolean sendBroadcastSync(java.util.List<String> recipients, String subject, String html) {
         if (recipients == null || recipients.isEmpty()) return false;
         try {

@@ -48,7 +48,16 @@ public class KakaoTalkMessageService {
         this.frontendUrl = frontendUrl;
     }
 
-    /** 사용자에게 "나에게 보내기"로 텍스트 메시지 전송. 토큰 만료 시 자동 refresh. */
+    /**
+     * 사용자에게 카카오톡 "나에게 보내기"로 텍스트 메시지를 전송합니다.
+     * 카카오 연동 계정이 아니거나 알림 수신 거부 시 발송하지 않습니다.
+     * 토큰 만료 시 자동으로 refresh 후 1회 재시도합니다.
+     *
+     * @param user    메시지를 받을 사용자 엔티티
+     * @param text    전송할 텍스트 (최대 200자, 초과 시 자동 절삭)
+     * @param linkUrl 메시지에 포함할 링크 URL (null이면 프론트엔드 기본 URL 사용)
+     * @return 발송 성공 시 true
+     */
     public boolean sendTextToSelf(User user, String text, String linkUrl) {
         if (user.getKakaoId() == null) return false;
         if (!user.isKakaoTalkOptIn()) return false;

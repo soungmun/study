@@ -51,6 +51,15 @@ public class CommentLikeService {
         this.frontendUrl = frontendUrl;
     }
 
+    /**
+     * 댓글 좋아요를 토글합니다.
+     * 이미 좋아요를 눌렀으면 취소, 누르지 않았으면 추가합니다.
+     * 좋아요 추가 시 댓글 작성자에게 알림 메일을 발송합니다.
+     *
+     * @param commentId 좋아요를 누를 댓글 ID
+     * @param userId    좋아요를 누르는 사용자 ID
+     * @return liked(현재 좋아요 여부), count(현재 좋아요 총 개수)
+     */
     @Transactional
     public Result toggle(Long commentId, Long userId) {
         Comment comment = commentRepository.findById(commentId)
@@ -76,6 +85,11 @@ public class CommentLikeService {
         return new Result(!wasLiked, count);
     }
 
+    /**
+     * 댓글 작성자에게 좋아요 알림 메일을 발송합니다.
+     * 본인 댓글에 좋아요를 누른 경우 또는 작성자 이메일이 없으면 발송하지 않습니다.
+     * 메일 발송 실패 시 예외를 던지지 않고 경고 로그만 남깁니다.
+     */
     private void notifyAuthor(Comment comment, Long likerUserId) {
         if (comment.getUserId() == null || comment.getUserId().equals(likerUserId)) return;
         try {
@@ -100,6 +114,12 @@ public class CommentLikeService {
         }
     }
 
+    /**
+     * 여러 댓글의 좋아요 수를 한 번에 조회합니다.
+     *
+     * @param ids 조회할 댓글 ID 목록
+     * @return {댓글ID: 좋아요수} 형태의 Map. 좋아요가 없는 댓글은 Map에 포함되지 않습니다.
+     */
     public Map<Long, Long> countsByCommentIds(Collection<Long> ids) {
         Map<Long, Long> map = new HashMap<>();
         if (ids == null || ids.isEmpty()) return map;
@@ -109,6 +129,13 @@ public class CommentLikeService {
         return map;
     }
 
+    /**
+     * 특정 사용자가 좋아요를 누른 댓글 ID 목록을 반환합니다.
+     *
+     * @param userId     조회할 사용자 ID
+     * @param commentIds 확인할 댓글 ID 목록
+     * @return 사용자가 좋아요를 누른 댓글 ID의 Set
+     */
     public Set<Long> likedCommentIdsByUser(Long userId, Collection<Long> commentIds) {
         if (userId == null || commentIds == null || commentIds.isEmpty()) return Set.of();
         return new HashSet<>(likeRepository.findLikedCommentIds(userId, commentIds));
