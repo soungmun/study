@@ -13,10 +13,6 @@ public interface NoticeImageRepository extends JpaRepository<NoticeImage, Long> 
     // SQL: SELECT * FROM notice_image WHERE id IN (...) AND user_id = ?
     List<NoticeImage> findByIdInAndUserId(List<Long> ids, Long userId);
 
-    // 특정 이미지 ID 목록 조회
-    // SQL: SELECT * FROM notice_image WHERE id IN (...)
-    List<NoticeImage> findByIdIn(List<Long> ids);
-
     // 특정 사용자가 업로드한 이미지 전체 조회 (회원 탈퇴 시 사용)
     // SQL: SELECT * FROM notice_image WHERE user_id = ?
     List<NoticeImage> findByUserId(Long userId);
