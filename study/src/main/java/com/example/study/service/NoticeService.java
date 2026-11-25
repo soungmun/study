@@ -247,7 +247,7 @@ public class NoticeService {
     private boolean isAdmin(Long currentUserId) {
         if (currentUserId == null) return false;
         return userRepository.findById(currentUserId)
-                .map(u -> "ADMIN".equals(u.getRole()))
+                .map(u -> "Admin".equals(u.getUsername()))
                 .orElse(false);
     }
 

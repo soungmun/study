@@ -104,7 +104,7 @@ public class NoticeImageService {
             log.warn("파일 삭제 실패: {} - {}", storedName, e.getMessage());
         }
     }
-
+    /**업로드 파일 검증 */
     private void validateFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("파일이 비어 있습니다.");

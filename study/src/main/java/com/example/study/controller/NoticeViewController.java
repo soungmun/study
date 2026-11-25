@@ -42,7 +42,6 @@ public class NoticeViewController {
         Page<NoticeListItem> noticePage = noticeService.search(
                 type, keyword.isBlank() ? null : keyword,
                 PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id")));
-
         model.addAttribute("noticePage", noticePage);
         model.addAttribute("type", type);
         model.addAttribute("keyword", keyword);
