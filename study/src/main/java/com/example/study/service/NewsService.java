@@ -1,7 +1,6 @@
 package com.example.study.service;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -20,10 +19,9 @@ import java.util.List;
  * 주식 관련 뉴스 검색 비즈니스 로직을 처리하는 서비스 클래스입니다.
  * 네이버 검색 API 등을 이용하여 특정 종목 관련 뉴스를 가져옵니다.
  */
+@Slf4j
 @Service
 public class NewsService {
-
-    private static final Logger log = LoggerFactory.getLogger(NewsService.class);
 
     // 한국어 주식·증시 관련 헤드라인 (Google News RSS, 인증 불필요)
     private static final String FEED_URL =

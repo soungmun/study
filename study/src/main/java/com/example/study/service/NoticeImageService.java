@@ -2,8 +2,7 @@ package com.example.study.service;
 
 import com.example.study.entity.NoticeImage;
 import com.example.study.repository.NoticeImageRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,11 +19,11 @@ import java.util.UUID;
  * 공지사항 이미지 파일 업로드 및 삭제 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
  * 로컬 파일 시스템 또는 클라우드 스토리지에 이미지를 저장하고 관리합니다.
  */
+@Slf4j
 @Service
 @Transactional(readOnly = true)
 public class NoticeImageService {
 
-    private static final Logger log = LoggerFactory.getLogger(NoticeImageService.class);
     private static final long MAX_FILE_SIZE = 10 * 1024 * 1024L; // 10MB
     private static final List<String> ALLOWED_TYPES = List.of(
             "image/jpeg", "image/png", "image/gif", "image/webp"

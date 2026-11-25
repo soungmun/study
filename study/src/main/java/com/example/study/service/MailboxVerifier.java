@@ -1,7 +1,6 @@
 package com.example.study.service;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -38,10 +37,9 @@ import java.util.List;
  * 이메일 수신 가능 여부를 검증하는 서비스 클래스입니다.
  * SMTP 프로토콜을 이용해 실제 메일 서버의 수신함 존재 여부를 확인합니다.
  */
+@Slf4j
 @Service
 public class MailboxVerifier {
-
-    private static final Logger log = LoggerFactory.getLogger(MailboxVerifier.class);
 
     public enum Result { DELIVERABLE, UNDELIVERABLE, UNKNOWN }
 

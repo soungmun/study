@@ -1,5 +1,6 @@
 package com.example.study.service;
 
+import lombok.extern.slf4j.Slf4j;
 import com.example.study.entity.Comment;
 import com.example.study.entity.CommentLike;
 import com.example.study.entity.Notice;
@@ -8,8 +9,6 @@ import com.example.study.repository.CommentLikeRepository;
 import com.example.study.repository.CommentRepository;
 import com.example.study.repository.NoticeRepository;
 import com.example.study.repository.UserRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,11 +23,10 @@ import java.util.Set;
  * 댓글 좋아요 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
  * 특정 사용자의 댓글 좋아요 추가 및 취소(토글) 기능을 수행합니다.
  */
+@Slf4j
 @Service
 @Transactional
 public class CommentLikeService {
-
-    private static final Logger log = LoggerFactory.getLogger(CommentLikeService.class);
 
     private final CommentLikeRepository likeRepository;
     private final CommentRepository commentRepository;

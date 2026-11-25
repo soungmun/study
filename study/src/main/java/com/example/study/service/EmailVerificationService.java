@@ -1,11 +1,10 @@
 package com.example.study.service;
 
+import lombok.extern.slf4j.Slf4j;
 import com.example.study.entity.EmailVerification;
 import com.example.study.repository.EmailVerificationRepository;
 import com.example.study.repository.UserRepository;
 import jakarta.mail.MessagingException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,10 +18,9 @@ import java.util.Optional;
  * 회원가입 이메일 인증 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
  * 인증번호 발송, 검증, 소비(완료 처리) 기능을 담당합니다.
  */
+@Slf4j
 @Service
 public class EmailVerificationService {
-
-    private static final Logger log = LoggerFactory.getLogger(EmailVerificationService.class);
 
     private static final int CODE_VALID_MINUTES = 5;
     private static final Duration RESEND_THROTTLE = Duration.ofSeconds(60);

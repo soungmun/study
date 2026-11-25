@@ -1,9 +1,8 @@
 package com.example.study.service;
 
+import lombok.extern.slf4j.Slf4j;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -15,10 +14,9 @@ import java.util.List;
  * 주식 시세 조회 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
  * 외부 금융 API를 통해 종목 현재가, 차트 정보, 상승/하락률 정보를 제공합니다.
  */
+@Slf4j
 @Service
 public class StockService {
-
-    private static final Logger log = LoggerFactory.getLogger(StockService.class);
     private static final String CHART_URL = "https://query1.finance.yahoo.com/v8/finance/chart/";
 
     private static final List<Symbol> WATCHLIST = List.of(

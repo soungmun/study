@@ -1,11 +1,10 @@
 package com.example.study.service;
 
+import lombok.extern.slf4j.Slf4j;
 import com.example.study.dto.response.AirQualityResponse;
 import com.example.study.dto.response.WeatherResponse;
 import com.example.study.entity.User;
 import com.example.study.repository.UserRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -25,10 +24,9 @@ import java.util.Locale;
  * 매일 정기적으로 발송되는 메일 스케줄러 클래스입니다.
  * 사용자의 메일 수신 동의 여부에 따라 정기 소식지 등을 자동 발송합니다.
  */
+@Slf4j
 @Service
 public class DailyMailScheduler {
-
-    private static final Logger log = LoggerFactory.getLogger(DailyMailScheduler.class);
     private static final DateTimeFormatter DATE_FMT =
             DateTimeFormatter.ofPattern("yyyy년 M월 d일 EEEE", Locale.KOREAN);
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");

@@ -1,10 +1,9 @@
 package com.example.study.service;
 
+import lombok.extern.slf4j.Slf4j;
 import com.example.study.dto.response.AirQualityResponse;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -20,10 +19,9 @@ import java.util.Map;
  * 미세먼지 및 대기질 정보 조회 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
  * 외부 API 연동을 통해 실시간 대기 정보를 가져옵니다.
  */
+@Slf4j
 @Service
 public class AirQualityService {
-
-    private static final Logger log = LoggerFactory.getLogger(AirQualityService.class);
     private static final String AIR_URL = "https://api.open-meteo.com/v1/air-quality";
 
     private final RestClient restClient = RestClient.create();

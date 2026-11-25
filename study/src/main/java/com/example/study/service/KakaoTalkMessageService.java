@@ -1,11 +1,10 @@
 package com.example.study.service;
 
+import lombok.extern.slf4j.Slf4j;
 import com.example.study.dto.response.KakaoTokenResponse;
 import com.example.study.entity.User;
 import com.example.study.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
@@ -25,10 +24,9 @@ import java.util.Map;
  * 카카오톡 메시지 발송 연동 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
  * 사용자에게 알림톡 혹은 카카오톡 메시지를 전송하는 기능을 담당합니다.
  */
+@Slf4j
 @Service
 public class KakaoTalkMessageService {
-
-    private static final Logger log = LoggerFactory.getLogger(KakaoTalkMessageService.class);
     private static final String SEND_URL = "https://kapi.kakao.com/v2/api/talk/memo/default/send";
     private static final int TEXT_MAX = 200;
 

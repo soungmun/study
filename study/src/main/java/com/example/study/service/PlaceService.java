@@ -1,8 +1,7 @@
 package com.example.study.service;
 
+import lombok.extern.slf4j.Slf4j;
 import com.example.study.dto.response.PlaceSearchResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
@@ -19,10 +18,9 @@ import java.util.stream.Collectors;
  * 장소 검색 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
  * 카카오 로컬 API 등을 사용하여 장소 키워드 검색 및 주변 장소 정보를 제공합니다.
  */
+@Slf4j
 @Service
 public class PlaceService {
-
-    private static final Logger log = LoggerFactory.getLogger(PlaceService.class);
 
     private static final String SEARCH_URL = "https://dapi.kakao.com/v2/local/search/keyword.json";
     private static final String CATEGORY_URL = "https://dapi.kakao.com/v2/local/search/category.json";

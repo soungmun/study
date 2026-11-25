@@ -1,10 +1,9 @@
 package com.example.study.service;
 
+import lombok.extern.slf4j.Slf4j;
 import com.example.study.dto.response.KakaoTokenResponse;
 import com.example.study.dto.response.KakaoUserResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -23,10 +22,9 @@ import java.nio.charset.StandardCharsets;
  * 카카오 소셜 로그인 연동 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
  * 카카오 OAuth API와의 통신 및 토큰 발급, 사용자 프로필 조회를 수행합니다.
  */
+@Slf4j
 @Service
 public class KakaoOAuthService {
-
-    private static final Logger log = LoggerFactory.getLogger(KakaoOAuthService.class);
 
     private static final String AUTHORIZE_URL = "https://kauth.kakao.com/oauth/authorize";
     private static final String TOKEN_URL = "https://kauth.kakao.com/oauth/token";

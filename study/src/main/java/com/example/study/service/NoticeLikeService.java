@@ -1,5 +1,6 @@
 package com.example.study.service;
 
+import lombok.extern.slf4j.Slf4j;
 import com.example.study.dto.response.LikedUserResponse;
 import com.example.study.entity.Notice;
 import com.example.study.entity.NoticeLike;
@@ -7,8 +8,6 @@ import com.example.study.entity.User;
 import com.example.study.repository.NoticeLikeRepository;
 import com.example.study.repository.NoticeRepository;
 import com.example.study.repository.UserRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,11 +27,10 @@ import java.util.stream.Collectors;
  * 공지사항 게시글 좋아요 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
  * 특정 사용자의 게시글 좋아요 추가 및 취소 처리를 수행합니다.
  */
+@Slf4j
 @Service
 @Transactional
 public class NoticeLikeService {
-
-    private static final Logger log = LoggerFactory.getLogger(NoticeLikeService.class);
 
     private final NoticeLikeRepository likeRepository;
     private final NoticeRepository noticeRepository;

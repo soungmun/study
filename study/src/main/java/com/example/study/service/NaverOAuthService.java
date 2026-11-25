@@ -1,10 +1,9 @@
 package com.example.study.service;
 
+import lombok.extern.slf4j.Slf4j;
 import com.example.study.dto.response.NaverTokenResponse;
 import com.example.study.dto.response.NaverUserResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -21,10 +20,9 @@ import java.nio.charset.StandardCharsets;
  * 네이버 소셜 로그인 연동 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
  * 네이버 OAuth API와의 통신 및 토큰 발급, 사용자 정보 조회를 수행합니다.
  */
+@Slf4j
 @Service
 public class NaverOAuthService {
-
-    private static final Logger log = LoggerFactory.getLogger(NaverOAuthService.class);
 
     private static final String AUTHORIZE_URL = "https://nid.naver.com/oauth2.0/authorize";
     private static final String TOKEN_URL = "https://nid.naver.com/oauth2.0/token";

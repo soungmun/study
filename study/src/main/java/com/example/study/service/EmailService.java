@@ -3,8 +3,7 @@ package com.example.study.service;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -18,10 +17,9 @@ import java.nio.charset.StandardCharsets;
  * 이메일 발송 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
  * 회원가입 환영, 비밀번호 재설정, 좋아요 알림, 단체 메일 등 다양한 메일 발송 기능을 제공합니다.
  */
+@Slf4j
 @Service
 public class EmailService {
-
-    private static final Logger log = LoggerFactory.getLogger(EmailService.class);
 
     private final JavaMailSender mailSender;
     private final String fromAddress;

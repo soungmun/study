@@ -1,11 +1,10 @@
 package com.example.study.service;
 
+import lombok.extern.slf4j.Slf4j;
 import com.example.study.dto.request.KakaoPayReadyRequest;
 import com.example.study.dto.response.KakaoPayReadyResponse;
 import com.example.study.entity.Payment;
 import com.example.study.repository.PaymentRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -22,10 +21,9 @@ import java.util.UUID;
  * 카카오페이 결제 연동 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
  * 결제 준비, 승인, 취소 처리 등의 외부 결제 API 통신을 수행합니다.
  */
+@Slf4j
 @Service
 public class KakaoPayService {
-
-    private static final Logger log = LoggerFactory.getLogger(KakaoPayService.class);
 
     private final PaymentRepository paymentRepository;
     private final RestClient restClient = RestClient.create();
